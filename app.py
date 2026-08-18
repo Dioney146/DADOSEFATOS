@@ -78,81 +78,133 @@ COLUNAS_ESPERADAS = [
 
 CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-.stApp { background: #F4F4F2; }
-header[data-testid="stHeader"] { background: transparent; }
-.block-container { padding-top: 1.6rem; padding-bottom: 2.5rem; max-width: 1500px; }
+/* ── Base: o site é claro, independente do tema do navegador/Streamlit ────── */
+.stApp, [data-testid="stAppViewContainer"] { background: #F4F4F2 !important; }
+header[data-testid="stHeader"] { background: transparent !important; }
+.block-container { padding-top: 1.4rem; padding-bottom: 2.5rem; max-width: 1560px; }
+html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
+.stApp h1, .stApp h2, .stApp h3, .stApp h4 {
+    color: #14161A;
+    font-family: 'Archivo', sans-serif;
+}
 
-html, body, [class*="css"] { color: #14161A; font-family: 'Archivo', sans-serif; }
-
-/* Cabeçalho */
+/* ── Cabeçalho ───────────────────────────────────────────────────────────── */
 .cab {
     display: flex; align-items: flex-end; justify-content: space-between;
-    gap: 24px; border-bottom: 2px solid #14161A; padding-bottom: 10px; margin-bottom: 22px;
+    gap: 24px; border-bottom: 2px solid #14161A; padding-bottom: 10px; margin-bottom: 18px;
 }
 .cab-titulo {
     font-family: 'Barlow Condensed', sans-serif; font-weight: 700; letter-spacing: .02em;
-    font-size: 44px; line-height: .95; text-transform: uppercase; margin: 0;
+    font-size: 42px; line-height: .95; text-transform: uppercase; margin: 0; color: #14161A;
 }
 .cab-sub {
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .18em;
-    text-transform: uppercase; color: #8A9299; margin-top: 6px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .16em;
+    text-transform: uppercase; color: #7C858D; margin-top: 6px;
 }
-.cab-meta { display: flex; gap: 30px; }
+.cab-meta { display: flex; gap: 28px; }
 .meta-item { text-align: right; }
 .meta-rot {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .18em;
-    text-transform: uppercase; color: #8A9299;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .16em;
+    text-transform: uppercase; color: #7C858D;
 }
 .meta-val {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px; line-height: 1.1;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px;
+    line-height: 1.1; color: #14161A;
 }
 
-/* Painéis (st.container(border=True)) */
-div[data-testid="stVerticalBlockBorderWrapper"]:has(> div > div > div > .painel-topo),
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    background: #FFFFFF; border-color: #DCDFE3 !important; border-radius: 3px;
+/* ── Cartões de resumo ───────────────────────────────────────────────────── */
+.kpis { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+.kpi {
+    flex: 1; min-width: 150px; background: #FFFFFF; border: 1px solid #DCDFE3;
+    border-top: 3px solid #5D87B0; border-radius: 3px; padding: 10px 14px 12px 14px;
 }
-section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] { background: transparent; }
+.kpi-rot {
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .14em;
+    text-transform: uppercase; color: #7C858D;
+}
+.kpi-val {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px;
+    line-height: 1.1; color: #14161A;
+}
+.kpi-nota { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #7C858D; }
+
+/* ── Painéis (st.container com borda) ────────────────────────────────────── */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: #FFFFFF; border: 1px solid #DCDFE3 !important; border-radius: 3px;
+}
+section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] {
+    background: transparent; border-color: transparent !important;
+}
 .painel-topo {
     display: flex; align-items: baseline; justify-content: space-between;
-    border-bottom: 1px solid #ECEEF0; padding-bottom: 8px; margin-bottom: 6px;
+    border-bottom: 1px solid #ECEEF0; padding-bottom: 8px; margin-bottom: 4px;
 }
 .painel-titulo {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px;
-    text-transform: uppercase; letter-spacing: .03em;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px;
+    text-transform: uppercase; letter-spacing: .03em; color: #14161A;
 }
 .painel-nota {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .14em;
-    text-transform: uppercase; color: #8A9299;
-}
-.painel-vazio {
-    font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #8A9299; padding: 30px 0;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: #7C858D;
 }
 
-/* Faixa de números acima dos gráficos */
+/* ── Faixa de números acima dos gráficos ─────────────────────────────────── */
 .faixa { display: flex; gap: 2px; margin: 2px 0 0 0; }
 .faixa-cel { flex: 1; text-align: center; }
 .faixa-n1 {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; color: #5D87B0;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #5D87B0;
 }
 .faixa-n2 {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; color: #2C3440;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #2C3440;
 }
 
-/* Rodapé de fonte */
+/* ── Mini estatísticas (painel de drop) ──────────────────────────────────── */
+.mini { display: flex; gap: 12px; margin: 6px 0 4px 0; }
+.mini-item { flex: 1; }
+.mini-rot {
+    font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: .12em;
+    text-transform: uppercase; color: #7C858D;
+}
+.mini-val {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px;
+    line-height: 1.1; color: #14161A;
+}
+.mini-dia { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #7C858D; }
+
+/* ── Rodapé ──────────────────────────────────────────────────────────────── */
 .fonte {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .14em;
-    text-transform: uppercase; color: #8A9299; margin-top: 26px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em;
+    text-transform: uppercase; color: #7C858D; margin-top: 22px;
     border-top: 1px solid #DCDFE3; padding-top: 10px;
 }
 
-section[data-testid="stSidebar"] { background: #FFFFFF; border-right: 1px solid #DCDFE3; }
-section[data-testid="stSidebar"] h2 {
-    font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: .04em;
+/* ── Barra lateral: clara e legível em qualquer tema ─────────────────────── */
+section[data-testid="stSidebar"], section[data-testid="stSidebar"] > div {
+    background: #FFFFFF !important; border-right: 1px solid #DCDFE3;
 }
-div[data-testid="stMetricValue"] { font-family: 'Barlow Condensed', sans-serif; }
+section[data-testid="stSidebar"] * { color: #14161A; }
+section[data-testid="stSidebar"] h2 {
+    font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase;
+    letter-spacing: .04em; font-size: 17px; margin-bottom: .2rem;
+}
+section[data-testid="stSidebar"] label p { font-size: 12px; font-weight: 600; }
+
+/* Campos de formulário sempre claros */
+div[data-baseweb="select"] > div, div[data-baseweb="input"] > div,
+div[data-testid="stFileUploaderDropzone"], div[data-baseweb="popover"] li {
+    background: #FFFFFF !important; border-color: #DCDFE3 !important; color: #14161A !important;
+}
+div[data-baseweb="popover"] ul { background: #FFFFFF !important; }
+/* Etiquetas dos multiselects */
+span[data-baseweb="tag"] {
+    background: #2C3440 !important; border-radius: 2px !important;
+}
+span[data-baseweb="tag"] span, span[data-baseweb="tag"] svg { color: #FFFFFF !important; fill: #FFFFFF !important; }
+
+/* Botão de alternância do drop */
+div[data-testid="stSegmentedControl"] button { font-size: 12px; }
 </style>
 """
 
@@ -407,7 +459,13 @@ def faixa_numeros(valores: list[str], cor: str = "azul") -> None:
     st.markdown(f'<div class="faixa">{celulas}</div>', unsafe_allow_html=True)
 
 
-def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 190) -> go.Figure:
+def eixo_datas(fig: go.Figure, dados: pd.DataFrame) -> None:
+    """Com muitos dias, mostra um rótulo sim, outro não, para não embolar."""
+    passo = 1 if len(dados) <= 18 else 2 if len(dados) <= 40 else 3
+    fig.update_xaxes(**EIXO_X, type="category", dtick=passo, tickangle=-90 if len(dados) > 12 else 0)
+
+
+def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 232) -> go.Figure:
     fig = go.Figure(
         go.Bar(
             x=dados["ROTULO"], y=dados[coluna],
@@ -416,26 +474,58 @@ def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 190) -> go.Fi
         )
     )
     fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0.35)
-    fig.update_xaxes(**EIXO_X)
+    eixo_datas(fig, dados)
     fig.update_yaxes(**EIXO_Y, visible=False)
     return fig
 
 
-def grafico_barras_horizontais(dados: pd.DataFrame, coluna: str, altura: int = 260) -> go.Figure:
-    dados = dados.iloc[::-1]
-    maximo = float(dados[coluna].max() or 1)
+def cores_pela_media(valores, media: float) -> list[str]:
+    """Dias acima da média em azul cheio; abaixo, em azul claro."""
+    return [COR_AZUL if (pd.notna(v) and v >= media) else COR_AZUL_CLARO for v in valores]
+
+
+def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232) -> go.Figure:
+    """Drop em ordem cronológica, no mesmo eixo dos demais painéis do dia."""
+    media = float(dados[coluna].mean())
+    fig = go.Figure(
+        go.Bar(
+            x=dados["ROTULO"], y=dados[coluna], width=0.62,
+            marker_color=cores_pela_media(dados[coluna], media), marker_line_width=0,
+            hovertemplate="%{x}<br>%{y:.1f} kg<extra></extra>",
+        )
+    )
+    fig.add_hline(
+        y=media, line_width=1, line_dash="dot", line_color=COR_ESCURA,
+        annotation_text=f"média {num(media, 1)}", annotation_position="top left",
+        annotation_font=dict(family="IBM Plex Mono, monospace", size=9, color=COR_SUAVE),
+    )
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0.35)
+    eixo_datas(fig, dados)
+    fig.update_yaxes(**EIXO_Y, visible=False)
+    return fig
+
+
+def grafico_drop_ranking(dados: pd.DataFrame, coluna: str, limite: int = 12,
+                         altura: int = 232) -> go.Figure:
+    """Dias ordenados do maior para o menor drop, com trilho de comparação."""
+    media = float(dados[coluna].mean())
+    ranking = dados.dropna(subset=[coluna]).sort_values(coluna, ascending=False).head(limite)
+    ranking = ranking.iloc[::-1]
+    maximo = float(ranking[coluna].max() or 1)
+
     fig = go.Figure()
     fig.add_trace(go.Bar(
-        y=dados["ROTULO"], x=[maximo] * len(dados), orientation="h",
+        y=ranking["ROTULO"], x=[maximo] * len(ranking), orientation="h",
         marker_color=COR_TRILHO, marker_line_width=0, hoverinfo="skip", width=0.55,
     ))
     fig.add_trace(go.Bar(
-        y=dados["ROTULO"], x=dados[coluna], orientation="h",
-        marker_color=COR_AZUL, marker_line_width=0, width=0.55,
-        text=[num(v, 1) for v in dados[coluna]], textposition="outside",
-        textfont=dict(family="Barlow Condensed, sans-serif", size=14, color=COR_TEXTO),
+        y=ranking["ROTULO"], x=ranking[coluna], orientation="h", width=0.55,
+        marker_color=cores_pela_media(ranking[coluna], media), marker_line_width=0,
+        text=[num(v, 1) for v in ranking[coluna]], textposition="outside",
+        textfont=dict(family="Barlow Condensed, sans-serif", size=13, color=COR_TEXTO),
         hovertemplate="%{y}<br>%{x:.1f} kg<extra></extra>",
     ))
+    fig.add_vline(y0=0, y1=1, x=media, line_width=1, line_dash="dot", line_color=COR_ESCURA)
     fig.update_layout(**LAYOUT_BASE, height=altura, barmode="overlay", bargap=0.25)
     fig.update_xaxes(visible=False, range=[0, maximo * 1.18])
     fig.update_yaxes(showgrid=False, zeroline=False, linecolor="rgba(0,0,0,0)",
@@ -443,8 +533,28 @@ def grafico_barras_horizontais(dados: pd.DataFrame, coluna: str, altura: int = 2
     return fig
 
 
+def mini_estatisticas_drop(dados: pd.DataFrame, coluna: str) -> None:
+    """Média do período e os dias de maior e menor drop."""
+    validos = dados.dropna(subset=[coluna])
+    if validos.empty:
+        return
+    melhor = validos.loc[validos[coluna].idxmax()]
+    pior = validos.loc[validos[coluna].idxmin()]
+    blocos = [
+        ("Média", num(validos[coluna].mean(), 1), "período"),
+        ("Maior", num(melhor[coluna], 1), melhor["ROTULO"]),
+        ("Menor", num(pior[coluna], 1), pior["ROTULO"]),
+    ]
+    html = "".join(
+        f'<div class="mini-item"><div class="mini-rot">{rot}</div>'
+        f'<div class="mini-val">{val}</div><div class="mini-dia">{dia}</div></div>'
+        for rot, val, dia in blocos
+    )
+    st.markdown(f'<div class="mini">{html}</div>', unsafe_allow_html=True)
+
+
 def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
-                        nome_a: str, nome_b: str, altura: int = 230) -> go.Figure:
+                        nome_a: str, nome_b: str, altura: int = 250) -> go.Figure:
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=dados["ROTULO"], y=dados[col_a], name=nome_a, mode="lines+markers",
@@ -464,7 +574,7 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
         yaxis=dict(**EIXO_Y, visible=False),
         yaxis2=dict(overlaying="y", side="right", visible=False),
     )
-    fig.update_xaxes(**EIXO_X)
+    eixo_datas(fig, dados)
     return fig
 
 
@@ -555,6 +665,26 @@ def cabecalho(uf: str, resumo: pd.DataFrame) -> None:
     )
 
 
+def linha_kpis(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
+    """Resumo do período em cinco cartões."""
+    rotas = resumo["ROTAS"].sum()
+    peso = resumo["PESO"].sum()
+    capacidade = resumo["CAPACIDADE"].sum()
+    cartoes = [
+        ("Rotas", num(rotas), f"{num(rotas / max(len(resumo), 1), 1)} por dia"),
+        ("Veículos", num(resumo["VEICULOS"].max()), f"pico em um dia · {num(resumo['VEICULOS'].mean(), 1)} na média"),
+        ("Ocupação", f"{num(peso / max(capacidade, 1) * 100, 1)}%", f"{num(peso)} de {num(capacidade)} kg"),
+        ("Entregas", num(resumo["ENTREGAS"].sum()), f"{num(resumo['PARADAS'].sum())} paradas"),
+        ("Drop médio", num(resumo[coluna_drop].mean(), 1), rotulo_drop),
+    ]
+    html = "".join(
+        f'<div class="kpi"><div class="kpi-rot">{rot}</div>'
+        f'<div class="kpi-val">{val}</div><div class="kpi-nota">{nota}</div></div>'
+        for rot, val, nota in cartoes
+    )
+    st.markdown(f'<div class="kpis">{html}</div>', unsafe_allow_html=True)
+
+
 def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
     c1, c2, c3 = st.columns([1.05, 1.05, 0.9], gap="medium")
 
@@ -573,9 +703,23 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
 
     with c3, st.container(border=True):
         titulo_painel("Drop", rotulo_drop)
-        altura_drop = max(232, 22 * len(resumo))
-        st.plotly_chart(grafico_barras_horizontais(resumo, coluna_drop, altura=altura_drop),
-                        width="stretch", config={"displayModeBar": False}, key="g_drop")
+        visao = st.segmented_control(
+            "Visão do drop", ["Por dia", "Ranking"], default="Por dia",
+            key="visao_drop", label_visibility="collapsed",
+        ) or "Por dia"
+        mini_estatisticas_drop(resumo, coluna_drop)
+        if visao == "Por dia":
+            st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=232),
+                            width="stretch", config={"displayModeBar": False}, key="g_drop_dia")
+        else:
+            limite = 12
+            st.plotly_chart(grafico_drop_ranking(resumo, coluna_drop, limite=limite, altura=232),
+                            width="stretch", config={"displayModeBar": False}, key="g_drop_rank")
+            if len(resumo) > limite:
+                st.markdown(
+                    f'<div class="painel-nota">{limite} maiores de {len(resumo)} dias</div>',
+                    unsafe_allow_html=True,
+                )
 
 
 def linha_dois(resumo: pd.DataFrame) -> None:
@@ -664,6 +808,7 @@ def main() -> None:
         return
 
     cabecalho(df["UF"].iloc[0], resumo)
+    linha_kpis(resumo, coluna_drop, rotulo_drop)
     linha_um(resumo, coluna_drop, rotulo_drop)
     st.write("")
     linha_dois(resumo)
