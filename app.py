@@ -54,7 +54,9 @@ COR_SUAVE = "#8A9299"
 COR_AZUL = "#5D87B0"
 COR_AZUL_CLARO = "#8FB3D4"
 COR_ESCURA = "#2C3440"
-COR_TRILHO = "#E6E8EA"
+COR_TRILHO = "#E2E4E6"
+COR_FUNDO_GRAFICO = "#F1F1EF"
+COR_GRADE = "#C9CCCF"
 COR_BORDA = "#DCDFE3"
 
 COLUNAS_ESPERADAS = [
@@ -132,32 +134,39 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
 
 /* ── Painéis (st.container com borda) ────────────────────────────────────── */
 div[data-testid="stVerticalBlockBorderWrapper"] {
-    background: #FFFFFF; border: 1px solid #DCDFE3 !important; border-radius: 3px;
+    background: #FFFFFF; border: 1px solid #14161A !important; border-radius: 0 !important;
+    padding: 2px 4px;
 }
 section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] {
     background: transparent; border-color: transparent !important;
 }
 .painel-topo {
     display: flex; align-items: baseline; justify-content: space-between;
-    border-bottom: 1px solid #ECEEF0; padding-bottom: 8px; margin-bottom: 4px;
+    padding: 2px 2px 10px 2px; margin-bottom: 2px;
 }
 .painel-titulo {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px;
-    text-transform: uppercase; letter-spacing: .03em; color: #14161A;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 23px;
+    text-transform: uppercase; letter-spacing: .01em; color: #14161A;
 }
 .painel-nota {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em;
-    text-transform: uppercase; color: #7C858D;
+    font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 500;
+    letter-spacing: .16em; text-transform: uppercase; color: #7C858D;
+}
+
+/* Paginação dos slides */
+.paginacao {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px;
+    text-align: center; color: #14161A; padding-top: 4px;
 }
 
 /* ── Faixa de números acima dos gráficos ─────────────────────────────────── */
-.faixa { display: flex; gap: 2px; margin: 2px 0 0 0; }
+.faixa { display: flex; gap: 2px; margin: 0 0 2px 0; }
 .faixa-cel { flex: 1; text-align: center; }
 .faixa-n1 {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #5D87B0;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; color: #5D87B0;
 }
 .faixa-n2 {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 14px; color: #2C3440;
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; color: #14161A;
 }
 
 /* ── Mini estatísticas (painel de drop) ──────────────────────────────────── */
@@ -202,6 +211,14 @@ span[data-baseweb="tag"] {
     background: #2C3440 !important; border-radius: 2px !important;
 }
 span[data-baseweb="tag"] span, span[data-baseweb="tag"] svg { color: #FFFFFF !important; fill: #FFFFFF !important; }
+
+/* Impressão (Ctrl+P) — sai igual a um slide em PDF */
+@media print {
+    section[data-testid="stSidebar"], header[data-testid="stHeader"],
+    div[data-testid="stExpander"], .stButton, div[data-testid="stSegmentedControl"] { display: none !important; }
+    .block-container { padding: 0 !important; max-width: 100% !important; }
+    div[data-testid="stVerticalBlockBorderWrapper"] { break-inside: avoid; }
+}
 
 /* Botão de alternância do drop */
 div[data-testid="stSegmentedControl"] button { font-size: 12px; }
@@ -425,15 +442,15 @@ def num(valor, casas: int = 0) -> str:
 LAYOUT_BASE = dict(
     margin=dict(l=8, r=8, t=6, b=26),
     paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor=COR_FUNDO_GRAFICO,
     font=dict(family="Archivo, sans-serif", size=11, color=COR_TEXTO),
     showlegend=False,
     hoverlabel=dict(font_size=12, font_family="Archivo, sans-serif"),
 )
 
-EIXO_X = dict(showgrid=False, zeroline=False, linecolor=COR_BORDA,
-              tickfont=dict(size=10, color=COR_SUAVE))
-EIXO_Y = dict(showgrid=True, gridcolor="#F0F1F3", zeroline=False, showline=False,
+EIXO_X = dict(showgrid=False, zeroline=False, linecolor=COR_TEXTO, linewidth=1,
+              ticks="", tickfont=dict(size=10, color=COR_SUAVE))
+EIXO_Y = dict(showgrid=True, gridcolor=COR_GRADE, griddash="dot", zeroline=False, showline=False,
               tickfont=dict(size=10, color=COR_SUAVE))
 
 
@@ -475,7 +492,7 @@ def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 232) -> go.Fi
     )
     fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0.35)
     eixo_datas(fig, dados)
-    fig.update_yaxes(**EIXO_Y, visible=False)
+    fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
 
 
@@ -501,7 +518,7 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232) ->
     )
     fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0.35)
     eixo_datas(fig, dados)
-    fig.update_yaxes(**EIXO_Y, visible=False)
+    fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
 
 
@@ -526,7 +543,9 @@ def grafico_drop_ranking(dados: pd.DataFrame, coluna: str, limite: int = 12,
         hovertemplate="%{y}<br>%{x:.1f} kg<extra></extra>",
     ))
     fig.add_vline(y0=0, y1=1, x=media, line_width=1, line_dash="dot", line_color=COR_ESCURA)
-    fig.update_layout(**LAYOUT_BASE, height=altura, barmode="overlay", bargap=0.25)
+    base = {k: v for k, v in LAYOUT_BASE.items() if k != "plot_bgcolor"}
+    fig.update_layout(**base, height=altura, barmode="overlay", bargap=0.25,
+                      plot_bgcolor="rgba(0,0,0,0)")
     fig.update_xaxes(visible=False, range=[0, maximo * 1.18])
     fig.update_yaxes(showgrid=False, zeroline=False, linecolor="rgba(0,0,0,0)",
                      tickfont=dict(size=10, color=COR_SUAVE))
@@ -571,7 +590,7 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
         **base, height=altura, showlegend=True,
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
                     font=dict(size=10, color=COR_SUAVE)),
-        yaxis=dict(**EIXO_Y, visible=False),
+        yaxis=dict(**EIXO_Y, showticklabels=False),
         yaxis2=dict(overlaying="y", side="right", visible=False),
     )
     eixo_datas(fig, dados)
@@ -596,14 +615,14 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
         arquivos = arquivos + [(f.name, f.getvalue()) for f in enviados]
 
     if not arquivos:
-        return pd.DataFrame(), ""
+        return pd.DataFrame(), "Parada", "10"
 
     st.session_state.pop("_problemas", None)
     df = carregar(tuple(arquivos))
     for aviso in st.session_state.get("_problemas", []):
         st.sidebar.warning(aviso)
     if df.empty:
-        return df, ""
+        return df, "Parada", "10"
 
     st.sidebar.markdown("## Filtros")
     ufs = sorted(df["UF"].unique())
@@ -636,7 +655,13 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
         help="Drop = peso entregue dividido pela base escolhida.",
     )
 
-    return df, base_drop
+    st.sidebar.markdown("## Apresentação")
+    dias_slide = st.sidebar.selectbox(
+        "Dias por slide", ["10", "15", "20", "Todos"], index=0,
+        help="Como no slide impresso: cada tela mostra um bloco de dias.",
+    )
+
+    return df, base_drop, dias_slide
 
 
 def cabecalho(uf: str, resumo: pd.DataFrame) -> None:
@@ -663,6 +688,27 @@ def cabecalho(uf: str, resumo: pd.DataFrame) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def navegar_slides(resumo: pd.DataFrame, dias_slide: str) -> pd.DataFrame:
+    """Divide o período em blocos de dias, como as páginas de um slide."""
+    if dias_slide == "Todos" or len(resumo) <= int(dias_slide):
+        return resumo
+
+    tamanho = int(dias_slide)
+    total = -(-len(resumo) // tamanho)
+    atual = min(st.session_state.get("slide", 1), total)
+
+    esq, meio, dir_, _ = st.columns([0.09, 0.16, 0.09, 0.66])
+    if esq.button("‹", key="slide_ant", disabled=atual == 1, width="stretch"):
+        atual -= 1
+    if dir_.button("›", key="slide_prox", disabled=atual == total, width="stretch"):
+        atual += 1
+    st.session_state["slide"] = atual
+    meio.markdown(
+        f'<div class="paginacao">{atual} / {total}</div>', unsafe_allow_html=True
+    )
+    return resumo.iloc[(atual - 1) * tamanho: atual * tamanho].reset_index(drop=True)
 
 
 def linha_kpis(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
@@ -784,7 +830,7 @@ def tabela_detalhe(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> 
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
 
-    df, base_drop = barra_lateral()
+    df, base_drop, dias_slide = barra_lateral()
 
     if df.empty:
         st.markdown('<p class="cab-titulo">Dados e fatos</p>', unsafe_allow_html=True)
@@ -807,11 +853,12 @@ def main() -> None:
         st.warning("Nenhuma rota no filtro selecionado.")
         return
 
-    cabecalho(df["UF"].iloc[0], resumo)
-    linha_kpis(resumo, coluna_drop, rotulo_drop)
-    linha_um(resumo, coluna_drop, rotulo_drop)
-    st.write("")
-    linha_dois(resumo)
+    pagina = navegar_slides(resumo, dias_slide)
+    cabecalho(df["UF"].iloc[0], pagina)
+    linha_um(pagina, coluna_drop, rotulo_drop)
+    linha_dois(pagina)
+    with st.expander("Resumo do período inteiro"):
+        linha_kpis(resumo, coluna_drop, rotulo_drop)
     tabela_detalhe(resumo, coluna_drop, rotulo_drop)
 
     st.markdown(
