@@ -142,7 +142,7 @@ header[data-testid="stHeader"] {
     background: #F4F4F2 !important; height: 3rem; z-index: 999;
 }
 .block-container {
-    padding-top: 3.2rem; padding-bottom: 2.2rem;
+    padding-top: 2.2rem; padding-bottom: 0.6rem;
     padding-left: clamp(10px, 1.4vw, 34px) !important;
     padding-right: clamp(10px, 1.4vw, 34px) !important;
     max-width: min(2560px, 99vw); margin: 0 auto;
@@ -161,7 +161,8 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
 /* ── Cabeçalho ───────────────────────────────────────────────────────────── */
 .cab {
     display: flex; align-items: flex-end; justify-content: space-between;
-    gap: 24px; border-bottom: 2px solid #14161A; padding-bottom: 10px; margin-bottom: 18px;
+    gap: 24px; border-bottom: 2px solid #14161A;
+    padding-bottom: 4px; margin: -6px 0 8px 0;
 }
 .cab-titulo {
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; letter-spacing: .02em;
@@ -170,7 +171,7 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
 }
 .cab-sub {
     font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 11px; letter-spacing: .16em;
-    text-transform: uppercase; color: #7C858D; margin-top: 6px;
+    text-transform: uppercase; color: #7C858D; margin-top: 2px;
 }
 .cab-meta { display: flex; gap: 28px; }
 .meta-item { text-align: right; }
@@ -182,22 +183,6 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700;
     font-size: clamp(20px, 1.6vw, 30px); line-height: 1.1; color: #14161A;
 }
-
-/* ── Cartões de resumo ───────────────────────────────────────────────────── */
-.kpis { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
-.kpi {
-    flex: 1; min-width: 150px; background: #FFFFFF; border: 1px solid #DCDFE3;
-    border-top: 3px solid #5D87B0; border-radius: 3px; padding: 10px 14px 12px 14px;
-}
-.kpi-rot {
-    font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px; letter-spacing: .14em;
-    text-transform: uppercase; color: #7C858D;
-}
-.kpi-val {
-    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 30px;
-    line-height: 1.1; color: #14161A;
-}
-.kpi-nota { font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px; color: #7C858D; }
 
 /* ── Painéis (st.container com borda) ────────────────────────────────────── */
 div[data-testid="stVerticalBlockBorderWrapper"] {
@@ -237,6 +222,11 @@ section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]
     font-family: 'Archivo', Arial, sans-serif; font-size: 11px; font-weight: 500;
     letter-spacing: .16em; text-transform: uppercase; color: #7C858D;
 }
+
+/* Abas do topo coladas no cabeçalho */
+div[data-testid="stTabs"] [data-baseweb="tab-list"] { gap: 18px; margin-bottom: 2px; }
+div[data-testid="stTabs"] [data-baseweb="tab-panel"] { padding-top: 4px; }
+div[data-testid="stTabs"] [data-baseweb="tab"] { padding: 2px 0; }
 
 /* Paginação dos slides */
 .paginacao {
@@ -967,26 +957,6 @@ def navegar_slides(resumo: pd.DataFrame, dias_slide: str) -> pd.DataFrame:
     return resumo.iloc[(atual - 1) * tamanho: atual * tamanho].reset_index(drop=True)
 
 
-def linha_kpis(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
-    """Resumo do período em cinco cartões."""
-    rotas = resumo["ROTAS"].sum()
-    peso = resumo["PESO"].sum()
-    capacidade = resumo["CAPACIDADE"].sum()
-    cartoes = [
-        ("Rotas", num(rotas), f"{num(rotas / max(len(resumo), 1))} por dia"),
-        ("Veículos", num(resumo["VEICULOS"].max()), f"pico em um dia · {num(resumo['VEICULOS'].mean())} na média"),
-        ("Ocupação", f"{num(peso / max(capacidade, 1) * 100)}%", f"{num(peso)} de {num(capacidade)} kg"),
-        ("Entregas", num(resumo["ENTREGAS"].sum()), f"{num(resumo['PARADAS'].sum())} paradas"),
-        ("Drop médio", num(resumo[coluna_drop].mean()), rotulo_drop),
-    ]
-    html = "".join(
-        f'<div class="kpi"><div class="kpi-rot">{rot}</div>'
-        f'<div class="kpi-val">{val}</div><div class="kpi-nota">{nota}</div></div>'
-        for rot, val, nota in cartoes
-    )
-    st.markdown(f'<div class="kpis">{html}</div>', unsafe_allow_html=True)
-
-
 # Espaço ocupado pelo seletor "Por dia / Ranking" e pelas mini estatísticas do Drop
 COMPENSACAO_DROP = 92
 # A linha de baixo tem uma faixa de números e a legenda a mais que a de cima
@@ -1166,45 +1136,6 @@ def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
                        rodapes_peso, altura, "peso", compacta=True)
 
 
-def tabela_detalhe(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
-                   chave: str = "dia") -> None:
-    tabela = pd.DataFrame({
-        "Semana" if chave == "semana" else "Data": resumo["ROTULO"],
-        "Rotas": resumo["ROTAS"],
-        "Veículos": resumo["VEICULOS"],
-        "Paradas": resumo["PARADAS"].round(0),
-        "Entregas": resumo["ENTREGAS"].round(0),
-        "Média paradas": resumo["MEDIA_PARADAS"].round(1),
-        "Peso (kg)": resumo["PESO"].round(0),
-        "Capacidade (kg)": resumo["CAPACIDADE"].round(0),
-        "Ocupação": (resumo["OCUPACAO"] * 100).round(1),
-        rotulo_drop: resumo[coluna_drop].round(1),
-    })
-    total = {
-        "Semana" if chave == "semana" else "Data": "TOTAL",
-        "Rotas": resumo["ROTAS"].sum(),
-        "Veículos": resumo["VEICULOS"].max(),
-        "Paradas": resumo["PARADAS"].sum().round(0),
-        "Entregas": resumo["ENTREGAS"].sum().round(0),
-        "Média paradas": round(resumo["PARADAS"].sum() / max(resumo["ROTAS"].sum(), 1), 1),
-        "Peso (kg)": resumo["PESO"].sum().round(0),
-        "Capacidade (kg)": resumo["CAPACIDADE"].sum().round(0),
-        "Ocupação": round(resumo["PESO"].sum() / max(resumo["CAPACIDADE"].sum(), 1) * 100, 1),
-        rotulo_drop: round(resumo[coluna_drop].mean(), 1),
-    }
-    tabela = pd.concat([tabela, pd.DataFrame([total])], ignore_index=True)
-
-    with st.expander("Ver tabela e baixar os dados"):
-        st.dataframe(tabela, width="stretch", hide_index=True, key=f"tabela_{chave}")
-        st.download_button(
-            "Baixar indicadores em CSV",
-            tabela.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig"),
-            file_name=f"indicadores_por_{chave}.csv",
-            mime="text/csv",
-            key=f"baixar_{chave}",
-        )
-
-
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
     st.markdown(selo_da_marca(), unsafe_allow_html=True)
@@ -1256,11 +1187,10 @@ def main() -> None:
                 )
             else:
                 linha_um(pagina, coluna_drop, rotulo_drop, altura=tamanho["altura"])
+                # A segunda linha herda o espaço que era dos relatórios
                 linha_dois(pagina,
-                           altura=tamanho["altura"] + COMPENSACAO_DROP - EXTRA_LINHA_DOIS)
-            with st.expander("Resumo do período inteiro"):
-                linha_kpis(resumo, coluna_drop, rotulo_drop)
-            tabela_detalhe(resumo, coluna_drop, rotulo_drop)
+                           altura=int(tamanho["altura"] * 1.55) + COMPENSACAO_DROP
+                                  - EXTRA_LINHA_DOIS)
 
     with aba_semana:
         semanal = indicadores_por_dia(df, por="Semana")
@@ -1270,13 +1200,6 @@ def main() -> None:
             cabecalho(df["UF"].iloc[0], semanal, por="Semana")
             visao_semanal(semanal, coluna_drop, rotulo_drop,
                           altura=max(150, tamanho["altura"] - 40))
-            tabela_detalhe(semanal, coluna_drop, rotulo_drop, chave="semana")
-
-    st.markdown(
-        f'<div class="fonte">Fonte: relatório de rotas RoadNet · '
-        f'{num(len(df))} rotas processadas · arquivos: {", ".join(sorted(df["ARQUIVO"].unique()))}</div>',
-        unsafe_allow_html=True,
-    )
 
 
 if __name__ == "__main__":
