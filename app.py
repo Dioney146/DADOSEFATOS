@@ -659,7 +659,11 @@ def faixa_numeros(valores: list[str], cor: str = "azul", ajuste: int = 0) -> Non
         return
 
     corpo, espaco = corpo_dos_valores(len(valores))
-    corpo = max(8, corpo + ajuste)
+    # Números compridos (3+ dígitos) ocupam mais espaço: encolhem mais um degrau
+    mais_longo = max((len(str(v)) for v in valores), default=2)
+    if len(valores) > 16 and mais_longo > 2:
+        corpo -= mais_longo - 2
+    corpo = max(7, corpo + ajuste)
     classe = "faixa-n1" if cor == "azul" else "faixa-n2"
     celulas = "".join(
         f'<div class="faixa-cel"><span class="{classe}">{v}</span></div>' for v in valores
@@ -936,7 +940,8 @@ EXTRA_LINHA_DOIS = 46
 
 def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
              altura: int = 232) -> None:
-    c1, c2, c3 = st.columns([1.05, 1.05, 0.9], gap="small")
+    # O Drop precisa de mais largura: seus valores têm 3 dígitos
+    c1, c2, c3 = st.columns([0.92, 0.92, 1.26], gap="small")
     altura_lateral = altura + COMPENSACAO_DROP
 
     with c1, st.container(border=True):
