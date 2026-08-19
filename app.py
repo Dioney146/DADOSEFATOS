@@ -182,6 +182,13 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     background: #FFFFFF; border: 1px solid #14161A !important; border-radius: 0 !important;
     padding: 2px 4px;
 }
+/* Espaçamento enxuto entre painéis e entre as linhas */
+div[data-testid="stHorizontalBlock"] { gap: 8px !important; margin-bottom: 8px; }
+div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stElementContainer"] {
+    margin-bottom: 0 !important;
+}
+div[data-testid="stVerticalBlock"] { gap: 8px !important; }
+
 /* Painéis lado a lado terminam na mesma altura */
 div[data-testid="stHorizontalBlock"] { align-items: stretch; }
 div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] { display: flex; }
@@ -491,7 +498,7 @@ def num(valor, casas: int = 0) -> str:
 # ──────────────────────────────────────────────────────────────────────────────
 
 LAYOUT_BASE = dict(
-    margin=dict(l=8, r=8, t=6, b=26),
+    margin=dict(l=6, r=6, t=4, b=22),
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor=COR_FUNDO_GRAFICO,
     font=dict(family="Archivo, sans-serif", size=11, color=COR_TEXTO),
@@ -799,11 +806,13 @@ def linha_kpis(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None
 
 # Espaço ocupado pelo seletor "Por dia / Ranking" e pelas mini estatísticas do Drop
 COMPENSACAO_DROP = 92
+# A linha de baixo tem uma faixa de números e a legenda a mais que a de cima
+EXTRA_LINHA_DOIS = 46
 
 
 def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
              altura: int = 232) -> None:
-    c1, c2, c3 = st.columns([1.05, 1.05, 0.9], gap="medium")
+    c1, c2, c3 = st.columns([1.05, 1.05, 0.9], gap="small")
     altura_lateral = altura + COMPENSACAO_DROP
 
     with c1, st.container(border=True):
@@ -842,7 +851,7 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 
 
 def linha_dois(resumo: pd.DataFrame, altura: int = 250) -> None:
-    c1, c2 = st.columns(2, gap="medium")
+    c1, c2 = st.columns(2, gap="small")
 
     with c1, st.container(border=True):
         titulo_painel("Paradas × entregas", "entregas / média de paradas")
@@ -968,7 +977,8 @@ def main() -> None:
         )
     else:
         linha_um(pagina, coluna_drop, rotulo_drop, altura=tamanho["altura"])
-        linha_dois(pagina, altura=tamanho["altura"] + COMPENSACAO_DROP)
+        linha_dois(pagina,
+                   altura=tamanho["altura"] + COMPENSACAO_DROP - EXTRA_LINHA_DOIS)
     with st.expander("Resumo do período inteiro"):
         linha_kpis(resumo, coluna_drop, rotulo_drop)
     tabela_detalhe(resumo, coluna_drop, rotulo_drop)
