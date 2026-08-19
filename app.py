@@ -689,11 +689,7 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
     )
     df = df[df["UF"] == uf]
 
-    status_disponiveis = sorted(df["STATUS"].unique())
-    padrao = [s for s in status_disponiveis if normalizar(s).startswith("conclu")] or status_disponiveis
-    status = st.sidebar.multiselect("Status da rota", status_disponiveis, default=padrao)
-    if status:
-        df = df[df["STATUS"].isin(status)]
+    # Sem filtro de status nem de tipo de veículo: todas as rotas entram nos gráficos.
 
     if not df.empty:
         d_min, d_max = df["DATA"].min().date(), df["DATA"].max().date()
@@ -701,11 +697,6 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
                                         min_value=d_min, max_value=d_max, format="DD/MM/YYYY")
         if isinstance(periodo, tuple) and len(periodo) == 2:
             df = df[(df["DATA"].dt.date >= periodo[0]) & (df["DATA"].dt.date <= periodo[1])]
-
-    tipos = sorted(df["TIPO_VEICULO"].unique())
-    escolhidos = st.sidebar.multiselect("Tipo de veículo", tipos, default=tipos)
-    if escolhidos:
-        df = df[df["TIPO_VEICULO"].isin(escolhidos)]
 
     st.sidebar.markdown("## Drop size")
     base_drop = st.sidebar.radio(
