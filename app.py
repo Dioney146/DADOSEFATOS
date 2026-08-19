@@ -598,6 +598,13 @@ def indicadores_por_dia(df: pd.DataFrame, por: str = "Dia") -> pd.DataFrame:
     return agrupado.sort_values("DATA").reset_index(drop=True)
 
 
+def toneladas(valor) -> str:
+    """Peso em toneladas, curto: 67.900 kg vira 68t."""
+    if valor is None or pd.isna(valor):
+        return "—"
+    return f"{num(valor / 1000)}t"
+
+
 def num(valor, casas: int = 0) -> str:
     """Formata número no padrão pt-BR."""
     if valor is None or pd.isna(valor):
@@ -970,8 +977,8 @@ def linha_dois(resumo: pd.DataFrame, altura: int = 250) -> None:
 
     with c1, st.container(border=True):
         titulo_painel("Paradas × entregas", "entregas / média de paradas")
-        faixa_numeros([num(v) for v in resumo["ENTREGAS"]], cor="azul")
-        faixa_numeros([num(v) for v in resumo["MEDIA_PARADAS"]], cor="escuro")
+        faixa_numeros([num(v) for v in resumo["ENTREGAS"]], cor="azul", ajuste=-1)
+        faixa_numeros([num(v) for v in resumo["MEDIA_PARADAS"]], cor="escuro", ajuste=-1)
         st.plotly_chart(
             grafico_duas_linhas(resumo, "MEDIA_PARADAS", "ENTREGAS", "Média paradas", "Entregas",
                                 altura=altura),
@@ -979,9 +986,9 @@ def linha_dois(resumo: pd.DataFrame, altura: int = 250) -> None:
         )
 
     with c2, st.container(border=True):
-        titulo_painel("Peso × capacidade por dia", "capacidade / peso (kg)")
-        faixa_numeros([num(v) for v in resumo["CAPACIDADE"]], cor="azul")
-        faixa_numeros([num(v) for v in resumo["PESO"]], cor="escuro")
+        titulo_painel("Peso × capacidade por dia", "toneladas · capacidade / peso")
+        faixa_numeros([toneladas(v) for v in resumo["CAPACIDADE"]], cor="azul", ajuste=-1)
+        faixa_numeros([toneladas(v) for v in resumo["PESO"]], cor="escuro", ajuste=-1)
         st.plotly_chart(
             grafico_duas_linhas(resumo, "PESO", "CAPACIDADE", "Peso (kg)", "Capacidade (kg)",
                                 altura=altura),
