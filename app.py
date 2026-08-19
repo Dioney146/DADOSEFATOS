@@ -548,6 +548,11 @@ def indicadores_por_dia(df: pd.DataFrame, por: str = "Dia") -> pd.DataFrame:
         agrupado["INICIO"] = agrupado["SEMANA"].map(df.groupby("SEMANA")["DATA"].min())
         agrupado["FIM"] = agrupado["SEMANA"].map(df.groupby("SEMANA")["DATA"].max())
         agrupado["DIAS"] = agrupado["SEMANA"].map(df.groupby("SEMANA")["DATA"].nunique())
+        # Veículos da semana = soma dos veículos usados em cada dia
+        # (uma placa que rodou 5 dias conta 5 vezes).
+        por_dia = df.groupby(["SEMANA", "DATA"])["VEICULO"].nunique()
+        agrupado["VEICULOS_DISTINTOS"] = agrupado["VEICULOS"]
+        agrupado["VEICULOS"] = agrupado["SEMANA"].map(por_dia.groupby("SEMANA").sum())
         return agrupado.sort_values("ORDEM").drop(columns="ORDEM").reset_index(drop=True)
 
     agrupado["ROTULO"] = agrupado["DATA"].dt.strftime("%d/%m")
