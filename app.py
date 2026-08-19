@@ -447,11 +447,23 @@ def carregar(arquivos: tuple[tuple[str, bytes], ...]) -> pd.DataFrame:
 
 
 def arquivos_da_pasta() -> list[tuple[str, bytes]]:
-    if not PASTA_DADOS.exists():
-        return []
-    achados = []
-    for caminho in sorted(PASTA_DADOS.iterdir()):
-        if caminho.suffix.lower() in {".xlsx", ".xlsm", ".xls", ".csv"} and not caminho.name.startswith("~$"):
+    """
+    Procura planilhas na pasta dados/ e também na raiz do repositório, para o
+    caso de o arquivo ter sido enviado ao lado do app.py.
+    """
+    extensoes = {".xlsx", ".xlsm", ".xls", ".csv"}
+    achados: list[tuple[str, bytes]] = []
+    vistos: set[str] = set()
+
+    for pasta in (PASTA_DADOS, Path(__file__).parent):
+        if not pasta.exists():
+            continue
+        for caminho in sorted(pasta.iterdir()):
+            if not caminho.is_file() or caminho.suffix.lower() not in extensoes:
+                continue
+            if caminho.name.startswith("~$") or caminho.name in vistos:
+                continue
+            vistos.add(caminho.name)
             achados.append((caminho.name, caminho.read_bytes()))
     return achados
 
@@ -660,17 +672,8 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
 # ──────────────────────────────────────────────────────────────────────────────
 
 def barra_lateral() -> tuple[pd.DataFrame, str]:
-    st.sidebar.markdown("## Base de dados")
-    enviados = st.sidebar.file_uploader(
-        "Relatório de rotas (RoadNet)",
-        type=["xlsx", "xlsm", "xls", "csv"],
-        accept_multiple_files=True,
-        help="O estado é identificado pelo nome do arquivo. Ex.: AM.xlsx, MG_1.xlsx.",
-    )
-
+    # Os dados vêm apenas do repositório (pasta dados/ ou raiz), sem upload na tela.
     arquivos = arquivos_da_pasta()
-    if enviados:
-        arquivos = arquivos + [(f.name, f.getvalue()) for f in enviados]
 
     if not arquivos:
         return pd.DataFrame(), "Parada", "10", TAMANHO_PADRAO
@@ -938,9 +941,9 @@ def main() -> None:
             unsafe_allow_html=True,
         )
         st.info(
-            "Envie o relatório de rotas do RoadNet na barra lateral, ou coloque os arquivos "
-            "na pasta **dados/** do repositório (ex.: `dados/AM.xlsx`) para o site abrir "
-            "já preenchido."
+            "Nenhuma planilha encontrada no repositório. Coloque os relatórios de rotas do "
+            "RoadNet na pasta **dados/** (ex.: `dados/AM.xlsx`, `dados/MG.xlsx`) — o código "
+            "do estado no nome do arquivo é o que identifica cada operação."
         )
         return
 
