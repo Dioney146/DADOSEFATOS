@@ -740,7 +740,7 @@ def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> Non
                      ticktext=list(dados["EIXO"])[::passo])
 
 
-def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 232,
+def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
                    fracao: float = 0.30) -> go.Figure:
     largura, vao = largura_da_barra(len(dados))
     fig = go.Figure(
@@ -750,7 +750,7 @@ def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 232,
             hovertemplate="<b>%{customdata}</b><br>%{y}<extra></extra>",
         )
     )
-    fig.update_layout(**LAYOUT_BASE, height=None, autosize=True, bargap=vao)
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
     eixo_datas(fig, dados, fracao)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
@@ -761,7 +761,7 @@ def cores_pela_media(valores, media: float) -> list[str]:
     return [COR_AZUL if (pd.notna(v) and v >= media) else COR_AZUL_CLARO for v in valores]
 
 
-def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232,
+def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
                          fracao: float = 0.30) -> go.Figure:
     """Drop em ordem cronológica, no mesmo eixo dos demais painéis do dia."""
     media = float(dados[coluna].mean())
@@ -778,7 +778,7 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232,
         annotation_text=f"média {num(media)}", annotation_position="top left",
         annotation_font=dict(family="IBM Plex Mono, monospace", size=9, color=COR_SUAVE),
     )
-    fig.update_layout(**LAYOUT_BASE, height=None, autosize=True, bargap=vao)
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
     eixo_datas(fig, dados, fracao)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
@@ -805,7 +805,7 @@ def mini_estatisticas_drop(dados: pd.DataFrame, coluna: str) -> None:
 
 
 def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
-                        nome_a: str, nome_b: str, altura: int | None = None,
+                        nome_a: str, nome_b: str, altura: int = 330,
                         fracao: float = 0.485) -> go.Figure:
     fig = go.Figure()
     marcador = escala(len(dados), 7, 3)
@@ -826,7 +826,7 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
     ))
     base = {k: v for k, v in LAYOUT_BASE.items() if k not in {"showlegend", "hovermode"}}
     fig.update_layout(
-        **base, height=altura, autosize=altura is None, showlegend=True, hovermode="x unified",
+        **base, height=altura, showlegend=True, hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
                     font=dict(size=10, color=COR_SUAVE)),
         yaxis=dict(**EIXO_Y, showticklabels=False),
@@ -968,7 +968,8 @@ def navegar_slides(resumo: pd.DataFrame, dias_slide: str) -> pd.DataFrame:
     return resumo.iloc[(atual - 1) * tamanho: atual * tamanho].reset_index(drop=True)
 
 
-def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
+def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
+             altura: int = 300) -> None:
     # O Drop precisa de mais largura: seus valores têm 3 dígitos
     pesos = [0.92, 0.92, 1.26]
     c1, c2, c3 = st.columns(pesos, gap="small")
@@ -978,28 +979,28 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
     with c1, st.container(border=True):
         titulo_painel("Veículos", "rotas / dia", linha=1)
         faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="escuro", fracao=fr1)
-        st.plotly_chart(grafico_barras(resumo, "VEICULOS", fracao=fr1),
-                        width="stretch", height="stretch",
+        st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura, fracao=fr1),
+                        width="stretch",
                         config={"displayModeBar": False}, key="g_veiculos")
 
     with c2, st.container(border=True):
         titulo_painel("Ocupação", "% · peso ÷ capacidade", linha=1)
         faixa_numeros([num(v * 100) if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
                       cor="escuro", fracao=fr2)
-        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", fracao=fr2),
-                        width="stretch", height="stretch",
+        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura, fracao=fr2),
+                        width="stretch",
                         config={"displayModeBar": False}, key="g_ocupacao")
 
     with c3, st.container(border=True):
         titulo_painel("Drop", rotulo_drop, linha=1)
         mini_estatisticas_drop(resumo, coluna_drop)
         faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="escuro", fracao=fr3)
-        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, fracao=fr3),
-                        width="stretch", height="stretch",
+        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura - 52, fracao=fr3),
+                        width="stretch",
                         config={"displayModeBar": False}, key="g_drop_dia")
 
 
-def linha_dois(resumo: pd.DataFrame) -> None:
+def linha_dois(resumo: pd.DataFrame, altura: int = 330) -> None:
     c1, c2 = st.columns(2, gap="small")
     meia_tela = 0.485  # cada card ocupa metade da janela
 
@@ -1009,9 +1010,8 @@ def linha_dois(resumo: pd.DataFrame) -> None:
         faixa_numeros([num(v) for v in resumo["MEDIA_PARADAS"]], cor="escuro", fracao=meia_tela)
         st.plotly_chart(
             grafico_duas_linhas(resumo, "MEDIA_PARADAS", "ENTREGAS", "Média paradas", "Entregas",
-                                fracao=meia_tela),
-            width="stretch", height="stretch",
-            config={"displayModeBar": False}, key="g_paradas",
+                                altura=altura, fracao=meia_tela),
+            width="stretch", config={"displayModeBar": False}, key="g_paradas",
         )
 
     with c2, st.container(border=True):
@@ -1020,9 +1020,8 @@ def linha_dois(resumo: pd.DataFrame) -> None:
         faixa_numeros([toneladas(v) for v in resumo["PESO"]], cor="escuro", fracao=meia_tela)
         st.plotly_chart(
             grafico_duas_linhas(resumo, "PESO", "CAPACIDADE", "Peso (kg)", "Capacidade (kg)",
-                                fracao=meia_tela),
-            width="stretch", height="stretch",
-            config={"displayModeBar": False}, key="g_peso",
+                                altura=altura, fracao=meia_tela),
+            width="stretch", config={"displayModeBar": False}, key="g_peso",
         )
 
 
@@ -1141,12 +1140,9 @@ def main() -> None:
 
     df, base_drop, dias_slide, tamanho = barra_lateral()
     proporcao = tamanho["altura"] / 100
-    st.markdown(
-        "<style>"
-        f":root {{ --altura-util: calc((100vh - 150px) * {proporcao:.2f}); }}"
-        "</style>",
-        unsafe_allow_html=True,
-    )
+    # Alturas pensadas para os cinco painéis caberem numa tela Full HD a 100%.
+    altura_cima = int(270 * proporcao)
+    altura_baixo = int(300 * proporcao)
 
     if df.empty:
         st.markdown(
@@ -1188,8 +1184,8 @@ def main() -> None:
                     altura_total=int(700 * proporcao),
                 )
             else:
-                linha_um(pagina, coluna_drop, rotulo_drop)
-                linha_dois(pagina)
+                linha_um(pagina, coluna_drop, rotulo_drop, altura=altura_cima)
+                linha_dois(pagina, altura=altura_baixo)
 
     with aba_semana:
         semanal = indicadores_por_dia(df, por="Semana")
