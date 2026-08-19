@@ -742,36 +742,6 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232) ->
     return fig
 
 
-def grafico_drop_ranking(dados: pd.DataFrame, coluna: str, limite: int = 12,
-                         altura: int = 232) -> go.Figure:
-    """Dias ordenados do maior para o menor drop, com trilho de comparação."""
-    media = float(dados[coluna].mean())
-    ranking = dados.dropna(subset=[coluna]).sort_values(coluna, ascending=False).head(limite)
-    ranking = ranking.iloc[::-1]
-    maximo = float(ranking[coluna].max() or 1)
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(
-        y=ranking["ROTULO"], x=[maximo] * len(ranking), orientation="h",
-        marker_color=COR_TRILHO, marker_line_width=0, hoverinfo="skip", width=0.55,
-    ))
-    fig.add_trace(go.Bar(
-        y=ranking["ROTULO"], x=ranking[coluna], orientation="h", width=0.55,
-        marker_color=cores_pela_media(ranking[coluna], media), marker_line_width=0,
-        text=[num(v) for v in ranking[coluna]], textposition="outside",
-        textfont=dict(family="Barlow Condensed, sans-serif", size=13, color=COR_TEXTO),
-        hovertemplate="%{y}<br>%{x:.1f} kg<extra></extra>",
-    ))
-    fig.add_vline(y0=0, y1=1, x=media, line_width=1, line_dash="dot", line_color=COR_ESCURA)
-    base = {k: v for k, v in LAYOUT_BASE.items() if k != "plot_bgcolor"}
-    fig.update_layout(**base, height=altura, barmode="overlay", bargap=0.25,
-                      plot_bgcolor="rgba(0,0,0,0)")
-    fig.update_xaxes(visible=False, range=[0, maximo * 1.18])
-    fig.update_yaxes(showgrid=False, zeroline=False, linecolor="rgba(0,0,0,0)",
-                     tickfont=dict(size=10, color=COR_SUAVE))
-    return fig
-
-
 def mini_estatisticas_drop(dados: pd.DataFrame, coluna: str) -> None:
     """Média do período e os dias de maior e menor drop."""
     validos = dados.dropna(subset=[coluna])
@@ -958,8 +928,8 @@ def navegar_slides(resumo: pd.DataFrame, dias_slide: str) -> pd.DataFrame:
     return resumo.iloc[(atual - 1) * tamanho: atual * tamanho].reset_index(drop=True)
 
 
-# Espaço ocupado pelo seletor "Por dia / Ranking" e pelas mini estatísticas do Drop
-COMPENSACAO_DROP = 92
+# Espaço ocupado pelas mini estatísticas do Drop (média / maior / menor)
+COMPENSACAO_DROP = 46
 # A linha de baixo tem uma faixa de números e a legenda a mais que a de cima
 EXTRA_LINHA_DOIS = 46
 
@@ -984,24 +954,10 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 
     with c3, st.container(border=True):
         titulo_painel("Drop", rotulo_drop)
-        visao = st.segmented_control(
-            "Visão do drop", ["Por dia", "Ranking"], default="Por dia",
-            key="visao_drop", label_visibility="collapsed",
-        ) or "Por dia"
         mini_estatisticas_drop(resumo, coluna_drop)
-        if visao == "Por dia":
-            faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="escuro")
-            st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura),
-                            width="stretch", config={"displayModeBar": False}, key="g_drop_dia")
-        else:
-            limite = 12
-            st.plotly_chart(grafico_drop_ranking(resumo, coluna_drop, limite=limite, altura=altura),
-                            width="stretch", config={"displayModeBar": False}, key="g_drop_rank")
-            if len(resumo) > limite:
-                st.markdown(
-                    f'<div class="painel-nota">{limite} maiores de {len(resumo)} dias</div>',
-                    unsafe_allow_html=True,
-                )
+        faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="escuro", ajuste=-2)
+        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura_lateral - 46),
+                        width="stretch", config={"displayModeBar": False}, key="g_drop_dia")
 
 
 def linha_dois(resumo: pd.DataFrame, altura: int = 250) -> None:
