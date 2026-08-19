@@ -33,7 +33,7 @@ except ImportError:  # noqa: BLE001
 # ──────────────────────────────────────────────────────────────────────────────
 
 st.set_page_config(
-    page_title="Dados e Fatos | Roteirização",
+    page_title="Indicadores Delly's",
     page_icon=str(Path(__file__).parent / "assets" / "favicon.png")
     if (Path(__file__).parent / "assets" / "favicon.png").exists() else "📦",
     layout="wide",
