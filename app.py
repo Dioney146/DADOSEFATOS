@@ -22,7 +22,10 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from painel_arrastavel import renderizar_painel
+try:  # arquivo opcional: sem ele, o site roda só no modo apresentação
+    from painel_arrastavel import renderizar_painel
+except ImportError:  # noqa: BLE001
+    renderizar_painel = None
 
 # ──────────────────────────────────────────────────────────────────────────────
 # CONFIGURAÇÃO
@@ -707,7 +710,7 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
         "Altura dos gráficos (px)", min_value=150, max_value=520, value=232, step=10,
         help="Vale para os cinco painéis. Aumente para projetar, reduza para caber na tela.",
     )
-    modo_painel = st.sidebar.toggle(
+    modo_painel = renderizar_painel is not None and st.sidebar.toggle(
         "Modo painel (arrastar e redimensionar)", value=False,
         help="Monta os cinco gráficos numa grade livre, como no canvas do Power BI. "
              "O layout fica salvo neste navegador.",
@@ -813,6 +816,7 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
         ) or "Por dia"
         mini_estatisticas_drop(resumo, coluna_drop)
         if visao == "Por dia":
+            faixa_numeros([num(v, 1) for v in resumo[coluna_drop]], cor="escuro")
             st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura),
                             width="stretch", config={"displayModeBar": False}, key="g_drop_dia")
         else:
@@ -939,7 +943,12 @@ def main() -> None:
 
     pagina = navegar_slides(resumo, dias_slide)
     cabecalho(df["UF"].iloc[0], pagina)
-    if tamanho["modo_painel"]:
+    if tamanho["modo_painel"] and renderizar_painel is None:
+        st.warning(
+            "O modo painel precisa do arquivo **painel_arrastavel.py** na mesma pasta do "
+            "app.py, no repositório. Mostrando o modo apresentação."
+        )
+    if tamanho["modo_painel"] and renderizar_painel is not None:
         renderizar_painel(
             figuras_do_painel(pagina, coluna_drop, rotulo_drop),
             chave=df["UF"].iloc[0],
