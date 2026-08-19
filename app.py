@@ -13,6 +13,7 @@ Fontes de dados aceitas:
 
 from __future__ import annotations
 
+import base64
 import io
 import re
 import unicodedata
@@ -33,12 +34,16 @@ except ImportError:  # noqa: BLE001
 
 st.set_page_config(
     page_title="Dados e Fatos | Roteirização",
-    page_icon="📦",
+    page_icon=str(Path(__file__).parent / "assets" / "favicon.png")
+    if (Path(__file__).parent / "assets" / "favicon.png").exists() else "📦",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 PASTA_DADOS = Path(__file__).parent / "dados"
+PASTA_ASSETS = Path(__file__).parent / "assets"
+ARQUIVO_LOGO = PASTA_ASSETS / "logo.png"
+ARQUIVO_ICONE = PASTA_ASSETS / "favicon.png"
 
 # Estados atendidos. A chave é o código usado no nome do arquivo.
 ESTADOS = {
@@ -797,6 +802,15 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
                                        "modo_painel": modo_painel}
 
 
+@st.cache_data(show_spinner=False)
+def logo_embutido() -> str:
+    """Logotipo em base64, para ir junto do HTML do cabeçalho."""
+    if not ARQUIVO_LOGO.exists():
+        return ""
+    dados = base64.b64encode(ARQUIVO_LOGO.read_bytes()).decode()
+    return f'<img class="cab-logo" src="data:image/png;base64,{dados}" alt="Delly\'s Food Service">'
+
+
 def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
     if resumo.empty:
         periodo, dias, rotas = "—", "0", "0"
@@ -808,9 +822,12 @@ def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
     st.markdown(
         f"""
         <div class="cab">
-          <div>
+          <div class="cab-marca">
+            {logo_embutido()}
+            <div>
             <p class="cab-titulo">{"Indicadores por semana" if por == "Semana" else "Indicadores por dia"}</p>
             <div class="cab-sub">{uf} · {ESTADOS.get(uf, 'Estado não identificado')} · Delly's Food Service</div>
+            </div>
           </div>
           <div class="cab-meta">
             <div class="meta-item"><div class="meta-rot">Período</div><div class="meta-val">{periodo}</div></div>
@@ -1093,7 +1110,7 @@ def main() -> None:
 
     if df.empty:
         st.markdown(
-            '<div class="abertura">'
+            '<div class="abertura">' + logo_embutido() +
             '<p class="cab-titulo">Dados e fatos</p>'
             '<div class="cab-sub">Indicadores de roteirização · Delly\'s Food Service</div>'
             '</div>',
