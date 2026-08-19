@@ -182,6 +182,12 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     background: #FFFFFF; border: 1px solid #14161A !important; border-radius: 0 !important;
     padding: 2px 4px;
 }
+/* Painéis lado a lado terminam na mesma altura */
+div[data-testid="stHorizontalBlock"] { align-items: stretch; }
+div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] { display: flex; }
+div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] > div,
+div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]
+    div[data-testid="stVerticalBlockBorderWrapper"] { width: 100%; height: 100%; }
 section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"] {
     background: transparent; border-color: transparent !important;
 }
@@ -791,21 +797,26 @@ def linha_kpis(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None
     st.markdown(f'<div class="kpis">{html}</div>', unsafe_allow_html=True)
 
 
+# Espaço ocupado pelo seletor "Por dia / Ranking" e pelas mini estatísticas do Drop
+COMPENSACAO_DROP = 92
+
+
 def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
              altura: int = 232) -> None:
     c1, c2, c3 = st.columns([1.05, 1.05, 0.9], gap="medium")
+    altura_lateral = altura + COMPENSACAO_DROP
 
     with c1, st.container(border=True):
         titulo_painel("Veículos", "rotas / dia")
         faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="escuro")
-        st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura), width="stretch",
+        st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura_lateral), width="stretch",
                         config={"displayModeBar": False}, key="g_veiculos")
 
     with c2, st.container(border=True):
         titulo_painel("Ocupação", "peso ÷ capacidade")
         faixa_numeros([f"{num(v * 100)}%" if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
                       cor="escuro")
-        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura), width="stretch",
+        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura_lateral), width="stretch",
                         config={"displayModeBar": False}, key="g_ocupacao")
 
     with c3, st.container(border=True):
@@ -957,7 +968,7 @@ def main() -> None:
         )
     else:
         linha_um(pagina, coluna_drop, rotulo_drop, altura=tamanho["altura"])
-        linha_dois(pagina, altura=tamanho["altura"] + 18)
+        linha_dois(pagina, altura=tamanho["altura"] + COMPENSACAO_DROP)
     with st.expander("Resumo do período inteiro"):
         linha_kpis(resumo, coluna_drop, rotulo_drop)
     tabela_detalhe(resumo, coluna_drop, rotulo_drop)
