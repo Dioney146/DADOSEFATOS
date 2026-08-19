@@ -649,7 +649,7 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232) ->
     )
     fig.add_hline(
         y=media, line_width=1, line_dash="dot", line_color=COR_ESCURA,
-        annotation_text=f"média {num(media, 1)}", annotation_position="top left",
+        annotation_text=f"média {num(media)}", annotation_position="top left",
         annotation_font=dict(family="IBM Plex Mono, monospace", size=9, color=COR_SUAVE),
     )
     fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0.35)
@@ -674,7 +674,7 @@ def grafico_drop_ranking(dados: pd.DataFrame, coluna: str, limite: int = 12,
     fig.add_trace(go.Bar(
         y=ranking["ROTULO"], x=ranking[coluna], orientation="h", width=0.55,
         marker_color=cores_pela_media(ranking[coluna], media), marker_line_width=0,
-        text=[num(v, 1) for v in ranking[coluna]], textposition="outside",
+        text=[num(v) for v in ranking[coluna]], textposition="outside",
         textfont=dict(family="Barlow Condensed, sans-serif", size=13, color=COR_TEXTO),
         hovertemplate="%{y}<br>%{x:.1f} kg<extra></extra>",
     ))
@@ -696,9 +696,9 @@ def mini_estatisticas_drop(dados: pd.DataFrame, coluna: str) -> None:
     melhor = validos.loc[validos[coluna].idxmax()]
     pior = validos.loc[validos[coluna].idxmin()]
     blocos = [
-        ("Média", num(validos[coluna].mean(), 1), "período"),
-        ("Maior", num(melhor[coluna], 1), melhor["ROTULO"]),
-        ("Menor", num(pior[coluna], 1), pior["ROTULO"]),
+        ("Média", num(validos[coluna].mean()), "período"),
+        ("Maior", num(melhor[coluna]), melhor["ROTULO"]),
+        ("Menor", num(pior[coluna]), pior["ROTULO"]),
     ]
     html = "".join(
         f'<div class="mini-item"><div class="mini-rot">{rot}</div>'
@@ -850,11 +850,11 @@ def linha_kpis(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None
     peso = resumo["PESO"].sum()
     capacidade = resumo["CAPACIDADE"].sum()
     cartoes = [
-        ("Rotas", num(rotas), f"{num(rotas / max(len(resumo), 1), 1)} por dia"),
-        ("Veículos", num(resumo["VEICULOS"].max()), f"pico em um dia · {num(resumo['VEICULOS'].mean(), 1)} na média"),
-        ("Ocupação", f"{num(peso / max(capacidade, 1) * 100, 1)}%", f"{num(peso)} de {num(capacidade)} kg"),
+        ("Rotas", num(rotas), f"{num(rotas / max(len(resumo), 1))} por dia"),
+        ("Veículos", num(resumo["VEICULOS"].max()), f"pico em um dia · {num(resumo['VEICULOS'].mean())} na média"),
+        ("Ocupação", f"{num(peso / max(capacidade, 1) * 100)}%", f"{num(peso)} de {num(capacidade)} kg"),
         ("Entregas", num(resumo["ENTREGAS"].sum()), f"{num(resumo['PARADAS'].sum())} paradas"),
-        ("Drop médio", num(resumo[coluna_drop].mean(), 1), rotulo_drop),
+        ("Drop médio", num(resumo[coluna_drop].mean()), rotulo_drop),
     ]
     html = "".join(
         f'<div class="kpi"><div class="kpi-rot">{rot}</div>'
@@ -896,7 +896,7 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
         ) or "Por dia"
         mini_estatisticas_drop(resumo, coluna_drop)
         if visao == "Por dia":
-            faixa_numeros([num(v, 1) for v in resumo[coluna_drop]], cor="escuro")
+            faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="escuro")
             st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura),
                             width="stretch", config={"displayModeBar": False}, key="g_drop_dia")
         else:
@@ -916,7 +916,7 @@ def linha_dois(resumo: pd.DataFrame, altura: int = 250) -> None:
     with c1, st.container(border=True):
         titulo_painel("Paradas × entregas", "entregas / média de paradas")
         faixa_numeros([num(v) for v in resumo["ENTREGAS"]], cor="azul")
-        faixa_numeros([num(v, 1) for v in resumo["MEDIA_PARADAS"]], cor="escuro")
+        faixa_numeros([num(v) for v in resumo["MEDIA_PARADAS"]], cor="escuro")
         st.plotly_chart(
             grafico_duas_linhas(resumo, "MEDIA_PARADAS", "ENTREGAS", "Média paradas", "Entregas",
                                 altura=altura),
