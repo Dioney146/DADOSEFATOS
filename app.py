@@ -1023,15 +1023,15 @@ def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
                        [num(v) for v in resumo["VEICULOS"]], siglas, altura, "veiculos")
     with c2:
         painel_semanal(resumo, "OCUPACAO", "Ocupação", "peso ÷ capacidade",
-                       [f"{num(v * 100, 1)}%" for v in resumo["OCUPACAO"]], siglas, altura, "ocupacao")
+                       [f"{num(v * 100)}%" for v in resumo["OCUPACAO"]], siglas, altura, "ocupacao")
     with c3:
         painel_semanal(resumo, coluna_drop, "Drop", rotulo_drop,
-                       [num(v, 1) for v in resumo[coluna_drop]], siglas, altura, "drop")
+                       [num(v) for v in resumo[coluna_drop]], siglas, altura, "drop")
 
     c4, c5, c6 = st.columns(3, gap="small")
     with c4:
         painel_semanal(resumo, "MEDIA_PARADAS", "Média de paradas", "por rota",
-                       [num(v, 1) for v in resumo["MEDIA_PARADAS"]], siglas, altura, "paradas")
+                       [num(v) for v in resumo["MEDIA_PARADAS"]], siglas, altura, "paradas")
     with c5:
         painel_semanal(resumo, "ENTREGAS", "Entregas", "ordens",
                        [num(v) for v in resumo["ENTREGAS"]], siglas, altura, "entregas",
