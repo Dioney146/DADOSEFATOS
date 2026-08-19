@@ -73,15 +73,7 @@ COR_FUNDO_GRAFICO = "#F1F1EF"
 COR_GRADE = "#C9CCCF"
 COR_BORDA = "#DCDFE3"
 
-TAMANHO_PADRAO = {"altura": 232, "largura": "Tela cheia", "modo_painel": False}
-
-# Cada opção é um teto que respeita a tela: nunca passa de 98% da largura útil.
-LARGURAS_PAGINA = {
-    "Estreita": "min(1180px, 98vw)",
-    "Padrão": "min(1600px, 98vw)",
-    "Larga": "min(2000px, 98vw)",
-    "Tela cheia": "min(2560px, 99vw)",
-}
+TAMANHO_PADRAO = {"altura": 100, "modo_painel": False}
 
 COLUNAS_ESPERADAS = [
     "ID",
@@ -142,10 +134,9 @@ header[data-testid="stHeader"] {
     background: #F4F4F2 !important; height: 3rem; z-index: 999;
 }
 .block-container {
-    padding-top: 2.2rem; padding-bottom: 0.6rem;
-    padding-left: clamp(10px, 1.4vw, 34px) !important;
-    padding-right: clamp(10px, 1.4vw, 34px) !important;
-    max-width: min(2560px, 99vw); margin: 0 auto;
+    padding-top: 2.0rem !important; padding-bottom: 4px !important;
+    padding-left: 6px !important; padding-right: 6px !important;
+    max-width: 100% !important; width: 100%; margin: 0;
 }
 /* O conteúdo do Streamlit não pode limitar a largura por conta própria */
 [data-testid="stAppViewBlockContainer"], [data-testid="stMainBlockContainer"] {
@@ -632,10 +623,14 @@ EIXO_Y = dict(showgrid=True, gridcolor=COR_GRADE, griddash="dot", zeroline=False
               tickfont=dict(size=10, color=COR_SUAVE))
 
 
-def titulo_painel(titulo: str, nota: str = "") -> None:
-    """Cabeçalho de um painel (usado dentro de um st.container com borda)."""
+def titulo_painel(titulo: str, nota: str = "", linha: int = 0) -> None:
+    """
+    Cabeçalho de um painel. O marcador invisível diz ao CSS a qual linha o
+    painel pertence, para ele receber a altura certa em relação à tela.
+    """
+    marca = f'<i class="marca-linha-{linha}"></i>' if linha else ""
     st.markdown(
-        f'''<div class="painel-topo">
+        f'''<div class="painel-topo">{marca}
             <span class="painel-titulo">{titulo}</span>
             <span class="painel-nota">{nota}</span></div>''',
         unsafe_allow_html=True,
@@ -755,7 +750,7 @@ def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 232,
             hovertemplate="<b>%{customdata}</b><br>%{y}<extra></extra>",
         )
     )
-    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
+    fig.update_layout(**LAYOUT_BASE, height=None, autosize=True, bargap=vao)
     eixo_datas(fig, dados, fracao)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
@@ -783,7 +778,7 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232,
         annotation_text=f"média {num(media)}", annotation_position="top left",
         annotation_font=dict(family="IBM Plex Mono, monospace", size=9, color=COR_SUAVE),
     )
-    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
+    fig.update_layout(**LAYOUT_BASE, height=None, autosize=True, bargap=vao)
     eixo_datas(fig, dados, fracao)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
@@ -810,7 +805,7 @@ def mini_estatisticas_drop(dados: pd.DataFrame, coluna: str) -> None:
 
 
 def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
-                        nome_a: str, nome_b: str, altura: int = 250,
+                        nome_a: str, nome_b: str, altura: int | None = None,
                         fracao: float = 0.485) -> go.Figure:
     fig = go.Figure()
     marcador = escala(len(dados), 7, 3)
@@ -831,7 +826,7 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
     ))
     base = {k: v for k, v in LAYOUT_BASE.items() if k not in {"showlegend", "hovermode"}}
     fig.update_layout(
-        **base, height=altura, showlegend=True, hovermode="x unified",
+        **base, height=altura, autosize=altura is None, showlegend=True, hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
                     font=dict(size=10, color=COR_SUAVE)),
         yaxis=dict(**EIXO_Y, showticklabels=False),
@@ -850,14 +845,14 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
     arquivos = arquivos_da_pasta()
 
     if not arquivos:
-        return pd.DataFrame(), "Parada", "10", TAMANHO_PADRAO
+        return pd.DataFrame(), "Parada", "31", TAMANHO_PADRAO
 
     st.session_state.pop("_problemas", None)
     df = carregar(tuple(arquivos))
     for aviso in st.session_state.get("_problemas", []):
         st.sidebar.warning(aviso)
     if df.empty:
-        return df, "Parada", "10", TAMANHO_PADRAO
+        return df, "Parada", "31", TAMANHO_PADRAO
 
     with st.sidebar.expander("Arquivos carregados"):
         mapa = (df.groupby(["ARQUIVO", "UF"]).size().reset_index(name="Rotas")
@@ -893,21 +888,15 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
     )
 
     altura = st.sidebar.slider(
-        "Altura dos gráficos (px)", min_value=150, max_value=520, value=232, step=10,
-        help="Vale para os cinco painéis. Aumente para projetar, reduza para caber na tela.",
+        "Altura dos painéis (% da tela)", min_value=60, max_value=140, value=100, step=5,
+        help="100% faz os cinco painéis preencherem exatamente a altura da janela.",
     )
     modo_painel = renderizar_painel is not None and st.sidebar.toggle(
         "Modo painel (arrastar e redimensionar)", value=False,
         help="Monta os cinco gráficos numa grade livre, como no canvas do Power BI. "
              "O layout fica salvo neste navegador.",
     )
-    largura = st.sidebar.select_slider(
-        "Largura da página", options=["Estreita", "Padrão", "Larga", "Tela cheia"],
-        value="Tela cheia",
-    )
-
-    return df, base_drop, dias_slide, {"altura": altura, "largura": largura,
-                                       "modo_painel": modo_painel}
+    return df, base_drop, dias_slide, {"altura": altura, "modo_painel": modo_painel}
 
 
 @st.cache_data(show_spinner=False)
@@ -979,64 +968,61 @@ def navegar_slides(resumo: pd.DataFrame, dias_slide: str) -> pd.DataFrame:
     return resumo.iloc[(atual - 1) * tamanho: atual * tamanho].reset_index(drop=True)
 
 
-# Espaço ocupado pelas mini estatísticas do Drop (média / maior / menor)
-COMPENSACAO_DROP = 46
-# A linha de baixo tem uma faixa de números e a legenda a mais que a de cima
-EXTRA_LINHA_DOIS = 46
-
-
-def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
-             altura: int = 232) -> None:
+def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
     # O Drop precisa de mais largura: seus valores têm 3 dígitos
     pesos = [0.92, 0.92, 1.26]
     c1, c2, c3 = st.columns(pesos, gap="small")
     # Quanto da largura da janela cada card ocupa (usado para dimensionar as fontes)
     fr1, fr2, fr3 = [0.97 * peso / sum(pesos) for peso in pesos]
-    altura_lateral = altura + COMPENSACAO_DROP
 
     with c1, st.container(border=True):
-        titulo_painel("Veículos", "rotas / dia")
+        titulo_painel("Veículos", "rotas / dia", linha=1)
         faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="escuro", fracao=fr1)
-        st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura_lateral, fracao=fr1), width="stretch",
+        st.plotly_chart(grafico_barras(resumo, "VEICULOS", fracao=fr1),
+                        width="stretch", height="stretch",
                         config={"displayModeBar": False}, key="g_veiculos")
 
     with c2, st.container(border=True):
-        titulo_painel("Ocupação", "% · peso ÷ capacidade")
+        titulo_painel("Ocupação", "% · peso ÷ capacidade", linha=1)
         faixa_numeros([num(v * 100) if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
                       cor="escuro", fracao=fr2)
-        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura_lateral, fracao=fr2), width="stretch",
+        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", fracao=fr2),
+                        width="stretch", height="stretch",
                         config={"displayModeBar": False}, key="g_ocupacao")
 
     with c3, st.container(border=True):
-        titulo_painel("Drop", rotulo_drop)
+        titulo_painel("Drop", rotulo_drop, linha=1)
         mini_estatisticas_drop(resumo, coluna_drop)
         faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="escuro", fracao=fr3)
-        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura_lateral - 46, fracao=fr3),
-                        width="stretch", config={"displayModeBar": False}, key="g_drop_dia")
+        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, fracao=fr3),
+                        width="stretch", height="stretch",
+                        config={"displayModeBar": False}, key="g_drop_dia")
 
 
-def linha_dois(resumo: pd.DataFrame, altura: int = 250) -> None:
+def linha_dois(resumo: pd.DataFrame) -> None:
     c1, c2 = st.columns(2, gap="small")
     meia_tela = 0.485  # cada card ocupa metade da janela
 
     with c1, st.container(border=True):
-        titulo_painel("Paradas × entregas", "entregas / média de paradas")
+        titulo_painel("Paradas × entregas", "entregas / média de paradas", linha=2)
         faixa_numeros([num(v) for v in resumo["ENTREGAS"]], cor="azul", fracao=meia_tela)
         faixa_numeros([num(v) for v in resumo["MEDIA_PARADAS"]], cor="escuro", fracao=meia_tela)
         st.plotly_chart(
             grafico_duas_linhas(resumo, "MEDIA_PARADAS", "ENTREGAS", "Média paradas", "Entregas",
-                                altura=altura, fracao=meia_tela),
-            width="stretch", config={"displayModeBar": False}, key="g_paradas",
+                                fracao=meia_tela),
+            width="stretch", height="stretch",
+            config={"displayModeBar": False}, key="g_paradas",
         )
 
     with c2, st.container(border=True):
-        titulo_painel("Peso × capacidade por dia", "toneladas · capacidade / peso")
+        titulo_painel("Peso × capacidade por dia", "toneladas · capacidade / peso", linha=2)
         faixa_numeros([toneladas(v) for v in resumo["CAPACIDADE"]], cor="azul", fracao=meia_tela)
         faixa_numeros([toneladas(v) for v in resumo["PESO"]], cor="escuro", fracao=meia_tela)
         st.plotly_chart(
             grafico_duas_linhas(resumo, "PESO", "CAPACIDADE", "Peso (kg)", "Capacidade (kg)",
-                                altura=altura, fracao=meia_tela),
-            width="stretch", config={"displayModeBar": False}, key="g_peso",
+                                fracao=meia_tela),
+            width="stretch", height="stretch",
+            config={"displayModeBar": False}, key="g_peso",
         )
 
 
@@ -1154,8 +1140,11 @@ def main() -> None:
     st.markdown(selo_da_marca(), unsafe_allow_html=True)
 
     df, base_drop, dias_slide, tamanho = barra_lateral()
+    proporcao = tamanho["altura"] / 100
     st.markdown(
-        f'<style>.block-container {{ max-width: {LARGURAS_PAGINA[tamanho["largura"]]} !important; }}</style>',
+        "<style>"
+        f":root {{ --altura-util: calc((100vh - 150px) * {proporcao:.2f}); }}"
+        "</style>",
         unsafe_allow_html=True,
     )
 
@@ -1195,15 +1184,12 @@ def main() -> None:
                 renderizar_painel(
                     figuras_do_painel(pagina, coluna_drop, rotulo_drop),
                     chave=df["UF"].iloc[0],
-                    altura_celula=max(50, tamanho["altura"] // 4),
-                    altura_total=max(560, tamanho["altura"] * 3),
+                    altura_celula=70,
+                    altura_total=int(700 * proporcao),
                 )
             else:
-                linha_um(pagina, coluna_drop, rotulo_drop, altura=tamanho["altura"])
-                # A segunda linha herda o espaço que era dos relatórios
-                linha_dois(pagina,
-                           altura=int(tamanho["altura"] * 1.55) + COMPENSACAO_DROP
-                                  - EXTRA_LINHA_DOIS)
+                linha_um(pagina, coluna_drop, rotulo_drop)
+                linha_dois(pagina)
 
     with aba_semana:
         semanal = indicadores_por_dia(df, por="Semana")
@@ -1212,7 +1198,7 @@ def main() -> None:
         else:
             cabecalho(df["UF"].iloc[0], semanal, por="Semana")
             visao_semanal(semanal, coluna_drop, rotulo_drop,
-                          altura=max(150, tamanho["altura"] - 40))
+                          altura=int(220 * proporcao))
 
 
 if __name__ == "__main__":
