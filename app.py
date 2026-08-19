@@ -82,14 +82,45 @@ CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
+/* ── Ícones do Streamlit ─────────────────────────────────────────────────────
+   Se a rede bloquear o Google Fonts, a fonte de ícones não carrega e o
+   navegador imprime o NOME do ícone ("double_arrow_right"). Aqui o texto é
+   zerado sempre e o desenho é reposto com caracteres comuns, sem depender
+   de nenhuma fonte externa.                                                  */
+span[data-testid="stIconMaterial"], .material-symbols-rounded, .material-icons {
+    font-size: 0 !important; line-height: 0 !important;
+    width: 20px !important; height: 20px !important;
+    overflow: hidden !important; white-space: nowrap;
+    display: inline-flex !important; align-items: center; justify-content: center;
+    color: transparent !important;
+}
+span[data-testid="stIconMaterial"]::after,
+.material-symbols-rounded::after, .material-icons::after {
+    content: ""; font-family: 'Archivo', Arial, sans-serif;
+    font-size: 15px; line-height: 1; color: #14161A;
+}
+/* Botão de abrir/fechar a barra lateral */
+header[data-testid="stHeader"] span[data-testid="stIconMaterial"]::after,
+button[data-testid="stExpandSidebarButton"] span[data-testid="stIconMaterial"]::after,
+button[data-testid="stBaseButton-headerNoPadding"] span[data-testid="stIconMaterial"]::after,
+div[data-testid="stSidebarCollapseButton"] span[data-testid="stIconMaterial"]::after {
+    content: "»"; font-size: 17px; font-weight: 700;
+}
+/* Setas de blocos recolhíveis */
+div[data-testid="stExpander"] span[data-testid="stIconMaterial"]::after {
+    content: "▾"; font-size: 13px;
+}
+
 /* ── Base: o site é claro, independente do tema do navegador/Streamlit ────── */
 .stApp, [data-testid="stAppViewContainer"] { background: #F4F4F2 !important; }
-header[data-testid="stHeader"] { background: transparent !important; }
-.block-container { padding-top: 1.4rem; padding-bottom: 2.5rem; max-width: 1560px; }
+header[data-testid="stHeader"] {
+    background: #F4F4F2 !important; height: 3rem; z-index: 999;
+}
+.block-container { padding-top: 3.4rem; padding-bottom: 2.5rem; max-width: 1560px; }
 html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
 .stApp h1, .stApp h2, .stApp h3, .stApp h4 {
     color: #14161A;
-    font-family: 'Archivo', sans-serif;
+    font-family: 'Archivo', Arial, sans-serif;
 }
 
 /* ── Cabeçalho ───────────────────────────────────────────────────────────── */
@@ -98,21 +129,21 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
     gap: 24px; border-bottom: 2px solid #14161A; padding-bottom: 10px; margin-bottom: 18px;
 }
 .cab-titulo {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; letter-spacing: .02em;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; letter-spacing: .02em;
     font-size: 42px; line-height: .95; text-transform: uppercase; margin: 0; color: #14161A;
 }
 .cab-sub {
-    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .16em;
+    font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 11px; letter-spacing: .16em;
     text-transform: uppercase; color: #7C858D; margin-top: 6px;
 }
 .cab-meta { display: flex; gap: 28px; }
 .meta-item { text-align: right; }
 .meta-rot {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .16em;
+    font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px; letter-spacing: .16em;
     text-transform: uppercase; color: #7C858D;
 }
 .meta-val {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 26px;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 26px;
     line-height: 1.1; color: #14161A;
 }
 
@@ -123,14 +154,14 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
     border-top: 3px solid #5D87B0; border-radius: 3px; padding: 10px 14px 12px 14px;
 }
 .kpi-rot {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .14em;
+    font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px; letter-spacing: .14em;
     text-transform: uppercase; color: #7C858D;
 }
 .kpi-val {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 30px;
     line-height: 1.1; color: #14161A;
 }
-.kpi-nota { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #7C858D; }
+.kpi-nota { font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px; color: #7C858D; }
 
 /* ── Painéis (st.container com borda) ────────────────────────────────────── */
 div[data-testid="stVerticalBlockBorderWrapper"] {
@@ -145,17 +176,17 @@ section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]
     padding: 2px 2px 10px 2px; margin-bottom: 2px;
 }
 .painel-titulo {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 23px;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 23px;
     text-transform: uppercase; letter-spacing: .01em; color: #14161A;
 }
 .painel-nota {
-    font-family: 'Archivo', sans-serif; font-size: 11px; font-weight: 500;
+    font-family: 'Archivo', Arial, sans-serif; font-size: 11px; font-weight: 500;
     letter-spacing: .16em; text-transform: uppercase; color: #7C858D;
 }
 
 /* Paginação dos slides */
 .paginacao {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 20px;
     text-align: center; color: #14161A; padding-top: 4px;
 }
 
@@ -163,28 +194,28 @@ section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]
 .faixa { display: flex; gap: 2px; margin: 0 0 2px 0; }
 .faixa-cel { flex: 1; text-align: center; }
 .faixa-n1 {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; color: #5D87B0;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 17px; color: #5D87B0;
 }
 .faixa-n2 {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 17px; color: #14161A;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 17px; color: #14161A;
 }
 
 /* ── Mini estatísticas (painel de drop) ──────────────────────────────────── */
 .mini { display: flex; gap: 12px; margin: 6px 0 4px 0; }
 .mini-item { flex: 1; }
 .mini-rot {
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: .12em;
+    font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 9px; letter-spacing: .12em;
     text-transform: uppercase; color: #7C858D;
 }
 .mini-val {
-    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 19px;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 19px;
     line-height: 1.1; color: #14161A;
 }
-.mini-dia { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #7C858D; }
+.mini-dia { font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px; color: #7C858D; }
 
 /* ── Rodapé ──────────────────────────────────────────────────────────────── */
 .fonte {
-    font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em;
+    font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px; letter-spacing: .12em;
     text-transform: uppercase; color: #7C858D; margin-top: 22px;
     border-top: 1px solid #DCDFE3; padding-top: 10px;
 }
@@ -195,7 +226,7 @@ section[data-testid="stSidebar"], section[data-testid="stSidebar"] > div {
 }
 section[data-testid="stSidebar"] * { color: #14161A; }
 section[data-testid="stSidebar"] h2 {
-    font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; text-transform: uppercase;
     letter-spacing: .04em; font-size: 17px; margin-bottom: .2rem;
 }
 section[data-testid="stSidebar"] label p { font-size: 12px; font-weight: 600; }
@@ -833,15 +864,17 @@ def main() -> None:
     df, base_drop, dias_slide = barra_lateral()
 
     if df.empty:
-        st.markdown('<p class="cab-titulo">Dados e fatos</p>', unsafe_allow_html=True)
         st.markdown(
-            '<div class="cab-sub">Indicadores de roteirização · Delly\'s Food Service</div>',
+            '<div class="abertura">'
+            '<p class="cab-titulo">Dados e fatos</p>'
+            '<div class="cab-sub">Indicadores de roteirização · Delly\'s Food Service</div>'
+            '</div>',
             unsafe_allow_html=True,
         )
         st.info(
-            "Envie o relatório de rotas do RoadMet/RoadNet na barra lateral, ou coloque os "
-            "arquivos na pasta **dados/** do repositório (ex.: `dados/AM.xlsx`) para o site "
-            "abrir já preenchido."
+            "Envie o relatório de rotas do RoadNet na barra lateral, ou coloque os arquivos "
+            "na pasta **dados/** do repositório (ex.: `dados/AM.xlsx`) para o site abrir "
+            "já preenchido."
         )
         return
 
