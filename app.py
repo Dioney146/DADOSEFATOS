@@ -47,11 +47,15 @@ ESTADOS = {
     "DF": "Distrito Federal",
     "ES": "Espírito Santo",
     "MG": "Minas Gerais",
+    "MG_NF": "Minas Gerais (NF)",
     "MT": "Mato Grosso",
     "SP": "São Paulo",
-    "SPW": "São Paulo (W Food)",
-    "SP3P": "São Paulo (3P)",
+    "SP_WFS": "São Paulo (W Food)",
+    "SP_3P": "São Paulo (3P)",
 }
+
+MESES_CURTOS = {1: "JAN", 2: "FEV", 3: "MAR", 4: "ABR", 5: "MAI", 6: "JUN",
+                7: "JUL", 8: "AGO", 9: "SET", 10: "OUT", 11: "NOV", 12: "DEZ"}
 
 # Paleta
 COR_TEXTO = "#14161A"
@@ -86,6 +90,7 @@ COLUNAS_ESPERADAS = [
     "Tipos de equipamento",
     "Sessão de roteirização",
     "Estado",
+    "SEMANA",
 ]
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -240,6 +245,25 @@ section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]
 }
 .mini-dia { font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px; color: #7C858D; }
 
+/* ── Visão por semana ────────────────────────────────────────────────────── */
+.legenda { display: flex; gap: 8px 20px; justify-content: flex-end;
+           flex-wrap: wrap; margin: -6px 0 10px 0; }
+.leg-item {
+    font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #14161A;
+    display: inline-flex; align-items: center; gap: 7px;
+}
+.leg-cor { width: 12px; height: 12px; display: inline-block; }
+.sem-faixa { display: flex; border-top: 1px solid #14161A; padding-top: 8px; margin: 0 2px 4px 2px; }
+.sem-cel { flex: 1; text-align: center; }
+.sem-val {
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
+    font-weight: 700; font-size: 27px; line-height: 1.05; color: #14161A;
+}
+.sem-rot {
+    font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px;
+    letter-spacing: .1em; text-transform: uppercase; color: #7C858D;
+}
+
 /* ── Rodapé ──────────────────────────────────────────────────────────────── */
 .fonte {
     font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px; letter-spacing: .12em;
@@ -369,13 +393,24 @@ def extrair_data(sessao: str):
     return pd.NaT
 
 
+def rotulo_semana(data: pd.Timestamp, varios_meses: bool) -> str:
+    """Semana do mês, de segunda a domingo. S1 é a semana em que cai o dia 1."""
+    if pd.isna(data):
+        return ""
+    primeiro = data.replace(day=1)
+    inicio_mes = primeiro - pd.Timedelta(days=primeiro.weekday())
+    inicio_semana = data - pd.Timedelta(days=data.weekday())
+    numero = int((inicio_semana - inicio_mes).days // 7) + 1
+    return f"{MESES_CURTOS[data.month]}/S{numero}" if varios_meses else f"S{numero}"
+
+
 def detectar_estado(nome_arquivo: str, df: pd.DataFrame) -> str:
     """Descobre o estado pelo nome do arquivo; se falhar, pelo prefixo da descrição."""
-    base = normalizar(Path(nome_arquivo).stem).upper()
-    base = re.sub(r"[^A-Z0-9]", " ", base)
-    fichas = base.split()
+    base = re.sub(r"[^A-Z0-9]", "", normalizar(Path(nome_arquivo).stem).upper())
+    fichas = re.sub(r"[^A-Z0-9]", " ", normalizar(Path(nome_arquivo).stem).upper()).split()
     for codigo in sorted(ESTADOS, key=len, reverse=True):
-        if codigo in fichas or base.startswith(codigo):
+        compacto = codigo.replace("_", "")
+        if base.startswith(compacto) or codigo in fichas or compacto in fichas:
             return codigo
     if "Descrição" in df.columns:
         prefixos = (
@@ -426,6 +461,14 @@ def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
 
     df = df.dropna(subset=["DATA"])
     df = df[df["CAPACIDADE"].fillna(0) > 0]
+
+    # A coluna SEMANA do arquivo é usada quando existe; senão é calculada aqui.
+    varios_meses = df["DATA"].dt.month.nunique() > 1 if not df.empty else False
+    if "SEMANA" in df.columns and df["SEMANA"].notna().any():
+        df["SEMANA"] = df["SEMANA"].astype(str).str.strip()
+    else:
+        df["SEMANA"] = df["DATA"].map(lambda d: rotulo_semana(d, varios_meses))
+
     return df.reset_index(drop=True)
 
 
@@ -472,12 +515,18 @@ def arquivos_da_pasta() -> list[tuple[str, bytes]]:
 # INDICADORES
 # ──────────────────────────────────────────────────────────────────────────────
 
-def indicadores_por_dia(df: pd.DataFrame) -> pd.DataFrame:
-    """Uma linha por data com todos os indicadores da apresentação."""
+def indicadores_por_dia(df: pd.DataFrame, por: str = "Dia") -> pd.DataFrame:
+    """Uma linha por data (ou por semana) com os indicadores da apresentação."""
     if df.empty:
         return pd.DataFrame()
 
-    agrupado = df.groupby("DATA").agg(
+    if por == "Semana":
+        chave = df["SEMANA"]
+        ordem = df.groupby("SEMANA")["DATA"].min()
+    else:
+        chave = df["DATA"]
+
+    agrupado = df.groupby(chave).agg(
         ROTAS=("ROTA", "count"),
         VEICULOS=("VEICULO", pd.Series.nunique),
         PARADAS=("PARADAS", "sum"),
@@ -493,6 +542,14 @@ def indicadores_por_dia(df: pd.DataFrame) -> pd.DataFrame:
     agrupado["DROP_PARADA"] = agrupado["PESO"] / agrupado["PARADAS"].replace(0, pd.NA)
     agrupado["DROP_VEICULO"] = agrupado["PESO"] / agrupado["VEICULOS"].replace(0, pd.NA)
     agrupado["DROP_ROTA"] = agrupado["PESO"] / agrupado["ROTAS"].replace(0, pd.NA)
+    if por == "Semana":
+        agrupado["ROTULO"] = agrupado["SEMANA"]
+        agrupado["ORDEM"] = agrupado["SEMANA"].map(ordem)
+        agrupado["INICIO"] = agrupado["SEMANA"].map(df.groupby("SEMANA")["DATA"].min())
+        agrupado["FIM"] = agrupado["SEMANA"].map(df.groupby("SEMANA")["DATA"].max())
+        agrupado["DIAS"] = agrupado["SEMANA"].map(df.groupby("SEMANA")["DATA"].nunique())
+        return agrupado.sort_values("ORDEM").drop(columns="ORDEM").reset_index(drop=True)
+
     agrupado["ROTULO"] = agrupado["DATA"].dt.strftime("%d/%m")
     return agrupado.sort_values("DATA").reset_index(drop=True)
 
@@ -709,7 +766,7 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
 
     st.sidebar.markdown("## Apresentação")
     dias_slide = st.sidebar.selectbox(
-        "Dias por slide", ["10", "15", "20", "Todos"], index=0,
+        "Colunas por slide", ["10", "15", "20", "Todos"], index=0,
         help="Como no slide impresso: cada tela mostra um bloco de dias.",
     )
 
@@ -731,7 +788,7 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
                                        "modo_painel": modo_painel}
 
 
-def cabecalho(uf: str, resumo: pd.DataFrame) -> None:
+def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
     if resumo.empty:
         periodo, dias, rotas = "—", "0", "0"
     else:
@@ -743,12 +800,12 @@ def cabecalho(uf: str, resumo: pd.DataFrame) -> None:
         f"""
         <div class="cab">
           <div>
-            <p class="cab-titulo">Indicadores por dia</p>
+            <p class="cab-titulo">{"Indicadores por semana" if por == "Semana" else "Indicadores por dia"}</p>
             <div class="cab-sub">{uf} · {ESTADOS.get(uf, 'Estado não identificado')} · Delly's Food Service</div>
           </div>
           <div class="cab-meta">
             <div class="meta-item"><div class="meta-rot">Período</div><div class="meta-val">{periodo}</div></div>
-            <div class="meta-item"><div class="meta-rot">Dias</div><div class="meta-val">{dias}</div></div>
+            <div class="meta-item"><div class="meta-rot">{"Semanas" if por == "Semana" else "Dias"}</div><div class="meta-val">{dias}</div></div>
             <div class="meta-item"><div class="meta-rot">Rotas</div><div class="meta-val">{rotas}</div></div>
           </div>
         </div>
@@ -886,9 +943,96 @@ def figuras_do_painel(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) 
     ]
 
 
-def tabela_detalhe(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
+
+# ──────────────────────────────────────────────────────────────────────────────
+# VISÃO POR SEMANA
+# ──────────────────────────────────────────────────────────────────────────────
+
+def cores_das_semanas(quantidade: int) -> list[str]:
+    """Semanas alternam entre o azul cheio e o azul claro."""
+    return [COR_AZUL if i % 2 == 0 else COR_AZUL_CLARO for i in range(quantidade)]
+
+
+def legenda_semanas(resumo: pd.DataFrame) -> None:
+    """Faixa do topo: quadradinho da cor, sigla, período e quantidade de dias."""
+    cores = cores_das_semanas(len(resumo))
+    itens = []
+    for cor, (_, linha) in zip(cores, resumo.iterrows()):
+        periodo = f"{linha['INICIO'].strftime('%d/%m')}–{linha['FIM'].strftime('%d/%m')}"
+        itens.append(
+            f'<span class="leg-item"><span class="leg-cor" style="background:{cor}"></span>'
+            f'{linha["ROTULO"]} · {periodo} · {num(linha["DIAS"])} dias</span>'
+        )
+    st.markdown(f'<div class="legenda">{"".join(itens)}</div>', unsafe_allow_html=True)
+
+
+def grafico_semanal(resumo: pd.DataFrame, coluna: str, altura: int = 190) -> go.Figure:
+    fig = go.Figure(
+        go.Bar(
+            x=resumo["ROTULO"], y=resumo[coluna], width=0.45,
+            marker_color=cores_das_semanas(len(resumo)), marker_line_width=0,
+            hovertemplate="%{x}<br>%{y}<extra></extra>",
+        )
+    )
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0.5)
+    fig.update_xaxes(**EIXO_X, showticklabels=False, type="category")
+    fig.update_yaxes(**EIXO_Y, showticklabels=False)
+    return fig
+
+
+def valores_semanais(resumo: pd.DataFrame, valores: list[str], rodapes: list[str]) -> None:
+    """Números grandes embaixo de cada barra, com a sigla da semana."""
+    celulas = "".join(
+        f'<div class="sem-cel"><div class="sem-val">{valor}</div>'
+        f'<div class="sem-rot">{rodape}</div></div>'
+        for valor, rodape in zip(valores, rodapes)
+    )
+    st.markdown(f'<div class="sem-faixa">{celulas}</div>', unsafe_allow_html=True)
+
+
+def painel_semanal(resumo: pd.DataFrame, coluna: str, titulo: str, nota: str,
+                   valores: list[str], rodapes: list[str], altura: int, chave: str) -> None:
+    with st.container(border=True):
+        titulo_painel(titulo, nota)
+        st.plotly_chart(grafico_semanal(resumo, coluna, altura=altura), width="stretch",
+                        config={"displayModeBar": False}, key=f"sem_{chave}")
+        valores_semanais(resumo, valores, rodapes)
+
+
+def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
+                  altura: int = 190) -> None:
+    """Os seis indicadores da semana, em dois blocos de três painéis."""
+    siglas = list(resumo["ROTULO"])
+    legenda_semanas(resumo)
+
+    c1, c2, c3 = st.columns(3, gap="small")
+    with c1:
+        painel_semanal(resumo, "VEICULOS", "Veículos", "rotas",
+                       [num(v) for v in resumo["VEICULOS"]], siglas, altura, "veiculos")
+    with c2:
+        painel_semanal(resumo, "OCUPACAO", "Ocupação", "peso ÷ capacidade",
+                       [f"{num(v * 100, 1)}%" for v in resumo["OCUPACAO"]], siglas, altura, "ocupacao")
+    with c3:
+        painel_semanal(resumo, coluna_drop, "Drop", rotulo_drop,
+                       [num(v, 1) for v in resumo[coluna_drop]], siglas, altura, "drop")
+
+    c4, c5, c6 = st.columns(3, gap="small")
+    with c4:
+        painel_semanal(resumo, "MEDIA_PARADAS", "Média de paradas", "por rota",
+                       [num(v, 1) for v in resumo["MEDIA_PARADAS"]], siglas, altura, "paradas")
+    with c5:
+        painel_semanal(resumo, "ENTREGAS", "Entregas", "ordens",
+                       [num(v) for v in resumo["ENTREGAS"]], siglas, altura, "entregas")
+    with c6:
+        rodapes_peso = [f"{s} · cap {num(c)}" for s, c in zip(siglas, resumo["CAPACIDADE"])]
+        painel_semanal(resumo, "PESO", "Peso", "kg · capacidade abaixo",
+                       [num(v) for v in resumo["PESO"]], rodapes_peso, altura, "peso")
+
+
+def tabela_detalhe(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
+                   chave: str = "dia") -> None:
     tabela = pd.DataFrame({
-        "Data": resumo["ROTULO"],
+        "Semana" if chave == "semana" else "Data": resumo["ROTULO"],
         "Rotas": resumo["ROTAS"],
         "Veículos": resumo["VEICULOS"],
         "Paradas": resumo["PARADAS"].round(0),
@@ -900,7 +1044,7 @@ def tabela_detalhe(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> 
         rotulo_drop: resumo[coluna_drop].round(1),
     })
     total = {
-        "Data": "TOTAL",
+        "Semana" if chave == "semana" else "Data": "TOTAL",
         "Rotas": resumo["ROTAS"].sum(),
         "Veículos": resumo["VEICULOS"].max(),
         "Paradas": resumo["PARADAS"].sum().round(0),
@@ -914,12 +1058,13 @@ def tabela_detalhe(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> 
     tabela = pd.concat([tabela, pd.DataFrame([total])], ignore_index=True)
 
     with st.expander("Ver tabela e baixar os dados"):
-        st.dataframe(tabela, width="stretch", hide_index=True)
+        st.dataframe(tabela, width="stretch", hide_index=True, key=f"tabela_{chave}")
         st.download_button(
             "Baixar indicadores em CSV",
             tabela.to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig"),
-            file_name="indicadores_por_dia.csv",
+            file_name=f"indicadores_por_{chave}.csv",
             mime="text/csv",
+            key=f"baixar_{chave}",
         )
 
 
@@ -950,32 +1095,44 @@ def main() -> None:
     coluna_drop = {"Parada": "DROP_PARADA", "Veículo": "DROP_VEICULO", "Rota": "DROP_ROTA"}[base_drop]
     rotulo_drop = {"Parada": "kg / parada", "Veículo": "kg / veículo", "Rota": "kg / rota"}[base_drop]
 
-    resumo = indicadores_por_dia(df)
-    if resumo.empty:
-        st.warning("Nenhuma rota no filtro selecionado.")
-        return
+    aba_dia, aba_semana = st.tabs(["Por dia", "Por semana"])
 
-    pagina = navegar_slides(resumo, dias_slide)
-    cabecalho(df["UF"].iloc[0], pagina)
-    if tamanho["modo_painel"] and renderizar_painel is None:
-        st.warning(
-            "O modo painel precisa do arquivo **painel_arrastavel.py** na mesma pasta do "
-            "app.py, no repositório. Mostrando o modo apresentação."
-        )
-    if tamanho["modo_painel"] and renderizar_painel is not None:
-        renderizar_painel(
-            figuras_do_painel(pagina, coluna_drop, rotulo_drop),
-            chave=df["UF"].iloc[0],
-            altura_celula=max(50, tamanho["altura"] // 4),
-            altura_total=max(560, tamanho["altura"] * 3),
-        )
-    else:
-        linha_um(pagina, coluna_drop, rotulo_drop, altura=tamanho["altura"])
-        linha_dois(pagina,
-                   altura=tamanho["altura"] + COMPENSACAO_DROP - EXTRA_LINHA_DOIS)
-    with st.expander("Resumo do período inteiro"):
-        linha_kpis(resumo, coluna_drop, rotulo_drop)
-    tabela_detalhe(resumo, coluna_drop, rotulo_drop)
+    with aba_dia:
+        resumo = indicadores_por_dia(df, por="Dia")
+        if resumo.empty:
+            st.warning("Nenhuma rota no período selecionado.")
+        else:
+            pagina = navegar_slides(resumo, dias_slide)
+            cabecalho(df["UF"].iloc[0], pagina, por="Dia")
+            if tamanho["modo_painel"] and renderizar_painel is None:
+                st.warning(
+                    "O modo painel precisa do arquivo **painel_arrastavel.py** na mesma "
+                    "pasta do app.py, no repositório. Mostrando o modo apresentação."
+                )
+            if tamanho["modo_painel"] and renderizar_painel is not None:
+                renderizar_painel(
+                    figuras_do_painel(pagina, coluna_drop, rotulo_drop),
+                    chave=df["UF"].iloc[0],
+                    altura_celula=max(50, tamanho["altura"] // 4),
+                    altura_total=max(560, tamanho["altura"] * 3),
+                )
+            else:
+                linha_um(pagina, coluna_drop, rotulo_drop, altura=tamanho["altura"])
+                linha_dois(pagina,
+                           altura=tamanho["altura"] + COMPENSACAO_DROP - EXTRA_LINHA_DOIS)
+            with st.expander("Resumo do período inteiro"):
+                linha_kpis(resumo, coluna_drop, rotulo_drop)
+            tabela_detalhe(resumo, coluna_drop, rotulo_drop)
+
+    with aba_semana:
+        semanal = indicadores_por_dia(df, por="Semana")
+        if semanal.empty:
+            st.warning("Nenhuma rota no período selecionado.")
+        else:
+            cabecalho(df["UF"].iloc[0], semanal, por="Semana")
+            visao_semanal(semanal, coluna_drop, rotulo_drop,
+                          altura=max(150, tamanho["altura"] - 40))
+            tabela_detalhe(semanal, coluna_drop, rotulo_drop, chave="semana")
 
     st.markdown(
         f'<div class="fonte">Fonte: relatório de rotas RoadNet · '
