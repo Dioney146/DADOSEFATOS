@@ -645,73 +645,104 @@ def titulo_painel(titulo: str, nota: str = "") -> None:
 LIMITE_FAIXA = 31  # um mês inteiro cabe; acima disso os números são omitidos
 
 
+def entre(valor: float, minimo: float, maximo: float) -> float:
+    """Mantém o valor dentro de um intervalo."""
+    return max(minimo, min(maximo, valor))
+
+
+def escala(quantidade: int, com_poucos: float, com_muitos: float) -> float:
+    """
+    Interpola linearmente entre o tamanho usado com 7 colunas e o usado com 31.
+    Fora desse intervalo, fica no limite mais próximo.
+    """
+    proporcao = entre((quantidade - 7) / 24, 0, 1)
+    return com_poucos + (com_muitos - com_poucos) * proporcao
+
+
+def corpo_do_eixo(quantidade: int) -> int:
+    """Rótulos do eixo: 13px com 7 dias, caindo até 8px com 31."""
+    return int(round(escala(quantidade, 13, 8)))
+
+
+def largura_da_barra(quantidade: int) -> tuple[float, float]:
+    """
+    Barra e vão proporcionais: com poucos dias a barra é mais estreita e o vão
+    maior; com o mês cheio a barra engorda e o vão encolhe, sem sobrepor.
+    """
+    vao = escala(quantidade, 0.42, 0.14)
+    return 1.0 - vao, vao
+
+
 def corpo_dos_valores(quantidade: int) -> tuple[int, str]:
-    """Corpo da fonte e ajuste de espaçamento para os números não se tocarem."""
-    if quantidade <= 10:
-        return 17, "0"
-    if quantidade <= 14:
-        return 15, "0"
-    if quantidade <= 18:
-        return 13, "-.01em"
-    if quantidade <= 22:
-        return 12, "-.02em"
-    if quantidade <= 26:
-        return 11, "-.03em"
-    return 10, "-.04em"
+    """Corpo da fonte e espaçamento, interpolados pela quantidade de colunas."""
+    corpo = int(round(escala(quantidade, 18, 10)))
+    aperto = escala(quantidade, 0.0, -0.045)
+    return corpo, f"{aperto:.3f}em"
 
 
-def faixa_numeros(valores: list[str], cor: str = "azul", ajuste: int = 0) -> None:
-    """Linha de números alinhada com as colunas do gráfico abaixo."""
+def faixa_numeros(valores: list[str], cor: str = "azul", ajuste: int = 0,
+                  fracao: float = 0.30) -> None:
+    """
+    Linha de números alinhada com as colunas do gráfico.
+
+    O corpo da fonte tem duas travas: uma pela quantidade de colunas e outra
+    pela largura real disponível na tela (fracao = quanto da largura da janela
+    este card ocupa). Vence a menor, então o número nunca passa da célula.
+    """
     if not valores or len(valores) > LIMITE_FAIXA:
         return
 
-    corpo, espaco = corpo_dos_valores(len(valores))
-    # Números compridos (3+ dígitos) ocupam mais espaço: encolhem mais um degrau
+    quantidade = len(valores)
+    corpo, espaco = corpo_dos_valores(quantidade)
     mais_longo = max((len(str(v)) for v in valores), default=2)
-    if len(valores) > 16 and mais_longo > 2:
+    if quantidade > 16 and mais_longo > 2:
         corpo -= mais_longo - 2
     corpo = max(7, corpo + ajuste)
-    classe = "faixa-n1" if cor == "azul" else "faixa-n2"
-    celulas = "".join(
-        f'<div class="faixa-cel"><span class="{classe}">{v}</span></div>' for v in valores
-    )
+
+    # Largura de cada célula em vw; 0,58em é a largura média de um dígito.
+    por_celula = (fracao * 100) / quantidade
+    teto_vw = por_celula / (mais_longo * 0.58)
+
     st.markdown(
-        f'<div class="faixa" style="font-size:{corpo}px; letter-spacing:{espaco}">'
-        f'{celulas}</div>',
+        f'<div class="faixa" style="font-size: min({corpo}px, {teto_vw:.3f}vw); '
+        f'letter-spacing:{espaco}">'
+        + "".join(
+            f'<div class="faixa-cel"><span class="{"faixa-n1" if cor == "azul" else "faixa-n2"}">'
+            f'{v}</span></div>' for v in valores
+        )
+        + "</div>",
         unsafe_allow_html=True,
     )
 
 
-def corpo_do_eixo(quantidade: int) -> int:
-    """Tamanho da fonte dos rótulos do eixo conforme a quantidade de colunas."""
-    if quantidade <= 12:
-        return 11
-    if quantidade <= 20:
-        return 10
-    if quantidade <= 26:
-        return 9
-    return 8
+def passo_dos_rotulos(quantidade: int, fracao: float) -> int:
+    """
+    De quantos em quantos dias escrever o rótulo do eixo.
+
+    Estima a largura de cada coluna (em pixels, numa janela de 1600px) e compara
+    com o espaço que o texto ocupa. Se não couber com folga, escreve dia sim,
+    dia não — as barras continuam todas lá, só o rótulo é que alterna.
+    """
+    largura_coluna = (fracao * 1600) / max(quantidade, 1)
+    largura_texto = corpo_do_eixo(quantidade) * 2 * 0.62 + 6  # 2 dígitos + respiro
+    return 1 if largura_coluna >= largura_texto else 2
 
 
-def largura_da_barra(quantidade: int) -> tuple[float, float]:
-    """Largura da barra e vão entre elas: mais colunas, barras mais finas."""
-    if quantidade <= 12:
-        return 0.62, 0.35
-    if quantidade <= 20:
-        return 0.70, 0.28
-    if quantidade <= 26:
-        return 0.76, 0.22
-    return 0.82, 0.16
-
-
-def eixo_datas(fig: go.Figure, dados: pd.DataFrame) -> None:
-    """Todos os dias aparecem, sempre na horizontal, sem esconder nenhum."""
+def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> None:
+    """Todas as barras aparecem; o rótulo alterna só quando não há espaço."""
+    quantidade = len(dados)
+    passo = passo_dos_rotulos(quantidade, fracao)
     eixo = dict(EIXO_X)
-    eixo["tickfont"] = dict(size=corpo_do_eixo(len(dados)), color=COR_SUAVE)
-    fig.update_xaxes(**eixo, type="category", dtick=1, tickangle=0, automargin=False)
+    eixo["tickfont"] = dict(size=corpo_do_eixo(quantidade), color=COR_SUAVE)
+
+    fig.update_xaxes(**eixo, type="category", tickangle=0, automargin=False,
+                     tickmode="array",
+                     tickvals=list(dados["EIXO"])[::passo],
+                     ticktext=list(dados["EIXO"])[::passo])
 
 
-def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 232) -> go.Figure:
+def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 232,
+                   fracao: float = 0.30) -> go.Figure:
     largura, vao = largura_da_barra(len(dados))
     fig = go.Figure(
         go.Bar(
@@ -721,7 +752,7 @@ def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 232) -> go.Fi
         )
     )
     fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
-    eixo_datas(fig, dados)
+    eixo_datas(fig, dados, fracao)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
 
@@ -731,7 +762,8 @@ def cores_pela_media(valores, media: float) -> list[str]:
     return [COR_AZUL if (pd.notna(v) and v >= media) else COR_AZUL_CLARO for v in valores]
 
 
-def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232) -> go.Figure:
+def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232,
+                         fracao: float = 0.30) -> go.Figure:
     """Drop em ordem cronológica, no mesmo eixo dos demais painéis do dia."""
     media = float(dados[coluna].mean())
     largura, vao = largura_da_barra(len(dados))
@@ -748,7 +780,7 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232) ->
         annotation_font=dict(family="IBM Plex Mono, monospace", size=9, color=COR_SUAVE),
     )
     fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
-    eixo_datas(fig, dados)
+    eixo_datas(fig, dados, fracao)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
 
@@ -774,7 +806,8 @@ def mini_estatisticas_drop(dados: pd.DataFrame, coluna: str) -> None:
 
 
 def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
-                        nome_a: str, nome_b: str, altura: int = 250) -> go.Figure:
+                        nome_a: str, nome_b: str, altura: int = 250,
+                        fracao: float = 0.485) -> go.Figure:
     fig = go.Figure()
     marcador = 6 if len(dados) <= 20 else 4
     fig.add_trace(go.Scatter(
@@ -799,7 +832,7 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
         yaxis=dict(**EIXO_Y, showticklabels=False),
         yaxis2=dict(overlaying="y", side="right", visible=False),
     )
-    eixo_datas(fig, dados)
+    eixo_datas(fig, dados, fracao)
     return fig
 
 
@@ -950,50 +983,54 @@ EXTRA_LINHA_DOIS = 46
 def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
              altura: int = 232) -> None:
     # O Drop precisa de mais largura: seus valores têm 3 dígitos
-    c1, c2, c3 = st.columns([0.92, 0.92, 1.26], gap="small")
+    pesos = [0.92, 0.92, 1.26]
+    c1, c2, c3 = st.columns(pesos, gap="small")
+    # Quanto da largura da janela cada card ocupa (usado para dimensionar as fontes)
+    fr1, fr2, fr3 = [0.97 * peso / sum(pesos) for peso in pesos]
     altura_lateral = altura + COMPENSACAO_DROP
 
     with c1, st.container(border=True):
         titulo_painel("Veículos", "rotas / dia")
-        faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="escuro")
-        st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura_lateral), width="stretch",
+        faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="escuro", fracao=fr1)
+        st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura_lateral, fracao=fr1), width="stretch",
                         config={"displayModeBar": False}, key="g_veiculos")
 
     with c2, st.container(border=True):
         titulo_painel("Ocupação", "% · peso ÷ capacidade")
         faixa_numeros([num(v * 100) if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
-                      cor="escuro", ajuste=-2)
-        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura_lateral), width="stretch",
+                      cor="escuro", fracao=fr2)
+        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura_lateral, fracao=fr2), width="stretch",
                         config={"displayModeBar": False}, key="g_ocupacao")
 
     with c3, st.container(border=True):
         titulo_painel("Drop", rotulo_drop)
         mini_estatisticas_drop(resumo, coluna_drop)
-        faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="escuro", ajuste=-2)
-        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura_lateral - 46),
+        faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="escuro", fracao=fr3)
+        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura_lateral - 46, fracao=fr3),
                         width="stretch", config={"displayModeBar": False}, key="g_drop_dia")
 
 
 def linha_dois(resumo: pd.DataFrame, altura: int = 250) -> None:
     c1, c2 = st.columns(2, gap="small")
+    meia_tela = 0.485  # cada card ocupa metade da janela
 
     with c1, st.container(border=True):
         titulo_painel("Paradas × entregas", "entregas / média de paradas")
-        faixa_numeros([num(v) for v in resumo["ENTREGAS"]], cor="azul", ajuste=-1)
-        faixa_numeros([num(v) for v in resumo["MEDIA_PARADAS"]], cor="escuro", ajuste=-1)
+        faixa_numeros([num(v) for v in resumo["ENTREGAS"]], cor="azul", fracao=meia_tela)
+        faixa_numeros([num(v) for v in resumo["MEDIA_PARADAS"]], cor="escuro", fracao=meia_tela)
         st.plotly_chart(
             grafico_duas_linhas(resumo, "MEDIA_PARADAS", "ENTREGAS", "Média paradas", "Entregas",
-                                altura=altura),
+                                altura=altura, fracao=meia_tela),
             width="stretch", config={"displayModeBar": False}, key="g_paradas",
         )
 
     with c2, st.container(border=True):
         titulo_painel("Peso × capacidade por dia", "toneladas · capacidade / peso")
-        faixa_numeros([toneladas(v) for v in resumo["CAPACIDADE"]], cor="azul", ajuste=-1)
-        faixa_numeros([toneladas(v) for v in resumo["PESO"]], cor="escuro", ajuste=-1)
+        faixa_numeros([toneladas(v) for v in resumo["CAPACIDADE"]], cor="azul", fracao=meia_tela)
+        faixa_numeros([toneladas(v) for v in resumo["PESO"]], cor="escuro", fracao=meia_tela)
         st.plotly_chart(
             grafico_duas_linhas(resumo, "PESO", "CAPACIDADE", "Peso (kg)", "Capacidade (kg)",
-                                altura=altura),
+                                altura=altura, fracao=meia_tela),
             width="stretch", config={"displayModeBar": False}, key="g_peso",
         )
 
