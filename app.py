@@ -303,6 +303,9 @@ span[data-baseweb="tag"] {
 }
 span[data-baseweb="tag"] span, span[data-baseweb="tag"] svg { color: #FFFFFF !important; fill: #FFFFFF !important; }
 
+/* Menu do canto (System/Light/Dark) escondido: o site é sempre claro */
+#MainMenu, [data-testid="stMainMenu"] { display: none !important; }
+
 /* Impressão (Ctrl+P) — sai igual a um slide em PDF */
 @media print {
     section[data-testid="stSidebar"], header[data-testid="stHeader"],
