@@ -75,11 +75,12 @@ COR_BORDA = "#DCDFE3"
 
 TAMANHO_PADRAO = {"altura": 232, "largura": "Tela cheia", "modo_painel": False}
 
+# Cada opção é um teto que respeita a tela: nunca passa de 98% da largura útil.
 LARGURAS_PAGINA = {
-    "Estreita": "1180px",
-    "Padrão": "1560px",
-    "Larga": "1900px",
-    "Tela cheia": "100%",
+    "Estreita": "min(1180px, 98vw)",
+    "Padrão": "min(1600px, 98vw)",
+    "Larga": "min(2000px, 98vw)",
+    "Tela cheia": "min(2560px, 99vw)",
 }
 
 COLUNAS_ESPERADAS = [
@@ -140,7 +141,17 @@ div[data-testid="stExpander"] span[data-testid="stIconMaterial"]::after {
 header[data-testid="stHeader"] {
     background: #F4F4F2 !important; height: 3rem; z-index: 999;
 }
-.block-container { padding-top: 3.4rem; padding-bottom: 2.5rem; max-width: 1560px; }
+.block-container {
+    padding-top: 3.2rem; padding-bottom: 2.2rem;
+    padding-left: clamp(10px, 1.4vw, 34px) !important;
+    padding-right: clamp(10px, 1.4vw, 34px) !important;
+    max-width: min(2560px, 99vw); margin: 0 auto;
+}
+/* O conteúdo do Streamlit não pode limitar a largura por conta própria */
+[data-testid="stAppViewBlockContainer"], [data-testid="stMainBlockContainer"] {
+    max-width: none !important;
+}
+[data-testid="stMain"] .stMainBlockContainer { width: 100%; }
 html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
 .stApp h1, .stApp h2, .stApp h3, .stApp h4 {
     color: #14161A;
@@ -154,7 +165,8 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
 }
 .cab-titulo {
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; letter-spacing: .02em;
-    font-size: 42px; line-height: .95; text-transform: uppercase; margin: 0; color: #14161A;
+    font-size: clamp(28px, 2.4vw, 46px); line-height: .95; text-transform: uppercase;
+    margin: 0; color: #14161A;
 }
 .cab-sub {
     font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 11px; letter-spacing: .16em;
@@ -167,8 +179,8 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
     text-transform: uppercase; color: #7C858D;
 }
 .meta-val {
-    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 26px;
-    line-height: 1.1; color: #14161A;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700;
+    font-size: clamp(20px, 1.6vw, 30px); line-height: 1.1; color: #14161A;
 }
 
 /* ── Cartões de resumo ───────────────────────────────────────────────────── */
@@ -190,14 +202,18 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
 /* ── Painéis (st.container com borda) ────────────────────────────────────── */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     background: #FFFFFF; border: 1px solid #14161A !important; border-radius: 0 !important;
-    padding: 2px 4px;
+    padding: 4px clamp(6px, 0.6vw, 14px);
 }
+div[data-testid="stVerticalBlockBorderWrapper"] .js-plotly-plot,
+div[data-testid="stVerticalBlockBorderWrapper"] .stPlotlyChart { width: 100% !important; }
 /* Espaçamento enxuto entre painéis e entre as linhas */
-div[data-testid="stHorizontalBlock"] { gap: 8px !important; margin-bottom: 8px; }
+div[data-testid="stHorizontalBlock"] {
+    gap: clamp(6px, 0.7vw, 16px) !important; margin-bottom: clamp(6px, 0.7vw, 16px);
+}
 div[data-testid="stVerticalBlockBorderWrapper"] div[data-testid="stElementContainer"] {
     margin-bottom: 0 !important;
 }
-div[data-testid="stVerticalBlock"] { gap: 8px !important; }
+div[data-testid="stVerticalBlock"] { gap: clamp(6px, 0.7vw, 16px) !important; }
 
 /* Painéis lado a lado terminam na mesma altura */
 div[data-testid="stHorizontalBlock"] { align-items: stretch; }
@@ -213,7 +229,8 @@ section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]
     padding: 2px 2px 10px 2px; margin-bottom: 2px;
 }
 .painel-titulo {
-    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 23px;
+    font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700;
+    font-size: clamp(17px, 1.3vw, 26px);
     text-transform: uppercase; letter-spacing: .01em; color: #14161A;
 }
 .painel-nota {
@@ -302,6 +319,16 @@ span[data-baseweb="tag"] {
     background: #2C3440 !important; border-radius: 2px !important;
 }
 span[data-baseweb="tag"] span, span[data-baseweb="tag"] svg { color: #FFFFFF !important; fill: #FFFFFF !important; }
+
+/* Telas estreitas: os painéis passam a ocupar a linha inteira, sem rolagem lateral */
+@media (max-width: 900px) {
+    div[data-testid="stHorizontalBlock"] { flex-wrap: wrap; }
+    div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"] {
+        flex: 1 1 100% !important; min-width: 100% !important;
+    }
+    .cab { flex-wrap: wrap; gap: 10px; }
+}
+html, body { overflow-x: hidden; }
 
 /* Menu do canto (System/Light/Dark) escondido: o site é sempre claro */
 #MainMenu, [data-testid="stMainMenu"] { display: none !important; }
@@ -584,7 +611,7 @@ def num(valor, casas: int = 0) -> str:
 # ──────────────────────────────────────────────────────────────────────────────
 
 LAYOUT_BASE = dict(
-    margin=dict(l=6, r=6, t=4, b=22),
+    margin=dict(l=2, r=2, t=4, b=22),
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor=COR_FUNDO_GRAFICO,
     font=dict(family="Archivo, sans-serif", size=11, color=COR_TEXTO),
