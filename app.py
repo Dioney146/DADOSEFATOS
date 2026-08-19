@@ -673,10 +673,14 @@ def largura_da_barra(quantidade: int) -> tuple[float, float]:
     return 1.0 - vao, vao
 
 
+# Fração da célula que o número pode ocupar: o resto vira respiro entre eles.
+OCUPACAO_DA_CELULA = 0.74
+
+
 def corpo_dos_valores(quantidade: int) -> tuple[int, str]:
     """Corpo da fonte e espaçamento, interpolados pela quantidade de colunas."""
-    corpo = int(round(escala(quantidade, 18, 10)))
-    aperto = escala(quantidade, 0.0, -0.045)
+    corpo = int(round(escala(quantidade, 17, 8)))
+    aperto = escala(quantidade, 0.0, -0.05)
     return corpo, f"{aperto:.3f}em"
 
 
@@ -699,9 +703,10 @@ def faixa_numeros(valores: list[str], cor: str = "azul", ajuste: int = 0,
         corpo -= mais_longo - 2
     corpo = max(7, corpo + ajuste)
 
-    # Largura de cada célula em vw; 0,58em é a largura média de um dígito.
+    # Largura de cada célula em vw. O número só pode usar parte dela (o resto é
+    # o vão que impede um encostar no outro); 0,58em é a largura de um dígito.
     por_celula = (fracao * 100) / quantidade
-    teto_vw = por_celula / (mais_longo * 0.58)
+    teto_vw = (por_celula * OCUPACAO_DA_CELULA) / (mais_longo * 0.58)
 
     st.markdown(
         f'<div class="faixa" style="font-size: min({corpo}px, {teto_vw:.3f}vw); '
@@ -731,6 +736,7 @@ def passo_dos_rotulos(quantidade: int, fracao: float) -> int:
 def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> None:
     """Todas as barras aparecem; o rótulo alterna só quando não há espaço."""
     quantidade = len(dados)
+    fig.update_layout(margin=dict(l=2, r=2, t=4, b=int(round(escala(quantidade, 26, 18)))))
     passo = passo_dos_rotulos(quantidade, fracao)
     eixo = dict(EIXO_X)
     eixo["tickfont"] = dict(size=corpo_do_eixo(quantidade), color=COR_SUAVE)
@@ -809,18 +815,19 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
                         nome_a: str, nome_b: str, altura: int = 250,
                         fracao: float = 0.485) -> go.Figure:
     fig = go.Figure()
-    marcador = 6 if len(dados) <= 20 else 4
+    marcador = escala(len(dados), 7, 3)
+    traco = escala(len(dados), 2.4, 1.4)
     fig.add_trace(go.Scatter(
         x=dados["EIXO"], y=dados[col_a], name=nome_a, mode="lines+markers",
         customdata=dados["HOVER"],
-        line=dict(color=COR_ESCURA, width=2, shape="spline", smoothing=0.9),
+        line=dict(color=COR_ESCURA, width=traco, shape="spline", smoothing=0.9),
         marker=dict(size=marcador, symbol="circle"),
         yaxis="y", hovertemplate=f"{nome_a}: %{{y:,.1f}}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
         x=dados["EIXO"], y=dados[col_b], name=nome_b, mode="lines+markers",
         customdata=dados["HOVER"],
-        line=dict(color=COR_AZUL, width=2, shape="spline", smoothing=0.9),
+        line=dict(color=COR_AZUL, width=traco, shape="spline", smoothing=0.9),
         marker=dict(size=marcador, symbol="circle"),
         yaxis="y2", hovertemplate=f"{nome_b}: %{{y:,.0f}}<extra></extra>",
     ))
