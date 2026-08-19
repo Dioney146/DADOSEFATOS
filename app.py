@@ -708,13 +708,11 @@ def faixa_numeros(valores: list[str], cor: str = "azul", ajuste: int = 0,
     por_celula = (fracao * 100) / quantidade
     teto_vw = (por_celula * OCUPACAO_DA_CELULA) / (mais_longo * 0.58)
 
+    classe = "faixa-n1" if cor == "azul" else "faixa-n2"
     st.markdown(
-        f'<div class="faixa" style="font-size: min({corpo}px, {teto_vw:.3f}vw); '
-        f'letter-spacing:{espaco}">'
-        + "".join(
-            f'<div class="faixa-cel"><span class="{"faixa-n1" if cor == "azul" else "faixa-n2"}">'
-            f'{v}</span></div>' for v in valores
-        )
+        f'<div class="faixa" style="grid-template-columns: repeat({quantidade}, minmax(0, 1fr)); '
+        f'font-size: min({corpo}px, {teto_vw:.3f}vw); letter-spacing:{espaco}">'
+        + "".join(f'<div class="faixa-cel {classe}">{v}</div>' for v in valores)
         + "</div>",
         unsafe_allow_html=True,
     )
