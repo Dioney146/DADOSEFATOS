@@ -653,12 +653,13 @@ def corpo_dos_valores(quantidade: int) -> tuple[int, str]:
     return 10, "-.04em"
 
 
-def faixa_numeros(valores: list[str], cor: str = "azul") -> None:
+def faixa_numeros(valores: list[str], cor: str = "azul", ajuste: int = 0) -> None:
     """Linha de números alinhada com as colunas do gráfico abaixo."""
     if not valores or len(valores) > LIMITE_FAIXA:
         return
 
     corpo, espaco = corpo_dos_valores(len(valores))
+    corpo = max(8, corpo + ajuste)
     classe = "faixa-n1" if cor == "azul" else "faixa-n2"
     celulas = "".join(
         f'<div class="faixa-cel"><span class="{classe}">{v}</span></div>' for v in valores
@@ -975,9 +976,9 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
                         config={"displayModeBar": False}, key="g_veiculos")
 
     with c2, st.container(border=True):
-        titulo_painel("Ocupação", "peso ÷ capacidade")
-        faixa_numeros([f"{num(v * 100)}%" if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
-                      cor="escuro")
+        titulo_painel("Ocupação", "% · peso ÷ capacidade")
+        faixa_numeros([num(v * 100) if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
+                      cor="escuro", ajuste=-2)
         st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura_lateral), width="stretch",
                         config={"displayModeBar": False}, key="g_ocupacao")
 
