@@ -613,16 +613,27 @@ LIMITE_FAIXA = 31  # um mês inteiro cabe; acima disso os números são omitidos
 
 def faixa_numeros(valores: list[str], cor: str = "azul") -> None:
     """Linha de números alinhada com as colunas do gráfico abaixo."""
-    if len(valores) > LIMITE_FAIXA:
+    if not valores or len(valores) > LIMITE_FAIXA:
         return
+
+    quantidade = len(valores)
+    if quantidade <= 12:
+        corpo = 17
+    elif quantidade <= 18:
+        corpo = 13
+    elif quantidade <= 24:
+        corpo = 11
+    else:
+        corpo = 9
+
     classe = "faixa-n1" if cor == "azul" else "faixa-n2"
-    if len(valores) > 24:
-        classe += " apertada"
-    elif len(valores) > 16:
-        classe += " media"
-    celulas = "".join(f'<div class="faixa-cel"><span class="{classe}">{v}</span></div>'
-                      for v in valores)
-    st.markdown(f'<div class="faixa">{celulas}</div>', unsafe_allow_html=True)
+    celulas = "".join(
+        f'<div class="faixa-cel"><span class="{classe}">{v}</span></div>' for v in valores
+    )
+    st.markdown(
+        f'<div class="faixa" style="font-size:{corpo}px">{celulas}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def eixo_datas(fig: go.Figure, dados: pd.DataFrame) -> None:
