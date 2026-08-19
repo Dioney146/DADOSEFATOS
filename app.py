@@ -803,12 +803,19 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
 
 
 @st.cache_data(show_spinner=False)
-def logo_embutido() -> str:
-    """Logotipo em base64, para ir junto do HTML do cabeçalho."""
-    if not ARQUIVO_LOGO.exists():
+def selo_da_marca() -> str:
+    """Selo redondo com o 'D' da marca, fixo no canto superior direito."""
+    arquivo = ARQUIVO_ICONE if ARQUIVO_ICONE.exists() else ARQUIVO_LOGO
+    if not arquivo.exists():
         return ""
-    dados = base64.b64encode(ARQUIVO_LOGO.read_bytes()).decode()
-    return f'<img class="cab-logo" src="data:image/png;base64,{dados}" alt="Delly\'s Food Service">'
+    dados = base64.b64encode(arquivo.read_bytes()).decode()
+    return (
+        '<img src="data:image/png;base64,' + dados + '" alt="Delly\'s Food Service" '
+        'style="position:fixed; top:56px; right:18px; z-index:1000; '
+        'width:44px; height:44px; border-radius:50%; object-fit:cover; '
+        'background:#FFFFFF; border:1px solid #DCDFE3; padding:2px; '
+        'pointer-events:none;">'
+    )
 
 
 def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
@@ -822,12 +829,9 @@ def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
     st.markdown(
         f"""
         <div class="cab">
-          <div class="cab-marca">
-            {logo_embutido()}
-            <div>
+          <div>
             <p class="cab-titulo">{"Indicadores por semana" if por == "Semana" else "Indicadores por dia"}</p>
             <div class="cab-sub">{uf} · {ESTADOS.get(uf, 'Estado não identificado')} · Delly's Food Service</div>
-            </div>
           </div>
           <div class="cab-meta">
             <div class="meta-item"><div class="meta-rot">Período</div><div class="meta-val">{periodo}</div></div>
@@ -1101,6 +1105,7 @@ def tabela_detalhe(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
+    st.markdown(selo_da_marca(), unsafe_allow_html=True)
 
     df, base_drop, dias_slide, tamanho = barra_lateral()
     st.markdown(
@@ -1110,7 +1115,7 @@ def main() -> None:
 
     if df.empty:
         st.markdown(
-            '<div class="abertura">' + logo_embutido() +
+            '<div class="abertura">'
             '<p class="cab-titulo">Dados e fatos</p>'
             '<div class="cab-sub">Indicadores de roteirização · Delly\'s Food Service</div>'
             '</div>',
