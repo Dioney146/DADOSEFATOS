@@ -254,11 +254,15 @@ section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]
 }
 .leg-cor { width: 12px; height: 12px; display: inline-block; }
 .sem-faixa { display: flex; border-top: 1px solid #14161A; padding-top: 8px; margin: 0 2px 4px 2px; }
-.sem-cel { flex: 1; text-align: center; }
+.sem-cel { flex: 1; text-align: center; padding: 0 4px; min-width: 0; }
 .sem-val {
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
     font-weight: 700; font-size: 27px; line-height: 1.05; color: #14161A;
+    white-space: nowrap;
 }
+/* Valores compridos (peso, capacidade) em corpo menor, para não se colarem */
+.sem-cel.compacta .sem-val { font-size: 19px; }
+.sem-cel.compacta .sem-rot { font-size: 9px; letter-spacing: .04em; }
 .sem-rot {
     font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px;
     letter-spacing: .1em; text-transform: uppercase; color: #7C858D;
@@ -985,10 +989,12 @@ def grafico_semanal(resumo: pd.DataFrame, coluna: str, altura: int = 190) -> go.
     return fig
 
 
-def valores_semanais(resumo: pd.DataFrame, valores: list[str], rodapes: list[str]) -> None:
+def valores_semanais(resumo: pd.DataFrame, valores: list[str], rodapes: list[str],
+                     compacta: bool = False) -> None:
     """Números grandes embaixo de cada barra, com a sigla da semana."""
+    classe = "sem-cel compacta" if compacta else "sem-cel"
     celulas = "".join(
-        f'<div class="sem-cel"><div class="sem-val">{valor}</div>'
+        f'<div class="{classe}"><div class="sem-val">{valor}</div>'
         f'<div class="sem-rot">{rodape}</div></div>'
         for valor, rodape in zip(valores, rodapes)
     )
@@ -996,12 +1002,13 @@ def valores_semanais(resumo: pd.DataFrame, valores: list[str], rodapes: list[str
 
 
 def painel_semanal(resumo: pd.DataFrame, coluna: str, titulo: str, nota: str,
-                   valores: list[str], rodapes: list[str], altura: int, chave: str) -> None:
+                   valores: list[str], rodapes: list[str], altura: int, chave: str,
+                   compacta: bool = False) -> None:
     with st.container(border=True):
         titulo_painel(titulo, nota)
         st.plotly_chart(grafico_semanal(resumo, coluna, altura=altura), width="stretch",
                         config={"displayModeBar": False}, key=f"sem_{chave}")
-        valores_semanais(resumo, valores, rodapes)
+        valores_semanais(resumo, valores, rodapes, compacta=compacta)
 
 
 def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
@@ -1027,11 +1034,13 @@ def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
                        [num(v, 1) for v in resumo["MEDIA_PARADAS"]], siglas, altura, "paradas")
     with c5:
         painel_semanal(resumo, "ENTREGAS", "Entregas", "ordens",
-                       [num(v) for v in resumo["ENTREGAS"]], siglas, altura, "entregas")
+                       [num(v) for v in resumo["ENTREGAS"]], siglas, altura, "entregas",
+                       compacta=len(resumo) > 5)
     with c6:
-        rodapes_peso = [f"{s} · cap {num(c)}" for s, c in zip(siglas, resumo["CAPACIDADE"])]
-        painel_semanal(resumo, "PESO", "Peso", "kg · capacidade abaixo",
-                       [num(v) for v in resumo["PESO"]], rodapes_peso, altura, "peso")
+        rodapes_peso = [f"{s} · cap {num(c / 1000, 1)} t" for s, c in zip(siglas, resumo["CAPACIDADE"])]
+        painel_semanal(resumo, "PESO", "Peso", "toneladas · capacidade abaixo",
+                       [f"{num(v / 1000, 1)} t" for v in resumo["PESO"]],
+                       rodapes_peso, altura, "peso", compacta=True)
 
 
 def tabela_detalhe(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
