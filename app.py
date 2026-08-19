@@ -59,6 +59,15 @@ COR_FUNDO_GRAFICO = "#F1F1EF"
 COR_GRADE = "#C9CCCF"
 COR_BORDA = "#DCDFE3"
 
+TAMANHO_PADRAO = {"altura": 232, "largura": "Padrão"}
+
+LARGURAS_PAGINA = {
+    "Estreita": "1180px",
+    "Padrão": "1560px",
+    "Larga": "1900px",
+    "Tela cheia": "100%",
+}
+
 COLUNAS_ESPERADAS = [
     "ID",
     "Descrição",
@@ -646,14 +655,14 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
         arquivos = arquivos + [(f.name, f.getvalue()) for f in enviados]
 
     if not arquivos:
-        return pd.DataFrame(), "Parada", "10"
+        return pd.DataFrame(), "Parada", "10", TAMANHO_PADRAO
 
     st.session_state.pop("_problemas", None)
     df = carregar(tuple(arquivos))
     for aviso in st.session_state.get("_problemas", []):
         st.sidebar.warning(aviso)
     if df.empty:
-        return df, "Parada", "10"
+        return df, "Parada", "10", TAMANHO_PADRAO
 
     st.sidebar.markdown("## Filtros")
     ufs = sorted(df["UF"].unique())
@@ -692,7 +701,16 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
         help="Como no slide impresso: cada tela mostra um bloco de dias.",
     )
 
-    return df, base_drop, dias_slide
+    altura = st.sidebar.slider(
+        "Altura dos gráficos (px)", min_value=150, max_value=520, value=232, step=10,
+        help="Vale para os cinco painéis. Aumente para projetar, reduza para caber na tela.",
+    )
+    largura = st.sidebar.select_slider(
+        "Largura da página", options=["Estreita", "Padrão", "Larga", "Tela cheia"],
+        value="Padrão",
+    )
+
+    return df, base_drop, dias_slide, {"altura": altura, "largura": largura}
 
 
 def cabecalho(uf: str, resumo: pd.DataFrame) -> None:
@@ -762,20 +780,21 @@ def linha_kpis(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None
     st.markdown(f'<div class="kpis">{html}</div>', unsafe_allow_html=True)
 
 
-def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
+def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
+             altura: int = 232) -> None:
     c1, c2, c3 = st.columns([1.05, 1.05, 0.9], gap="medium")
 
     with c1, st.container(border=True):
         titulo_painel("Veículos", "rotas / dia")
         faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="escuro")
-        st.plotly_chart(grafico_barras(resumo, "VEICULOS"), width="stretch",
+        st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura), width="stretch",
                         config={"displayModeBar": False}, key="g_veiculos")
 
     with c2, st.container(border=True):
         titulo_painel("Ocupação", "peso ÷ capacidade")
         faixa_numeros([f"{num(v * 100)}%" if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
                       cor="escuro")
-        st.plotly_chart(grafico_barras(resumo, "OCUPACAO"), width="stretch",
+        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura), width="stretch",
                         config={"displayModeBar": False}, key="g_ocupacao")
 
     with c3, st.container(border=True):
@@ -786,11 +805,11 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
         ) or "Por dia"
         mini_estatisticas_drop(resumo, coluna_drop)
         if visao == "Por dia":
-            st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=232),
+            st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura),
                             width="stretch", config={"displayModeBar": False}, key="g_drop_dia")
         else:
             limite = 12
-            st.plotly_chart(grafico_drop_ranking(resumo, coluna_drop, limite=limite, altura=232),
+            st.plotly_chart(grafico_drop_ranking(resumo, coluna_drop, limite=limite, altura=altura),
                             width="stretch", config={"displayModeBar": False}, key="g_drop_rank")
             if len(resumo) > limite:
                 st.markdown(
@@ -799,7 +818,7 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> None:
                 )
 
 
-def linha_dois(resumo: pd.DataFrame) -> None:
+def linha_dois(resumo: pd.DataFrame, altura: int = 250) -> None:
     c1, c2 = st.columns(2, gap="medium")
 
     with c1, st.container(border=True):
@@ -807,7 +826,8 @@ def linha_dois(resumo: pd.DataFrame) -> None:
         faixa_numeros([num(v) for v in resumo["ENTREGAS"]], cor="azul")
         faixa_numeros([num(v, 1) for v in resumo["MEDIA_PARADAS"]], cor="escuro")
         st.plotly_chart(
-            grafico_duas_linhas(resumo, "MEDIA_PARADAS", "ENTREGAS", "Média paradas", "Entregas"),
+            grafico_duas_linhas(resumo, "MEDIA_PARADAS", "ENTREGAS", "Média paradas", "Entregas",
+                                altura=altura),
             width="stretch", config={"displayModeBar": False}, key="g_paradas",
         )
 
@@ -816,7 +836,8 @@ def linha_dois(resumo: pd.DataFrame) -> None:
         faixa_numeros([num(v) for v in resumo["CAPACIDADE"]], cor="azul")
         faixa_numeros([num(v) for v in resumo["PESO"]], cor="escuro")
         st.plotly_chart(
-            grafico_duas_linhas(resumo, "PESO", "CAPACIDADE", "Peso (kg)", "Capacidade (kg)"),
+            grafico_duas_linhas(resumo, "PESO", "CAPACIDADE", "Peso (kg)", "Capacidade (kg)",
+                                altura=altura),
             width="stretch", config={"displayModeBar": False}, key="g_peso",
         )
 
@@ -861,7 +882,11 @@ def tabela_detalhe(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> 
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
 
-    df, base_drop, dias_slide = barra_lateral()
+    df, base_drop, dias_slide, tamanho = barra_lateral()
+    st.markdown(
+        f'<style>.block-container {{ max-width: {LARGURAS_PAGINA[tamanho["largura"]]} !important; }}</style>',
+        unsafe_allow_html=True,
+    )
 
     if df.empty:
         st.markdown(
@@ -888,8 +913,8 @@ def main() -> None:
 
     pagina = navegar_slides(resumo, dias_slide)
     cabecalho(df["UF"].iloc[0], pagina)
-    linha_um(pagina, coluna_drop, rotulo_drop)
-    linha_dois(pagina)
+    linha_um(pagina, coluna_drop, rotulo_drop, altura=tamanho["altura"])
+    linha_dois(pagina, altura=tamanho["altura"] + 18)
     with st.expander("Resumo do período inteiro"):
         linha_kpis(resumo, coluna_drop, rotulo_drop)
     tabela_detalhe(resumo, coluna_drop, rotulo_drop)
