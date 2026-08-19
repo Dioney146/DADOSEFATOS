@@ -202,7 +202,7 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
 /* ── Painéis (st.container com borda) ────────────────────────────────────── */
 div[data-testid="stVerticalBlockBorderWrapper"] {
     background: #FFFFFF; border: 1px solid #14161A !important; border-radius: 0 !important;
-    padding: 4px clamp(6px, 0.6vw, 14px);
+    padding: 3px clamp(3px, 0.35vw, 9px);
 }
 div[data-testid="stVerticalBlockBorderWrapper"] .js-plotly-plot,
 div[data-testid="stVerticalBlockBorderWrapper"] .stPlotlyChart { width: 100% !important; }
@@ -226,7 +226,7 @@ section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]
 }
 .painel-topo {
     display: flex; align-items: baseline; justify-content: space-between;
-    padding: 2px 2px 10px 2px; margin-bottom: 2px;
+    gap: 8px; padding: 2px 2px 6px 2px; margin-bottom: 0;
 }
 .painel-titulo {
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700;
@@ -583,6 +583,7 @@ def indicadores_por_dia(df: pd.DataFrame, por: str = "Dia") -> pd.DataFrame:
     agrupado["DROP_ROTA"] = agrupado["PESO"] / agrupado["ROTAS"].replace(0, pd.NA)
     if por == "Semana":
         agrupado["ROTULO"] = agrupado["SEMANA"]
+        agrupado["EIXO"] = agrupado["SEMANA"]
         agrupado["ORDEM"] = agrupado["SEMANA"].map(ordem)
         agrupado["INICIO"] = agrupado["SEMANA"].map(df.groupby("SEMANA")["DATA"].min())
         agrupado["FIM"] = agrupado["SEMANA"].map(df.groupby("SEMANA")["DATA"].max())
@@ -592,9 +593,18 @@ def indicadores_por_dia(df: pd.DataFrame, por: str = "Dia") -> pd.DataFrame:
         por_dia = df.groupby(["SEMANA", "DATA"])["VEICULO"].nunique()
         agrupado["VEICULOS_DISTINTOS"] = agrupado["VEICULOS"]
         agrupado["VEICULOS"] = agrupado["SEMANA"].map(por_dia.groupby("SEMANA").sum())
-        return agrupado.sort_values("ORDEM").drop(columns="ORDEM").reset_index(drop=True)
+        pronto = agrupado.sort_values("ORDEM").drop(columns="ORDEM").reset_index(drop=True)
+        pronto["HOVER"] = [
+            f"{r} · {i.strftime('%d/%m')}–{f.strftime('%d/%m')}"
+            for r, i, f in zip(pronto["ROTULO"], pronto["INICIO"], pronto["FIM"])
+        ]
+        return pronto
 
     agrupado["ROTULO"] = agrupado["DATA"].dt.strftime("%d/%m")
+    # O eixo mostra só o dia; se o recorte cruzar meses, mantém dia/mês para não repetir
+    um_mes = agrupado["DATA"].dt.to_period("M").nunique() <= 1
+    agrupado["EIXO"] = agrupado["DATA"].dt.strftime("%d" if um_mes else "%d/%m")
+    agrupado["HOVER"] = agrupado["DATA"].dt.strftime("%d/%m/%Y")  # tooltip com a data inteira
     return agrupado.sort_values("DATA").reset_index(drop=True)
 
 
@@ -638,46 +648,77 @@ def titulo_painel(titulo: str, nota: str = "") -> None:
 LIMITE_FAIXA = 31  # um mês inteiro cabe; acima disso os números são omitidos
 
 
+def corpo_dos_valores(quantidade: int) -> tuple[int, str]:
+    """Corpo da fonte e ajuste de espaçamento para os números não se tocarem."""
+    if quantidade <= 10:
+        return 17, "0"
+    if quantidade <= 14:
+        return 15, "0"
+    if quantidade <= 18:
+        return 13, "-.01em"
+    if quantidade <= 22:
+        return 12, "-.02em"
+    if quantidade <= 26:
+        return 11, "-.03em"
+    return 10, "-.04em"
+
+
 def faixa_numeros(valores: list[str], cor: str = "azul") -> None:
     """Linha de números alinhada com as colunas do gráfico abaixo."""
     if not valores or len(valores) > LIMITE_FAIXA:
         return
 
-    quantidade = len(valores)
-    if quantidade <= 12:
-        corpo = 17
-    elif quantidade <= 18:
-        corpo = 13
-    elif quantidade <= 24:
-        corpo = 11
-    else:
-        corpo = 9
-
+    corpo, espaco = corpo_dos_valores(len(valores))
     classe = "faixa-n1" if cor == "azul" else "faixa-n2"
     celulas = "".join(
         f'<div class="faixa-cel"><span class="{classe}">{v}</span></div>' for v in valores
     )
     st.markdown(
-        f'<div class="faixa" style="font-size:{corpo}px">{celulas}</div>',
+        f'<div class="faixa" style="font-size:{corpo}px; letter-spacing:{espaco}">'
+        f'{celulas}</div>',
         unsafe_allow_html=True,
     )
 
 
+def corpo_do_eixo(quantidade: int) -> int:
+    """Tamanho da fonte dos rótulos do eixo conforme a quantidade de colunas."""
+    if quantidade <= 12:
+        return 11
+    if quantidade <= 20:
+        return 10
+    if quantidade <= 26:
+        return 9
+    return 8
+
+
+def largura_da_barra(quantidade: int) -> tuple[float, float]:
+    """Largura da barra e vão entre elas: mais colunas, barras mais finas."""
+    if quantidade <= 12:
+        return 0.62, 0.35
+    if quantidade <= 20:
+        return 0.70, 0.28
+    if quantidade <= 26:
+        return 0.76, 0.22
+    return 0.82, 0.16
+
+
 def eixo_datas(fig: go.Figure, dados: pd.DataFrame) -> None:
-    """Com muitos dias, mostra um rótulo sim, outro não, para não embolar."""
-    passo = 1 if len(dados) <= 34 else 2
-    fig.update_xaxes(**EIXO_X, type="category", dtick=passo, tickangle=-90 if len(dados) > 12 else 0)
+    """Todos os dias aparecem, sempre na horizontal, sem esconder nenhum."""
+    eixo = dict(EIXO_X)
+    eixo["tickfont"] = dict(size=corpo_do_eixo(len(dados)), color=COR_SUAVE)
+    fig.update_xaxes(**eixo, type="category", dtick=1, tickangle=0, automargin=False)
 
 
 def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 232) -> go.Figure:
+    largura, vao = largura_da_barra(len(dados))
     fig = go.Figure(
         go.Bar(
-            x=dados["ROTULO"], y=dados[coluna],
-            marker_color=COR_AZUL, marker_line_width=0, width=0.62,
-            hovertemplate="%{x}<br>%{y}<extra></extra>",
+            x=dados["EIXO"], y=dados[coluna], customdata=dados["HOVER"],
+            marker_color=COR_AZUL, marker_line_width=0, width=largura,
+            hovertemplate="<b>%{customdata}</b><br>%{y}<extra></extra>",
         )
     )
-    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0.35)
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
     eixo_datas(fig, dados)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
@@ -691,11 +732,12 @@ def cores_pela_media(valores, media: float) -> list[str]:
 def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232) -> go.Figure:
     """Drop em ordem cronológica, no mesmo eixo dos demais painéis do dia."""
     media = float(dados[coluna].mean())
+    largura, vao = largura_da_barra(len(dados))
     fig = go.Figure(
         go.Bar(
-            x=dados["ROTULO"], y=dados[coluna], width=0.62,
+            x=dados["EIXO"], y=dados[coluna], width=largura, customdata=dados["HOVER"],
             marker_color=cores_pela_media(dados[coluna], media), marker_line_width=0,
-            hovertemplate="%{x}<br>%{y:.1f} kg<extra></extra>",
+            hovertemplate="<b>%{customdata}</b><br>%{y:.1f} kg<extra></extra>",
         )
     )
     fig.add_hline(
@@ -703,7 +745,7 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 232) ->
         annotation_text=f"média {num(media)}", annotation_position="top left",
         annotation_font=dict(family="IBM Plex Mono, monospace", size=9, color=COR_SUAVE),
     )
-    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0.35)
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
     eixo_datas(fig, dados)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
@@ -762,19 +804,22 @@ def mini_estatisticas_drop(dados: pd.DataFrame, coluna: str) -> None:
 def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
                         nome_a: str, nome_b: str, altura: int = 250) -> go.Figure:
     fig = go.Figure()
+    marcador = 6 if len(dados) <= 20 else 4
     fig.add_trace(go.Scatter(
-        x=dados["ROTULO"], y=dados[col_a], name=nome_a, mode="lines+markers",
-        line=dict(color=COR_ESCURA, width=2), marker=dict(size=6, symbol="square"),
-        yaxis="y", hovertemplate=f"{nome_a}: %{{y:.1f}}<extra></extra>",
+        x=dados["EIXO"], y=dados[col_a], name=nome_a, mode="lines+markers",
+        customdata=dados["HOVER"],
+        line=dict(color=COR_ESCURA, width=2), marker=dict(size=marcador, symbol="square"),
+        yaxis="y", hovertemplate=f"{nome_a}: %{{y:,.1f}}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=dados["ROTULO"], y=dados[col_b], name=nome_b, mode="lines+markers",
-        line=dict(color=COR_AZUL, width=2), marker=dict(size=6, symbol="square"),
-        yaxis="y2", hovertemplate=f"{nome_b}: %{{y:.0f}}<extra></extra>",
+        x=dados["EIXO"], y=dados[col_b], name=nome_b, mode="lines+markers",
+        customdata=dados["HOVER"],
+        line=dict(color=COR_AZUL, width=2), marker=dict(size=marcador, symbol="square"),
+        yaxis="y2", hovertemplate=f"{nome_b}: %{{y:,.0f}}<extra></extra>",
     ))
-    base = {k: v for k, v in LAYOUT_BASE.items() if k != "showlegend"}
+    base = {k: v for k, v in LAYOUT_BASE.items() if k not in {"showlegend", "hovermode"}}
     fig.update_layout(
-        **base, height=altura, showlegend=True,
+        **base, height=altura, showlegend=True, hovermode="x unified",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
                     font=dict(size=10, color=COR_SUAVE)),
         yaxis=dict(**EIXO_Y, showticklabels=False),
@@ -846,7 +891,7 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
     )
     largura = st.sidebar.select_slider(
         "Largura da página", options=["Estreita", "Padrão", "Larga", "Tela cheia"],
-        value="Padrão",
+        value="Tela cheia",
     )
 
     return df, base_drop, dias_slide, {"altura": altura, "largura": largura,
