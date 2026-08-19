@@ -780,13 +780,15 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
     fig.add_trace(go.Scatter(
         x=dados["EIXO"], y=dados[col_a], name=nome_a, mode="lines+markers",
         customdata=dados["HOVER"],
-        line=dict(color=COR_ESCURA, width=2), marker=dict(size=marcador, symbol="square"),
+        line=dict(color=COR_ESCURA, width=2, shape="spline", smoothing=0.9),
+        marker=dict(size=marcador, symbol="circle"),
         yaxis="y", hovertemplate=f"{nome_a}: %{{y:,.1f}}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
         x=dados["EIXO"], y=dados[col_b], name=nome_b, mode="lines+markers",
         customdata=dados["HOVER"],
-        line=dict(color=COR_AZUL, width=2), marker=dict(size=marcador, symbol="square"),
+        line=dict(color=COR_AZUL, width=2, shape="spline", smoothing=0.9),
+        marker=dict(size=marcador, symbol="circle"),
         yaxis="y2", hovertemplate=f"{nome_b}: %{{y:,.0f}}<extra></extra>",
     ))
     base = {k: v for k, v in LAYOUT_BASE.items() if k not in {"showlegend", "hovermode"}}
