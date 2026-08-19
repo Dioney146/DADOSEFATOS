@@ -37,7 +37,7 @@ st.set_page_config(
     page_icon=str(Path(__file__).parent / "assets" / "favicon.png")
     if (Path(__file__).parent / "assets" / "favicon.png").exists() else "📦",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 PASTA_DADOS = Path(__file__).parent / "dados"
@@ -73,7 +73,7 @@ COR_FUNDO_GRAFICO = "#F1F1EF"
 COR_GRADE = "#C9CCCF"
 COR_BORDA = "#DCDFE3"
 
-TAMANHO_PADRAO = {"altura": 232, "largura": "Padrão", "modo_painel": False}
+TAMANHO_PADRAO = {"altura": 232, "largura": "Tela cheia", "modo_painel": False}
 
 LARGURAS_PAGINA = {
     "Estreita": "1180px",
@@ -608,7 +608,7 @@ def titulo_painel(titulo: str, nota: str = "") -> None:
     )
 
 
-LIMITE_FAIXA = 16  # acima disso os números por dia ficam ilegíveis e são omitidos
+LIMITE_FAIXA = 31  # um mês inteiro cabe; acima disso os números são omitidos
 
 
 def faixa_numeros(valores: list[str], cor: str = "azul") -> None:
@@ -616,13 +616,18 @@ def faixa_numeros(valores: list[str], cor: str = "azul") -> None:
     if len(valores) > LIMITE_FAIXA:
         return
     classe = "faixa-n1" if cor == "azul" else "faixa-n2"
-    celulas = "".join(f'<div class="faixa-cel {classe}">{v}</div>' for v in valores)
+    if len(valores) > 24:
+        classe += " apertada"
+    elif len(valores) > 16:
+        classe += " media"
+    celulas = "".join(f'<div class="faixa-cel"><span class="{classe}">{v}</span></div>'
+                      for v in valores)
     st.markdown(f'<div class="faixa">{celulas}</div>', unsafe_allow_html=True)
 
 
 def eixo_datas(fig: go.Figure, dados: pd.DataFrame) -> None:
     """Com muitos dias, mostra um rótulo sim, outro não, para não embolar."""
-    passo = 1 if len(dados) <= 18 else 2 if len(dados) <= 40 else 3
+    passo = 1 if len(dados) <= 34 else 2
     fig.update_xaxes(**EIXO_X, type="category", dtick=passo, tickangle=-90 if len(dados) > 12 else 0)
 
 
@@ -759,6 +764,11 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
     if df.empty:
         return df, "Parada", "10", TAMANHO_PADRAO
 
+    with st.sidebar.expander("Arquivos carregados"):
+        mapa = (df.groupby(["ARQUIVO", "UF"]).size().reset_index(name="Rotas")
+                  .rename(columns={"ARQUIVO": "Arquivo", "UF": "Estado"}))
+        st.dataframe(mapa, width="stretch", hide_index=True, key="arquivos_carregados")
+
     st.sidebar.markdown("## Filtros")
     ufs = sorted(df["UF"].unique())
     uf = st.sidebar.selectbox(
@@ -783,7 +793,7 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
 
     st.sidebar.markdown("## Apresentação")
     dias_slide = st.sidebar.selectbox(
-        "Colunas por slide", ["10", "15", "20", "Todos"], index=0,
+        "Colunas por slide", ["10", "15", "20", "31", "Todos"], index=3,
         help="Como no slide impresso: cada tela mostra um bloco de dias.",
     )
 
@@ -847,24 +857,30 @@ def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
     )
 
 
+def _mudar_slide(passo: int, total: int) -> None:
+    """Callback dos botões: roda antes do redesenho, então nunca fica travado."""
+    atual = int(st.session_state.get("slide", 1))
+    st.session_state["slide"] = min(max(1, atual + passo), total)
+
+
 def navegar_slides(resumo: pd.DataFrame, dias_slide: str) -> pd.DataFrame:
     """Divide o período em blocos de dias, como as páginas de um slide."""
     if dias_slide == "Todos" or len(resumo) <= int(dias_slide):
+        st.session_state["slide"] = 1
         return resumo
 
     tamanho = int(dias_slide)
     total = -(-len(resumo) // tamanho)
-    atual = min(st.session_state.get("slide", 1), total)
-
-    esq, meio, dir_, _ = st.columns([0.09, 0.16, 0.09, 0.66])
-    if esq.button("‹", key="slide_ant", disabled=atual == 1, width="stretch"):
-        atual -= 1
-    if dir_.button("›", key="slide_prox", disabled=atual == total, width="stretch"):
-        atual += 1
+    atual = min(max(1, int(st.session_state.get("slide", 1))), total)
     st.session_state["slide"] = atual
-    meio.markdown(
-        f'<div class="paginacao">{atual} / {total}</div>', unsafe_allow_html=True
-    )
+
+    esq, meio, dir_, _ = st.columns([0.07, 0.12, 0.07, 0.74])
+    esq.button("‹", key="slide_ant", width="stretch", disabled=atual == 1,
+               on_click=_mudar_slide, args=(-1, total))
+    dir_.button("›", key="slide_prox", width="stretch", disabled=atual == total,
+                on_click=_mudar_slide, args=(1, total))
+    meio.markdown(f'<div class="paginacao">{atual} / {total}</div>', unsafe_allow_html=True)
+
     return resumo.iloc[(atual - 1) * tamanho: atual * tamanho].reset_index(drop=True)
 
 
