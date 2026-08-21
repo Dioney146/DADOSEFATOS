@@ -64,14 +64,14 @@ MESES_CURTOS = {1: "JAN", 2: "FEV", 3: "MAR", 4: "ABR", 5: "MAI", 6: "JUN",
 
 # Paleta
 COR_TEXTO = "#14161A"
-COR_SUAVE = "#8A9299"
+COR_SUAVE = "#8B949E"
 COR_AZUL = "#5D87B0"
 COR_AZUL_CLARO = "#8FB3D4"
 COR_ESCURA = "#2C3440"
 COR_TRILHO = "#E2E4E6"
-COR_FUNDO_GRAFICO = "#F1F1EF"
-COR_GRADE = "#C9CCCF"
-COR_BORDA = "#DCDFE3"
+COR_FUNDO_GRAFICO = "rgba(0,0,0,0)"
+COR_GRADE = "#E4E8EC"
+COR_BORDA = "#E3E7EB"
 
 TAMANHO_PADRAO = {"altura": 100, "modo_painel": False}
 
@@ -129,9 +129,9 @@ div[data-testid="stExpander"] span[data-testid="stIconMaterial"]::after {
 }
 
 /* ── Base: o site é claro, independente do tema do navegador/Streamlit ────── */
-.stApp, [data-testid="stAppViewContainer"] { background: #F4F4F2 !important; }
+.stApp, [data-testid="stAppViewContainer"] { background: #F5F7FA !important; }
 header[data-testid="stHeader"] {
-    background: #F4F4F2 !important; height: 3rem; z-index: 999;
+    background: #F5F7FA !important; height: 3rem; z-index: 999;
 }
 .block-container {
     padding-top: 2.0rem !important; padding-bottom: 4px !important;
@@ -151,9 +151,9 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
 
 /* ── Cabeçalho ───────────────────────────────────────────────────────────── */
 .cab {
-    display: flex; align-items: flex-end; justify-content: space-between;
-    gap: 24px; border-bottom: 2px solid #14161A;
-    padding-bottom: 4px; margin: -6px 0 8px 0;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px; border-bottom: 1px solid #E3E7EB;
+    padding-bottom: 8px; margin: -6px 0 10px 0;
 }
 .cab-titulo {
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; letter-spacing: .02em;
@@ -161,24 +161,30 @@ html, body, .stApp, .stApp p, .stApp span, .stApp label, .stApp li,
     margin: 0; color: #14161A;
 }
 .cab-sub {
-    font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 11px; letter-spacing: .16em;
-    text-transform: uppercase; color: #7C858D; margin-top: 2px;
+    font-family: 'Archivo', Arial, sans-serif; font-size: 11px; font-weight: 500;
+    letter-spacing: .14em; text-transform: uppercase; color: #8B949E; margin-top: 3px;
 }
-.cab-meta { display: flex; gap: 28px; }
-.meta-item { text-align: right; }
+.cab-meta { display: flex; gap: 10px; }
+.meta-item {
+    text-align: right; background: #FFFFFF; border: 1px solid #E3E7EB; border-radius: 8px;
+    padding: 6px 14px; min-width: 96px;
+    box-shadow: 0 1px 2px rgba(20, 22, 26, .04);
+}
 .meta-rot {
-    font-family: 'IBM Plex Mono', 'Consolas', monospace; font-size: 10px; letter-spacing: .16em;
-    text-transform: uppercase; color: #7C858D;
+    font-family: 'Archivo', Arial, sans-serif; font-size: 9px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: #8B949E;
 }
 .meta-val {
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700;
-    font-size: clamp(20px, 1.6vw, 30px); line-height: 1.1; color: #14161A;
+    font-size: clamp(19px, 1.5vw, 28px); line-height: 1.15; color: #14161A;
 }
+.cab-meta .meta-item:last-child .meta-val { color: #3F6E9C; }
 
 /* ── Painéis (st.container com borda) ────────────────────────────────────── */
 div[data-testid="stVerticalBlockBorderWrapper"] {
-    background: #FFFFFF; border: 1px solid #14161A !important; border-radius: 0 !important;
-    padding: 3px clamp(3px, 0.35vw, 9px);
+    background: #FFFFFF; border: 1px solid #E3E7EB !important; border-radius: 8px !important;
+    padding: 8px clamp(6px, 0.5vw, 12px) 4px;
+    box-shadow: 0 1px 2px rgba(20, 22, 26, .04), 0 4px 12px rgba(20, 22, 26, .05);
 }
 div[data-testid="stVerticalBlockBorderWrapper"] .js-plotly-plot,
 div[data-testid="stVerticalBlockBorderWrapper"] .stPlotlyChart { width: 100% !important; }
@@ -202,7 +208,8 @@ section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]
 }
 .painel-topo {
     display: flex; align-items: baseline; justify-content: space-between;
-    gap: 8px; padding: 2px 2px 6px 2px; margin-bottom: 0;
+    gap: 8px; padding: 0 2px 8px 2px; margin-bottom: 2px;
+    border-bottom: 1px solid #EEF1F4;
 }
 .painel-titulo {
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700;
@@ -210,8 +217,9 @@ section[data-testid="stSidebar"] div[data-testid="stVerticalBlockBorderWrapper"]
     text-transform: uppercase; letter-spacing: .01em; color: #14161A;
 }
 .painel-nota {
-    font-family: 'Archivo', Arial, sans-serif; font-size: 11px; font-weight: 500;
-    letter-spacing: .16em; text-transform: uppercase; color: #7C858D;
+    font-family: 'Archivo', Arial, sans-serif; font-size: 10px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: #5D87B0;
+    background: #EEF3F9; border-radius: 20px; padding: 3px 10px; white-space: nowrap;
 }
 
 /* Abas do topo coladas no cabeçalho */
@@ -614,12 +622,15 @@ LAYOUT_BASE = dict(
     plot_bgcolor=COR_FUNDO_GRAFICO,
     font=dict(family="Archivo, sans-serif", size=11, color=COR_TEXTO),
     showlegend=False,
-    hoverlabel=dict(font_size=12, font_family="Archivo, sans-serif"),
+    hoverlabel=dict(font_size=12, font_family="Archivo, sans-serif",
+                    bgcolor="#FFFFFF", bordercolor=COR_BORDA,
+                    font=dict(color=COR_TEXTO)),
 )
 
-EIXO_X = dict(showgrid=False, zeroline=False, linecolor=COR_TEXTO, linewidth=1,
+EIXO_X = dict(showgrid=False, zeroline=False, linecolor=COR_BORDA, linewidth=1,
               ticks="", tickfont=dict(size=10, color=COR_SUAVE))
-EIXO_Y = dict(showgrid=True, gridcolor=COR_GRADE, griddash="dot", zeroline=False, showline=False,
+EIXO_Y = dict(showgrid=True, gridcolor=COR_GRADE, griddash="solid", gridwidth=1,
+              zeroline=False, showline=False, nticks=4,
               tickfont=dict(size=10, color=COR_SUAVE))
 
 
@@ -637,7 +648,7 @@ def titulo_painel(titulo: str, nota: str = "", linha: int = 0) -> None:
     )
 
 
-LIMITE_FAIXA = 31  # um mês inteiro cabe; acima disso os números são omitidos
+LIMITE_FAIXA = 45  # até aqui os números cabem; acima disso ficam só no tooltip
 
 
 def entre(valor: float, minimo: float, maximo: float) -> float:
@@ -647,16 +658,20 @@ def entre(valor: float, minimo: float, maximo: float) -> float:
 
 def escala(quantidade: int, com_poucos: float, com_muitos: float) -> float:
     """
-    Interpola linearmente entre o tamanho usado com 7 colunas e o usado com 31.
-    Fora desse intervalo, fica no limite mais próximo.
+    Interpola entre o tamanho usado com 7 colunas e o usado com 31; de 31 em
+    diante segue comprimindo até 62 colunas (dois meses), com metade do passo.
     """
     proporcao = entre((quantidade - 7) / 24, 0, 1)
-    return com_poucos + (com_muitos - com_poucos) * proporcao
+    valor = com_poucos + (com_muitos - com_poucos) * proporcao
+    if quantidade > 31:
+        extra = entre((quantidade - 31) / 31, 0, 1) * 0.5
+        valor += (com_muitos - com_poucos) * extra
+    return valor
 
 
 def corpo_do_eixo(quantidade: int) -> int:
     """Rótulos do eixo: 13px com 7 dias, caindo até 8px com 31."""
-    return int(round(escala(quantidade, 13, 8)))
+    return max(7, int(round(escala(quantidade, 13, 8))))
 
 
 def largura_da_barra(quantidade: int) -> tuple[float, float]:
@@ -664,7 +679,7 @@ def largura_da_barra(quantidade: int) -> tuple[float, float]:
     Barra e vão proporcionais: com poucos dias a barra é mais estreita e o vão
     maior; com o mês cheio a barra engorda e o vão encolhe, sem sobrepor.
     """
-    vao = escala(quantidade, 0.42, 0.14)
+    vao = max(0.08, escala(quantidade, 0.42, 0.14))
     return 1.0 - vao, vao
 
 
@@ -696,7 +711,7 @@ def faixa_numeros(valores: list[str], cor: str = "azul", ajuste: int = 0,
     mais_longo = max((len(str(v)) for v in valores), default=2)
     if quantidade > 16 and mais_longo > 2:
         corpo -= mais_longo - 2
-    corpo = max(7, corpo + ajuste)
+    corpo = max(6, corpo + ajuste)
 
     # Largura de cada célula em vw. O número só pode usar parte dela (o resto é
     # o vão que impede um encostar no outro); 0,58em é a largura de um dígito.
@@ -723,7 +738,10 @@ def passo_dos_rotulos(quantidade: int, fracao: float) -> int:
     """
     largura_coluna = (fracao * 1600) / max(quantidade, 1)
     largura_texto = corpo_do_eixo(quantidade) * 2 * 0.62 + 6  # 2 dígitos + respiro
-    return 1 if largura_coluna >= largura_texto else 2
+    passo = 1
+    while largura_coluna * passo < largura_texto and passo < 5:
+        passo += 1
+    return passo
 
 
 def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> None:
@@ -747,6 +765,7 @@ def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
         go.Bar(
             x=dados["EIXO"], y=dados[coluna], customdata=dados["HOVER"],
             marker_color=COR_AZUL, marker_line_width=0, width=largura,
+            marker=dict(cornerradius=3),
             hovertemplate="<b>%{customdata}</b><br>%{y}<extra></extra>",
         )
     )
@@ -770,6 +789,7 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
         go.Bar(
             x=dados["EIXO"], y=dados[coluna], width=largura, customdata=dados["HOVER"],
             marker_color=cores_pela_media(dados[coluna], media), marker_line_width=0,
+            marker=dict(cornerradius=3),
             hovertemplate="<b>%{customdata}</b><br>%{y:.1f} kg<extra></extra>",
         )
     )
@@ -808,8 +828,8 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
                         nome_a: str, nome_b: str, altura: int = 330,
                         fracao: float = 0.485) -> go.Figure:
     fig = go.Figure()
-    marcador = escala(len(dados), 7, 3)
-    traco = escala(len(dados), 2.4, 1.4)
+    marcador = max(2.5, escala(len(dados), 7, 3))
+    traco = max(1.1, escala(len(dados), 2.4, 1.4))
     fig.add_trace(go.Scatter(
         x=dados["EIXO"], y=dados[col_a], name=nome_a, mode="lines+markers",
         customdata=dados["HOVER"],
@@ -827,8 +847,9 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
     base = {k: v for k, v in LAYOUT_BASE.items() if k not in {"showlegend", "hovermode"}}
     fig.update_layout(
         **base, height=altura, showlegend=True, hovermode="x unified",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
-                    font=dict(size=10, color=COR_SUAVE)),
+        legend=dict(orientation="h", yanchor="bottom", y=1.0, xanchor="right", x=1,
+                    font=dict(size=10, color=COR_SUAVE), bgcolor="rgba(0,0,0,0)",
+                    itemsizing="constant"),
         yaxis=dict(**EIXO_Y, showticklabels=False),
         yaxis2=dict(overlaying="y", side="right", visible=False),
     )
