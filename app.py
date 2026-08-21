@@ -840,6 +840,23 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
 # PÁGINA
 # ──────────────────────────────────────────────────────────────────────────────
 
+def periodo_do_mes_atual(df: pd.DataFrame):
+    """
+    Período que o site abre por padrão: o mês corrente.
+
+    Se ainda não houver rotas do mês de hoje na base (fim de mês, arquivo não
+    atualizado), cai para o mês mais recente que existir nos dados.
+    """
+    hoje = pd.Timestamp.today().normalize()
+    mes_alvo = hoje.to_period("M")
+    meses = df["DATA"].dt.to_period("M")
+    if not (meses == mes_alvo).any():
+        mes_alvo = meses.max()
+
+    do_mes = df.loc[meses == mes_alvo, "DATA"]
+    return do_mes.min().date(), do_mes.max().date()
+
+
 def barra_lateral() -> tuple[pd.DataFrame, str]:
     # Os dados vêm apenas do repositório (pasta dados/ ou raiz), sem upload na tela.
     arquivos = arquivos_da_pasta()
@@ -870,7 +887,8 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
 
     if not df.empty:
         d_min, d_max = df["DATA"].min().date(), df["DATA"].max().date()
-        periodo = st.sidebar.date_input("Período", value=(d_min, d_max),
+        inicio_padrao, fim_padrao = periodo_do_mes_atual(df)
+        periodo = st.sidebar.date_input("Período", value=(inicio_padrao, fim_padrao),
                                         min_value=d_min, max_value=d_max, format="DD/MM/YYYY")
         if isinstance(periodo, tuple) and len(periodo) == 2:
             df = df[(df["DATA"].dt.date >= periodo[0]) & (df["DATA"].dt.date <= periodo[1])]
