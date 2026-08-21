@@ -674,8 +674,8 @@ LAYOUT_BASE = dict(
 )
 
 EIXO_X = dict(showgrid=False, zeroline=False, showline=False, ticks="",
-              showspikes=True, spikemode="across", spikethickness=1,
-              spikedash="solid", spikecolor="#DCE4EC",
+              showspikes=True, spikemode="toaxis", spikethickness=1,
+              spikedash="dot", spikecolor="#C7D2DD", spikesnap="cursor",
               tickfont=dict(size=10, color=COR_SUAVE))
 EIXO_Y = dict(showgrid=True, gridcolor=COR_GRADE, griddash="solid", gridwidth=1,
               zeroline=False, showline=False, nticks=4,
@@ -901,14 +901,12 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
         customdata=dados["HOVER"],
         line=dict(color=COR_AZUL, width=traco + 0.6, shape="spline", smoothing=0.9),
         marker=dict(size=marcador, symbol="circle"),
-        fill="tozeroy", fillcolor="rgba(93, 135, 176, 0.07)",
         yaxis="y2", hovertemplate=f"{nome_b}: %{{y:,.0f}}<extra></extra>",
     ))
     base = {k: v for k, v in LAYOUT_BASE.items() if k not in {"showlegend", "hovermode"}}
     fig.update_layout(
         **base, height=altura, showlegend=False, hovermode="x unified",
-        yaxis={**EIXO_Y, "showticklabels": True, "ticklabelposition": "inside top",
-               "tickfont": dict(size=9, color="#B4BDC6")},
+        yaxis={**EIXO_Y, "showticklabels": False},
         yaxis2=dict(overlaying="y", side="right", visible=False),
     )
     eixo_datas(fig, dados, fracao)
