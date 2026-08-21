@@ -608,6 +608,7 @@ def indicadores_por_dia(df: pd.DataFrame, por: str = "Dia") -> pd.DataFrame:
     ).reset_index()
 
     agrupado["OCUPACAO"] = agrupado["PESO"] / agrupado["CAPACIDADE"].replace(0, pd.NA)
+    agrupado["OCUPACAO_PCT"] = agrupado["OCUPACAO"] * 100
     agrupado["MEDIA_PARADAS"] = agrupado["PARADAS"] / agrupado["ROTAS"].replace(0, pd.NA)
     agrupado["DROP_PARADA"] = agrupado["PESO"] / agrupado["PARADAS"].replace(0, pd.NA)
     agrupado["DROP_VEICULO"] = agrupado["PESO"] / agrupado["VEICULOS"].replace(0, pd.NA)
@@ -871,17 +872,21 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
     return fig
 
 
-def mini_estatisticas_drop(dados: pd.DataFrame, coluna: str) -> None:
-    """Média do período e os dias de maior e menor drop."""
+def mini_indicadores(dados: pd.DataFrame, coluna: str, sufixo: str = "",
+                     rotulos: tuple[str, str, str] = ("Média", "Máximo", "Mínimo")) -> None:
+    """
+    Resumo do indicador dentro do próprio card: média do período e os dias de
+    maior e menor valor. Mesma leitura para Veículos, Ocupação e Drop.
+    """
     validos = dados.dropna(subset=[coluna])
     if validos.empty:
         return
     melhor = validos.loc[validos[coluna].idxmax()]
     pior = validos.loc[validos[coluna].idxmin()]
     blocos = [
-        ("Média", num(validos[coluna].mean()), "período"),
-        ("Maior", num(melhor[coluna]), melhor["ROTULO"]),
-        ("Menor", num(pior[coluna]), pior["ROTULO"]),
+        (rotulos[0], num(validos[coluna].mean()) + sufixo, "período"),
+        (rotulos[1], num(melhor[coluna]) + sufixo, melhor["ROTULO"]),
+        (rotulos[2], num(pior[coluna]) + sufixo, pior["ROTULO"]),
     ]
     html = "".join(
         f'<div class="mini-item"><div class="mini-rot">{rot}</div>'
@@ -1003,19 +1008,26 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
 
 
 @st.cache_data(show_spinner=False)
-def selo_da_marca() -> str:
-    """Selo redondo com o 'D' da marca, fixo no canto superior direito."""
-    arquivo = ARQUIVO_ICONE if ARQUIVO_ICONE.exists() else ARQUIVO_LOGO
-    if not arquivo.exists():
-        return ""
-    dados = base64.b64encode(arquivo.read_bytes()).decode()
-    return (
-        '<img src="data:image/png;base64,' + dados + '" alt="Delly\'s Food Service" '
-        'style="position:fixed; top:56px; right:18px; z-index:1000; '
-        'width:44px; height:44px; border-radius:50%; object-fit:cover; '
-        'background:#FFFFFF; border:1px solid #DCDFE3; padding:2px; '
-        'pointer-events:none;">'
+def trilho_lateral(secao: str = "dia") -> str:
+    """
+    Trilho fixo à esquerda: marca no topo e marcadores das seções.
+
+    É a moldura visual do sistema — a navegação continua nas abas do topo e nos
+    filtros da barra lateral do Streamlit.
+    """
+    if ARQUIVO_ICONE.exists():
+        dados = __import__("base64").b64encode(ARQUIVO_ICONE.read_bytes()).decode()
+        marca = f'<img class="trilho-marca" src="data:image/png;base64,{dados}" alt="Dellys">'
+    else:
+        marca = '<div class="trilho-marca trilho-vazia">D</div>'
+
+    itens = [("dia", "Dia"), ("semana", "Sem"), ("frota", "Frota"), ("config", "Ajus")]
+    botoes = "".join(
+        '<div class="trilho-item' + (" ativo" if chave == secao else "") + '">'
+        + rotulo + "</div>"
+        for chave, rotulo in itens
     )
+    return '<div class="trilho">' + marca + '<div class="trilho-itens">' + botoes + "</div></div>"
 
 
 def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
@@ -1083,7 +1095,7 @@ def navegar_slides(resumo: pd.DataFrame, dias_slide: str) -> pd.DataFrame:
 
 
 def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
-             altura: int = 250) -> None:
+             altura: int = 215) -> None:
     """Bloco operacional: Veículos e Ocupação lado a lado, Drop como card de performance."""
     pesos = [0.95, 0.95, 1.20]
     c1, c2, c3 = st.columns(pesos, gap="small")
@@ -1091,26 +1103,28 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 
     with c1, st.container(border=True):
         titulo_painel("Veículos", "rotas / dia", linha=1)
-        faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="forte", fracao=fr1)
+        mini_indicadores(resumo, "VEICULOS")
+        faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="suave", fracao=fr1)
         st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura, fracao=fr1),
                         width="stretch", config=CONFIG_GRAFICO, key="g_veiculos")
 
     with c2, st.container(border=True):
         titulo_painel("Ocupação", "% · peso ÷ capacidade", linha=1)
+        mini_indicadores(resumo, "OCUPACAO_PCT", sufixo="%")
         faixa_numeros([num(v * 100) if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
-                      cor="forte", fracao=fr2)
+                      cor="suave", fracao=fr2)
         st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura, fracao=fr2),
                         width="stretch", config=CONFIG_GRAFICO, key="g_ocupacao")
 
     with c3, st.container(border=True):
         titulo_painel("Drop", rotulo_drop, linha=1)
-        mini_estatisticas_drop(resumo, coluna_drop)
+        mini_indicadores(resumo, coluna_drop, rotulos=("Média", "Maior", "Menor"))
         faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="suave", fracao=fr3)
-        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura - 74, fracao=fr3),
+        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura, fracao=fr3),
                         width="stretch", config=CONFIG_GRAFICO, key="g_drop_dia")
 
 
-def linha_dois(resumo: pd.DataFrame, altura: int = 330) -> None:
+def linha_dois(resumo: pd.DataFrame, altura: int = 345) -> None:
     """Bloco analítico: os dois gráficos de maior área da tela."""
     c1, c2 = st.columns(2, gap="small")
     meia_tela = 0.485
@@ -1249,13 +1263,13 @@ def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
-    st.markdown(selo_da_marca(), unsafe_allow_html=True)
+    st.markdown(trilho_lateral(), unsafe_allow_html=True)
 
     df, base_drop, dias_slide, tamanho = barra_lateral()
     proporcao = tamanho["altura"] / 100
     # Alturas pensadas para os cinco painéis caberem numa tela Full HD a 100%.
-    altura_cima = int(250 * proporcao)   # bloco operacional
-    altura_baixo = int(330 * proporcao)  # bloco analítico, com mais área
+    altura_cima = int(215 * proporcao)   # bloco operacional (tem o resumo interno)
+    altura_baixo = int(345 * proporcao)  # bloco analítico: os maiores da tela
 
     if df.empty:
         st.markdown(
