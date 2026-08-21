@@ -264,7 +264,7 @@ div[data-testid="stTabs"] [data-baseweb="tab"] { padding: 2px 0; }
 /* ── Faixa de números acima dos gráficos ─────────────────────────────────── */
 .faixa {
     display: grid; width: 100%; max-width: 100%; margin: 2px 0 4px 0;
-    overflow: hidden; box-sizing: border-box;
+    padding: 0; overflow: hidden; box-sizing: border-box;
 }
 .faixa-cel {
     min-width: 0; max-width: 100%; text-align: center;
@@ -661,7 +661,7 @@ def num(valor, casas: int = 0) -> str:
 CONFIG_GRAFICO = {"displayModeBar": False, "responsive": True}
 
 LAYOUT_BASE = dict(
-    margin=dict(l=2, r=2, t=4, b=22),
+    margin=dict(l=0, r=0, t=4, b=22),
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor=COR_FUNDO_GRAFICO,
     font=dict(family="Archivo, sans-serif", size=11, color=COR_TEXTO),
@@ -804,9 +804,15 @@ def passo_dos_rotulos(quantidade: int, fracao: float) -> int:
 
 
 def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> None:
-    """Todas as barras aparecem; o rótulo alterna só quando não há espaço."""
+    """
+    Todas as colunas aparecem e o eixo começa e termina rente à borda, para os
+    rótulos dos dias ficarem na mesma vertical dos números da faixa acima.
+    """
     quantidade = len(dados)
-    fig.update_layout(margin=dict(l=2, r=2, t=4, b=int(round(escala(quantidade, 26, 18)))))
+    fig.update_layout(
+        autosize=True,
+        margin=dict(l=0, r=0, t=4, b=int(round(escala(quantidade, 26, 18)))),
+    )
     passo = passo_dos_rotulos(quantidade, fracao)
     eixo = dict(EIXO_X)
     eixo["tickfont"] = dict(size=corpo_do_eixo(quantidade), color=COR_SUAVE)
@@ -814,7 +820,9 @@ def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> Non
     fig.update_xaxes(**eixo, type="category", tickangle=0, automargin=False,
                      tickmode="array",
                      tickvals=list(dados["EIXO"])[::passo],
-                     ticktext=list(dados["EIXO"])[::passo])
+                     ticktext=list(dados["EIXO"])[::passo],
+                     # sem folga nas pontas: a 1ª e a última coluna encostam na borda
+                     range=[-0.5, quantidade - 0.5])
 
 
 def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
