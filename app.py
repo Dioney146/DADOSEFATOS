@@ -907,8 +907,8 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
     base = {k: v for k, v in LAYOUT_BASE.items() if k not in {"showlegend", "hovermode"}}
     fig.update_layout(
         **base, height=altura, showlegend=False, hovermode="x unified",
-        yaxis=dict(**EIXO_Y, showticklabels=True, ticklabelposition="inside top",
-                   tickfont=dict(size=9, color="#B4BDC6")),
+        yaxis={**EIXO_Y, "showticklabels": True, "ticklabelposition": "inside top",
+               "tickfont": dict(size=9, color="#B4BDC6")},
         yaxis2=dict(overlaying="y", side="right", visible=False),
     )
     eixo_datas(fig, dados, fracao)
