@@ -47,7 +47,6 @@ ARQUIVO_ICONE = PASTA_ASSETS / "favicon.png"
 
 # Estados atendidos. A chave é o código usado no nome do arquivo.
 ESTADOS = {
-    "TODOS": "Consolidado · todos os estados",
     "AM": "Amazonas",
     "BA": "Bahia",
     "DF": "Distrito Federal",
@@ -273,14 +272,6 @@ div[data-testid="stTabs"] [data-baseweb="tab"] { padding: 2px 0; }
     line-height: 1.15; font-size: inherit;
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700;
 }
-.faixa-eixo {
-    display: grid; width: 100%; max-width: 100%; box-sizing: border-box;
-    margin: 2px 0 0 0; padding: 0; overflow: hidden;
-    font-family: 'Archivo', Arial, sans-serif; font-weight: 600; color: #98A2AE;
-    letter-spacing: .02em;
-}
-.eixo-cel { min-width: 0; text-align: center; overflow: hidden; white-space: nowrap; }
-
 /* Hierarquia de cor: valor principal em grafite, apoio em azul, secundário em cinza */
 .faixa-forte { color: #14161A; }
 .faixa-azul { color: #3F6E9C; }
@@ -315,11 +306,8 @@ div[data-testid="stTabs"] [data-baseweb="tab"] { padding: 2px 0; }
     display: inline-flex; align-items: center; gap: 7px;
 }
 .leg-cor { width: 12px; height: 12px; display: inline-block; }
-.sem-faixa {
-    display: grid; width: 100%; box-sizing: border-box;
-    border-top: 1px solid #E3E7EB; padding-top: 8px; margin: 0 0 4px 0;
-}
-.sem-cel { text-align: center; min-width: 0; overflow: hidden; }
+.sem-faixa { display: flex; border-top: 1px solid #14161A; padding-top: 8px; margin: 0 2px 4px 2px; }
+.sem-cel { flex: 1; text-align: center; padding: 0 4px; min-width: 0; }
 .sem-val {
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
     font-weight: 700; font-size: 27px; line-height: 1.05; color: #14161A;
@@ -372,10 +360,6 @@ span[data-baseweb="tag"] span, span[data-baseweb="tag"] svg { color: #FFFFFF !im
     .cab { flex-wrap: wrap; gap: 10px; }
 }
 html, body { overflow-x: hidden; }
-
-/* Componente invisível que reajusta os gráficos ao mudar a largura */
-iframe[title="st.iframe"], iframe[height="0"] { height: 0 !important; display: block; }
-div[data-testid="stElementContainer"]:has(iframe[height="0"]) { display: none !important; }
 
 /* Menu do canto (System/Light/Dark) escondido: o site é sempre claro */
 #MainMenu, [data-testid="stMainMenu"] { display: none !important; }
@@ -533,8 +517,7 @@ def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
 
     df["DATA"] = df["Sessão de roteirização"].map(extrair_data)
     df["ROTA"] = df["ID"].astype(str) if "ID" in df.columns else ""
-    placa = df["Equipamento"].astype(str).str.strip() if "Equipamento" in df.columns else ""
-    df["PLACA"] = placa
+    df["VEICULO"] = df["Equipamento"].astype(str).str.strip() if "Equipamento" in df.columns else ""
     df["TIPO_VEICULO"] = (
         df["Tipos de equipamento"].astype(str).str.strip().replace({"": "NÃO INFORMADO", "nan": "NÃO INFORMADO"})
         if "Tipos de equipamento" in df.columns else "NÃO INFORMADO"
@@ -544,9 +527,6 @@ def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
         if "Estado" in df.columns else "NÃO INFORMADO"
     )
     df["UF"] = detectar_estado(nome_arquivo, df)
-    # No consolidado, a mesma placa em estados diferentes é outra frota:
-    # o estado entra na chave para a contagem não juntar veículos distintos.
-    df["VEICULO"] = df["UF"] + "·" + df["PLACA"].astype(str)
     df["ARQUIVO"] = Path(nome_arquivo).name
 
     df = df.dropna(subset=["DATA"])
@@ -628,7 +608,6 @@ def indicadores_por_dia(df: pd.DataFrame, por: str = "Dia") -> pd.DataFrame:
     ).reset_index()
 
     agrupado["OCUPACAO"] = agrupado["PESO"] / agrupado["CAPACIDADE"].replace(0, pd.NA)
-    agrupado["OCUPACAO_PCT"] = agrupado["OCUPACAO"] * 100
     agrupado["MEDIA_PARADAS"] = agrupado["PARADAS"] / agrupado["ROTAS"].replace(0, pd.NA)
     agrupado["DROP_PARADA"] = agrupado["PESO"] / agrupado["PARADAS"].replace(0, pd.NA)
     agrupado["DROP_VEICULO"] = agrupado["PESO"] / agrupado["VEICULOS"].replace(0, pd.NA)
@@ -808,31 +787,6 @@ def faixa_numeros(valores: list[str], cor: str = "forte", ajuste: int = 0,
     )
 
 
-def faixa_eixo(valores: list[str], fracao: float = 0.30) -> None:
-    """
-    Rótulos dos dias, na mesma grade dos números acima.
-
-    Desenhar o eixo em HTML (e não dentro do gráfico) garante que cada dia caia
-    exatamente na mesma coluna do valor correspondente, independentemente da
-    largura que o Plotly resolva usar.
-    """
-    if not valores:
-        return
-    quantidade = len(valores)
-    passo = passo_dos_rotulos(quantidade, fracao)
-    corpo = corpo_do_eixo(quantidade)
-    celulas = "".join(
-        f'<div class="eixo-cel">{v if i % passo == 0 else ""}</div>'
-        for i, v in enumerate(valores)
-    )
-    st.markdown(
-        f'<div class="faixa-eixo" '
-        f'style="grid-template-columns: repeat({quantidade}, minmax(0, 1fr)); '
-        f'font-size:{corpo}px">{celulas}</div>',
-        unsafe_allow_html=True,
-    )
-
-
 def passo_dos_rotulos(quantidade: int, fracao: float) -> int:
     """
     De quantos em quantos dias escrever o rótulo do eixo.
@@ -855,11 +809,20 @@ def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> Non
     rótulos dos dias ficarem na mesma vertical dos números da faixa acima.
     """
     quantidade = len(dados)
-    fig.update_layout(autosize=True, margin=dict(l=0, r=0, t=4, b=2))
-    # Os rótulos dos dias são desenhados fora do gráfico (ver faixa_eixo),
-    # para ficarem alinhados com os números da faixa de cima.
-    fig.update_xaxes(**EIXO_X, type="category", showticklabels=False,
-                     automargin=False, range=[-0.5, quantidade - 0.5])
+    fig.update_layout(
+        autosize=True,
+        margin=dict(l=0, r=0, t=4, b=int(round(escala(quantidade, 26, 18)))),
+    )
+    passo = passo_dos_rotulos(quantidade, fracao)
+    eixo = dict(EIXO_X)
+    eixo["tickfont"] = dict(size=corpo_do_eixo(quantidade), color=COR_SUAVE)
+
+    fig.update_xaxes(**eixo, type="category", tickangle=0, automargin=False,
+                     tickmode="array",
+                     tickvals=list(dados["EIXO"])[::passo],
+                     ticktext=list(dados["EIXO"])[::passo],
+                     # sem folga nas pontas: a 1ª e a última coluna encostam na borda
+                     range=[-0.5, quantidade - 0.5])
 
 
 def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
@@ -908,21 +871,17 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
     return fig
 
 
-def mini_indicadores(dados: pd.DataFrame, coluna: str, sufixo: str = "",
-                     rotulos: tuple[str, str, str] = ("Média", "Máximo", "Mínimo")) -> None:
-    """
-    Resumo do indicador dentro do próprio card: média do período e os dias de
-    maior e menor valor. Mesma leitura para Veículos, Ocupação e Drop.
-    """
+def mini_estatisticas_drop(dados: pd.DataFrame, coluna: str) -> None:
+    """Média do período e os dias de maior e menor drop."""
     validos = dados.dropna(subset=[coluna])
     if validos.empty:
         return
     melhor = validos.loc[validos[coluna].idxmax()]
     pior = validos.loc[validos[coluna].idxmin()]
     blocos = [
-        (rotulos[0], num(validos[coluna].mean()) + sufixo, "período"),
-        (rotulos[1], num(melhor[coluna]) + sufixo, melhor["ROTULO"]),
-        (rotulos[2], num(pior[coluna]) + sufixo, pior["ROTULO"]),
+        ("Média", num(validos[coluna].mean()), "período"),
+        ("Maior", num(melhor[coluna]), melhor["ROTULO"]),
+        ("Menor", num(pior[coluna]), pior["ROTULO"]),
     ]
     html = "".join(
         f'<div class="mini-item"><div class="mini-rot">{rot}</div>'
@@ -1003,15 +962,11 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
         st.dataframe(mapa, width="stretch", hide_index=True, key="arquivos_carregados")
 
     st.sidebar.markdown("## Filtros")
-    ufs = ["TODOS"] + sorted(df["UF"].unique())
+    ufs = sorted(df["UF"].unique())
     uf = st.sidebar.selectbox(
-        "Estado", ufs,
-        format_func=lambda c: ("Todos os estados" if c == "TODOS"
-                               else f"{c} — {ESTADOS.get(c, 'Não identificado')}"),
+        "Estado", ufs, format_func=lambda c: f"{c} — {ESTADOS.get(c, 'Não identificado')}"
     )
-    if uf != "TODOS":
-        df = df[df["UF"] == uf]
-    df.attrs["selecao"] = uf
+    df = df[df["UF"] == uf]
 
     # Sem filtro de status nem de tipo de veículo: todas as rotas entram nos gráficos.
 
@@ -1048,50 +1003,6 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
 
 
 @st.cache_data(show_spinner=False)
-def ajustar_graficos_ao_redimensionar() -> None:
-    """
-    Redesenha os gráficos quando a largura da página muda.
-
-    Abrir ou fechar a barra lateral muda a largura do conteúdo, mas não dispara
-    o evento de redimensionamento da janela — por isso o Plotly continuava com a
-    largura antiga e a linha aparecia esticada até a segunda interação. Aqui um
-    observador acompanha o tamanho real do conteúdo e avisa o Plotly.
-    """
-    import streamlit.components.v1 as componentes
-
-    componentes.html(
-        """
-        <script>
-        (function () {
-          const pai = window.parent;
-          if (!pai || !pai.document) { return; }
-
-          let ultimo = 0;
-          function avisar() {
-            const largura = pai.document.body.clientWidth;
-            if (Math.abs(largura - ultimo) < 2) { return; }
-            ultimo = largura;
-            pai.dispatchEvent(new Event("resize"));
-            // o Plotly redimensiona cada gráfico já desenhado na página
-            const graficos = pai.document.querySelectorAll(".js-plotly-plot");
-            if (pai.Plotly) {
-              graficos.forEach((g) => { try { pai.Plotly.Plots.resize(g); } catch (e) {} });
-            }
-          }
-
-          try {
-            new pai.ResizeObserver(() => { avisar(); setTimeout(avisar, 260); })
-              .observe(pai.document.body);
-          } catch (e) {
-            setInterval(avisar, 500);   // navegador antigo: verifica de tempos em tempos
-          }
-        })();
-        </script>
-        """,
-        height=0,
-    )
-
-
 def selo_da_marca() -> str:
     """Selo redondo com o 'D' da marca, fixo no canto superior direito."""
     arquivo = ARQUIVO_ICONE if ARQUIVO_ICONE.exists() else ARQUIVO_LOGO
@@ -1099,11 +1010,11 @@ def selo_da_marca() -> str:
         return ""
     dados = base64.b64encode(arquivo.read_bytes()).decode()
     return (
-        '<img src="data:image/png;base64,' + dados + '" alt="Dellys" '
-        'style="position:fixed; top:52px; right:16px; z-index:1000; '
-        'width:40px; height:40px; border-radius:12px; object-fit:cover; '
-        'background:#FFFFFF; border:1px solid #E3E7EB; padding:2px; '
-        'box-shadow:0 1px 2px rgba(20,22,26,.06); pointer-events:none;">'
+        '<img src="data:image/png;base64,' + dados + '" alt="Delly\'s Food Service" '
+        'style="position:fixed; top:56px; right:18px; z-index:1000; '
+        'width:44px; height:44px; border-radius:50%; object-fit:cover; '
+        'background:#FFFFFF; border:1px solid #DCDFE3; padding:2px; '
+        'pointer-events:none;">'
     )
 
 
@@ -1126,8 +1037,7 @@ def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
             <span class="cab-barra"></span>
             <div>
               <p class="cab-titulo">{titulo}</p>
-              <div class="cab-sub">{"Consolidado · Todos os estados" if uf == "TODOS"
-                 else f"{uf} · {ESTADOS.get(uf, 'Estado não identificado')}"}
+              <div class="cab-sub">{uf} · {ESTADOS.get(uf, 'Estado não identificado')}
                 <span class="cab-sep">·</span> Delly's Food Service</div>
             </div>
           </div>
@@ -1173,7 +1083,7 @@ def navegar_slides(resumo: pd.DataFrame, dias_slide: str) -> pd.DataFrame:
 
 
 def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
-             altura: int = 215) -> None:
+             altura: int = 250) -> None:
     """Bloco operacional: Veículos e Ocupação lado a lado, Drop como card de performance."""
     pesos = [0.95, 0.95, 1.20]
     c1, c2, c3 = st.columns(pesos, gap="small")
@@ -1181,31 +1091,26 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 
     with c1, st.container(border=True):
         titulo_painel("Veículos", "rotas / dia", linha=1)
-        mini_indicadores(resumo, "VEICULOS")
-        faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="suave", fracao=fr1)
+        faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="forte", fracao=fr1)
         st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura, fracao=fr1),
                         width="stretch", config=CONFIG_GRAFICO, key="g_veiculos")
-        faixa_eixo(list(resumo["EIXO"]), fracao=fr1)
 
     with c2, st.container(border=True):
         titulo_painel("Ocupação", "% · peso ÷ capacidade", linha=1)
-        mini_indicadores(resumo, "OCUPACAO_PCT", sufixo="%")
         faixa_numeros([num(v * 100) if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
-                      cor="suave", fracao=fr2)
+                      cor="forte", fracao=fr2)
         st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura, fracao=fr2),
                         width="stretch", config=CONFIG_GRAFICO, key="g_ocupacao")
-        faixa_eixo(list(resumo["EIXO"]), fracao=fr2)
 
     with c3, st.container(border=True):
         titulo_painel("Drop", rotulo_drop, linha=1)
-        mini_indicadores(resumo, coluna_drop, rotulos=("Média", "Maior", "Menor"))
+        mini_estatisticas_drop(resumo, coluna_drop)
         faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="suave", fracao=fr3)
-        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura, fracao=fr3),
+        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura - 74, fracao=fr3),
                         width="stretch", config=CONFIG_GRAFICO, key="g_drop_dia")
-        faixa_eixo(list(resumo["EIXO"]), fracao=fr3)
 
 
-def linha_dois(resumo: pd.DataFrame, altura: int = 345) -> None:
+def linha_dois(resumo: pd.DataFrame, altura: int = 330) -> None:
     """Bloco analítico: os dois gráficos de maior área da tela."""
     c1, c2 = st.columns(2, gap="small")
     meia_tela = 0.485
@@ -1220,7 +1125,6 @@ def linha_dois(resumo: pd.DataFrame, altura: int = 345) -> None:
                                 altura=altura, fracao=meia_tela),
             width="stretch", config=CONFIG_GRAFICO, key="g_paradas",
         )
-        faixa_eixo(list(resumo["EIXO"]), fracao=meia_tela)
 
     with c2, st.container(border=True):
         titulo_painel("Peso × capacidade por dia", linha=2,
@@ -1232,7 +1136,6 @@ def linha_dois(resumo: pd.DataFrame, altura: int = 345) -> None:
                                 altura=altura, fracao=meia_tela),
             width="stretch", config=CONFIG_GRAFICO, key="g_peso",
         )
-        faixa_eixo(list(resumo["EIXO"]), fracao=meia_tela)
 
 
 def figuras_do_painel(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> list[dict]:
@@ -1284,11 +1187,8 @@ def grafico_semanal(resumo: pd.DataFrame, coluna: str, altura: int = 190) -> go.
             hovertemplate="%{x}<br>%{y}<extra></extra>",
         )
     )
-    base = {k: v for k, v in LAYOUT_BASE.items() if k != "margin"}
-    fig.update_layout(**base, height=altura, bargap=0.5, autosize=True,
-                      margin=dict(l=0, r=0, t=4, b=6))
-    fig.update_xaxes(**EIXO_X, showticklabels=False, type="category",
-                     range=[-0.5, len(resumo) - 0.5])
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0.5)
+    fig.update_xaxes(**EIXO_X, showticklabels=False, type="category")
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
 
@@ -1302,12 +1202,7 @@ def valores_semanais(resumo: pd.DataFrame, valores: list[str], rodapes: list[str
         f'<div class="sem-rot">{rodape}</div></div>'
         for valor, rodape in zip(valores, rodapes)
     )
-    st.markdown(
-        f'<div class="sem-faixa" '
-        f'style="grid-template-columns: repeat({len(valores)}, minmax(0, 1fr))">'
-        f'{celulas}</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(f'<div class="sem-faixa">{celulas}</div>', unsafe_allow_html=True)
 
 
 def painel_semanal(resumo: pd.DataFrame, coluna: str, titulo: str, nota: str,
@@ -1355,13 +1250,12 @@ def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
     st.markdown(selo_da_marca(), unsafe_allow_html=True)
-    ajustar_graficos_ao_redimensionar()
 
     df, base_drop, dias_slide, tamanho = barra_lateral()
     proporcao = tamanho["altura"] / 100
     # Alturas pensadas para os cinco painéis caberem numa tela Full HD a 100%.
-    altura_cima = int(215 * proporcao)   # bloco operacional (tem o resumo interno)
-    altura_baixo = int(345 * proporcao)  # bloco analítico: os maiores da tela
+    altura_cima = int(250 * proporcao)   # bloco operacional
+    altura_baixo = int(330 * proporcao)  # bloco analítico, com mais área
 
     if df.empty:
         st.markdown(
@@ -1378,7 +1272,6 @@ def main() -> None:
         )
         return
 
-    selecao = df.attrs.get("selecao") or df["UF"].iloc[0]
     coluna_drop = {"Parada": "DROP_PARADA", "Veículo": "DROP_VEICULO", "Rota": "DROP_ROTA"}[base_drop]
     rotulo_drop = {"Parada": "kg / parada", "Veículo": "kg / veículo", "Rota": "kg / rota"}[base_drop]
 
@@ -1390,7 +1283,7 @@ def main() -> None:
             st.warning("Nenhuma rota no período selecionado.")
         else:
             pagina = navegar_slides(resumo, dias_slide)
-            cabecalho(selecao, pagina, por="Dia")
+            cabecalho(df["UF"].iloc[0], pagina, por="Dia")
             if tamanho["modo_painel"] and renderizar_painel is None:
                 st.warning(
                     "O modo painel precisa do arquivo **painel_arrastavel.py** na mesma "
@@ -1399,7 +1292,7 @@ def main() -> None:
             if tamanho["modo_painel"] and renderizar_painel is not None:
                 renderizar_painel(
                     figuras_do_painel(pagina, coluna_drop, rotulo_drop),
-                    chave=selecao,
+                    chave=df["UF"].iloc[0],
                     altura_celula=70,
                     altura_total=int(700 * proporcao),
                 )
@@ -1412,7 +1305,7 @@ def main() -> None:
         if semanal.empty:
             st.warning("Nenhuma rota no período selecionado.")
         else:
-            cabecalho(selecao, semanal, por="Semana")
+            cabecalho(df["UF"].iloc[0], semanal, por="Semana")
             visao_semanal(semanal, coluna_drop, rotulo_drop,
                           altura=int(220 * proporcao))
 
