@@ -365,6 +365,10 @@ span[data-baseweb="tag"] span, span[data-baseweb="tag"] svg { color: #FFFFFF !im
 }
 html, body { overflow-x: hidden; }
 
+/* Componente invisível que reajusta os gráficos ao mudar a largura */
+iframe[title="st.iframe"], iframe[height="0"] { height: 0 !important; display: block; }
+div[data-testid="stElementContainer"]:has(iframe[height="0"]) { display: none !important; }
+
 /* Menu do canto (System/Light/Dark) escondido: o site é sempre claro */
 #MainMenu, [data-testid="stMainMenu"] { display: none !important; }
 
@@ -1020,6 +1024,50 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
 
 
 @st.cache_data(show_spinner=False)
+def ajustar_graficos_ao_redimensionar() -> None:
+    """
+    Redesenha os gráficos quando a largura da página muda.
+
+    Abrir ou fechar a barra lateral muda a largura do conteúdo, mas não dispara
+    o evento de redimensionamento da janela — por isso o Plotly continuava com a
+    largura antiga e a linha aparecia esticada até a segunda interação. Aqui um
+    observador acompanha o tamanho real do conteúdo e avisa o Plotly.
+    """
+    import streamlit.components.v1 as componentes
+
+    componentes.html(
+        """
+        <script>
+        (function () {
+          const pai = window.parent;
+          if (!pai || !pai.document) { return; }
+
+          let ultimo = 0;
+          function avisar() {
+            const largura = pai.document.body.clientWidth;
+            if (Math.abs(largura - ultimo) < 2) { return; }
+            ultimo = largura;
+            pai.dispatchEvent(new Event("resize"));
+            // o Plotly redimensiona cada gráfico já desenhado na página
+            const graficos = pai.document.querySelectorAll(".js-plotly-plot");
+            if (pai.Plotly) {
+              graficos.forEach((g) => { try { pai.Plotly.Plots.resize(g); } catch (e) {} });
+            }
+          }
+
+          try {
+            new pai.ResizeObserver(() => { avisar(); setTimeout(avisar, 260); })
+              .observe(pai.document.body);
+          } catch (e) {
+            setInterval(avisar, 500);   // navegador antigo: verifica de tempos em tempos
+          }
+        })();
+        </script>
+        """,
+        height=0,
+    )
+
+
 def selo_da_marca() -> str:
     """Selo redondo com o 'D' da marca, fixo no canto superior direito."""
     arquivo = ARQUIVO_ICONE if ARQUIVO_ICONE.exists() else ARQUIVO_LOGO
@@ -1278,6 +1326,7 @@ def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
     st.markdown(selo_da_marca(), unsafe_allow_html=True)
+    ajustar_graficos_ao_redimensionar()
 
     df, base_drop, dias_slide, tamanho = barra_lateral()
     proporcao = tamanho["altura"] / 100
