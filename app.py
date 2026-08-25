@@ -1020,26 +1020,19 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
 
 
 @st.cache_data(show_spinner=False)
-def trilho_lateral(secao: str = "dia") -> str:
-    """
-    Trilho fixo à esquerda: marca no topo e marcadores das seções.
-
-    É a moldura visual do sistema — a navegação continua nas abas do topo e nos
-    filtros da barra lateral do Streamlit.
-    """
-    if ARQUIVO_ICONE.exists():
-        dados = __import__("base64").b64encode(ARQUIVO_ICONE.read_bytes()).decode()
-        marca = f'<img class="trilho-marca" src="data:image/png;base64,{dados}" alt="Dellys">'
-    else:
-        marca = '<div class="trilho-marca trilho-vazia">D</div>'
-
-    itens = [("dia", "Dia"), ("semana", "Sem"), ("frota", "Frota"), ("config", "Ajus")]
-    botoes = "".join(
-        '<div class="trilho-item' + (" ativo" if chave == secao else "") + '">'
-        + rotulo + "</div>"
-        for chave, rotulo in itens
+def selo_da_marca() -> str:
+    """Selo redondo com o 'D' da marca, fixo no canto superior direito."""
+    arquivo = ARQUIVO_ICONE if ARQUIVO_ICONE.exists() else ARQUIVO_LOGO
+    if not arquivo.exists():
+        return ""
+    dados = base64.b64encode(arquivo.read_bytes()).decode()
+    return (
+        '<img src="data:image/png;base64,' + dados + '" alt="Dellys" '
+        'style="position:fixed; top:52px; right:16px; z-index:1000; '
+        'width:40px; height:40px; border-radius:12px; object-fit:cover; '
+        'background:#FFFFFF; border:1px solid #E3E7EB; padding:2px; '
+        'box-shadow:0 1px 2px rgba(20,22,26,.06); pointer-events:none;">'
     )
-    return '<div class="trilho">' + marca + '<div class="trilho-itens">' + botoes + "</div></div>"
 
 
 def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
@@ -1284,7 +1277,7 @@ def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 
 def main() -> None:
     st.markdown(CSS, unsafe_allow_html=True)
-    st.markdown(trilho_lateral(), unsafe_allow_html=True)
+    st.markdown(selo_da_marca(), unsafe_allow_html=True)
 
     df, base_drop, dias_slide, tamanho = barra_lateral()
     proporcao = tamanho["altura"] / 100
