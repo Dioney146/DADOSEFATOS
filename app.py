@@ -883,15 +883,22 @@ def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> Non
 
 
 def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
-                   fracao: float = 0.30, formato: str = "%{y:,.0f}") -> go.Figure:
-    """`formato` define como o valor aparece no tooltip (ex.: '%{y:.0%}')."""
+                   fracao: float = 0.30, formato: str = "%{y:,.0f}",
+                   origem: list[str] | None = None) -> go.Figure:
+    """
+    `formato` define como o valor aparece no tooltip (ex.: '%{y:.0%}') e
+    `origem` acrescenta a linha com o estado de maior e menor valor no dia.
+    """
     largura, vao = largura_da_barra(len(dados))
+    extra = origem if origem is not None else ["" for _ in range(len(dados))]
     fig = go.Figure(
         go.Bar(
-            x=dados["EIXO"], y=dados[coluna], customdata=dados["HOVER"],
+            x=dados["EIXO"], y=dados[coluna],
+            customdata=list(zip(dados["HOVER"], extra)),
             marker_color=COR_AZUL, marker_line_width=0, width=largura,
             marker=dict(cornerradius=4),
-            hovertemplate="<b>%{customdata}</b><br>" + formato + "<extra></extra>",
+            hovertemplate="<b>%{customdata[0]}</b><br>" + formato
+                          + "%{customdata[1]}<extra></extra>",
         )
     )
     fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
@@ -906,16 +913,20 @@ def cores_pela_media(valores, media: float) -> list[str]:
 
 
 def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
-                         fracao: float = 0.30) -> go.Figure:
+                         fracao: float = 0.30,
+                         origem: list[str] | None = None) -> go.Figure:
     """Drop em ordem cronológica, no mesmo eixo dos demais painéis do dia."""
     media = float(dados[coluna].mean())
     largura, vao = largura_da_barra(len(dados))
+    extra = origem if origem is not None else ["" for _ in range(len(dados))]
     fig = go.Figure(
         go.Bar(
-            x=dados["EIXO"], y=dados[coluna], width=largura, customdata=dados["HOVER"],
+            x=dados["EIXO"], y=dados[coluna], width=largura,
+            customdata=list(zip(dados["HOVER"], extra)),
             marker_color=cores_pela_media(dados[coluna], media), marker_line_width=0,
             marker=dict(cornerradius=4),
-            hovertemplate="<b>%{customdata}</b><br>%{y:,.0f} kg<extra></extra>",
+            hovertemplate="<b>%{customdata[0]}</b><br>%{y:,.0f} kg"
+                          "%{customdata[1]}<extra></extra>",
         )
     )
     fig.add_hline(
@@ -929,61 +940,55 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
     return fig
 
 
-def ranking_estados(df: pd.DataFrame, coluna: str) -> pd.Series:
+def origem_por_dia(base: pd.DataFrame | None, resumo: pd.DataFrame, coluna: str,
+                   sufixo: str = "", percentual: bool = False) -> list[str]:
     """
-    Valor do indicador em cada estado, no período filtrado.
+    Para cada dia, o estado de maior e o de menor valor no indicador.
 
-    Usa a mesma conta do painel, só que aplicada a um estado por vez: ocupação
-    e drop vêm dos totais do estado; veículos, da média diária de placas.
+    Só faz sentido no consolidado; com um estado só (ou sem a base bruta),
+    devolve linhas vazias e o tooltip fica como era.
     """
-    valores = {}
-    for uf, parte in df.groupby("UF"):
+    vazio = ["" for _ in range(len(resumo))]
+    if base is None or base.empty or base["UF"].nunique() < 2:
+        return vazio
+
+    # o mesmo indicador, calculado estado a estado, dia a dia
+    por_estado = {}
+    for uf, parte in base.groupby("UF"):
         dia = indicadores_por_dia(parte, por="Dia")
-        if dia.empty:
+        if not dia.empty:
+            por_estado[uf] = dia.set_index("DATA")[coluna]
+    if len(por_estado) < 2:
+        return vazio
+
+    tabela = pd.DataFrame(por_estado)
+    linhas = []
+    for data in resumo["DATA"]:
+        if data not in tabela.index:
+            linhas.append("")
             continue
-        if coluna == "VEICULOS":
-            valores[uf] = dia["VEICULOS"].mean()
-        elif coluna == "OCUPACAO_PCT":
-            valores[uf] = dia["PESO"].sum() / max(dia["CAPACIDADE"].sum(), 1) * 100
-        elif coluna == "DROP_PARADA":
-            valores[uf] = dia["PESO"].sum() / max(dia["PARADAS"].sum(), 1)
-        elif coluna == "DROP_VEICULO":
-            valores[uf] = dia["PESO"].sum() / max(dia["VEICULOS"].sum(), 1)
-        elif coluna == "DROP_ROTA":
-            valores[uf] = dia["PESO"].sum() / max(dia["ROTAS"].sum(), 1)
-        else:
-            valores[uf] = dia[coluna].mean()
-    return pd.Series(valores, dtype="float64")
+        valores = tabela.loc[data].dropna()
+        if len(valores) < 2:
+            linhas.append("")
+            continue
+        topo, base_ = valores.idxmax(), valores.idxmin()
+        maior = valores[topo] * 100 if percentual else valores[topo]
+        menor = valores[base_] * 100 if percentual else valores[base_]
+        linhas.append(
+            f"<br><span style='color:#8B949E'>maior</span> {topo} {num(maior)}{sufixo}"
+            f"　<span style='color:#8B949E'>menor</span> {base_} {num(menor)}{sufixo}"
+        )
+    return linhas
 
 
 def mini_indicadores(dados: pd.DataFrame, coluna: str, sufixo: str = "",
-                     rotulos: tuple[str, str, str] = ("Média", "Máximo", "Mínimo"),
-                     por_estado: pd.Series | None = None) -> None:
+                     rotulos: tuple[str, str, str] = ("Média", "Máximo", "Mínimo")) -> None:
     """
-    Resumo do indicador dentro do próprio card.
-
-    Por padrão mostra a média do período e os dias de maior e menor valor.
-    No consolidado (`por_estado` preenchido), o maior e o menor passam a ser
-    os ESTADOS, com a sigla no lugar da data.
+    Resumo do indicador dentro do próprio card: média do período e os dias de
+    maior e menor valor.
     """
     validos = dados.dropna(subset=[coluna])
     if validos.empty:
-        return
-
-    if por_estado is not None and len(por_estado.dropna()) > 1:
-        classificado = por_estado.dropna()
-        topo, base = classificado.idxmax(), classificado.idxmin()
-        blocos = [
-            (rotulos[0], num(validos[coluna].mean()) + sufixo, "período"),
-            ("Maior estado", num(classificado[topo]) + sufixo, topo),
-            ("Menor estado", num(classificado[base]) + sufixo, base),
-        ]
-        html = "".join(
-            f'<div class="mini-item"><div class="mini-rot">{rot}</div>'
-            f'<div class="mini-val">{val}</div><div class="mini-dia">{dia}</div></div>'
-            for rot, val, dia in blocos
-        )
-        st.markdown(f'<div class="mini">{html}</div>', unsafe_allow_html=True)
         return
 
     melhor = validos.loc[validos[coluna].idxmax()]
@@ -1003,23 +1008,28 @@ def mini_indicadores(dados: pd.DataFrame, coluna: str, sufixo: str = "",
 
 def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
                         nome_a: str, nome_b: str, altura: int = 330,
-                        fracao: float = 0.485) -> go.Figure:
+                        fracao: float = 0.485,
+                        origem_a: list[str] | None = None,
+                        origem_b: list[str] | None = None) -> go.Figure:
+    vazio = ["" for _ in range(len(dados))]
+    extra_a = origem_a if origem_a is not None else vazio
+    extra_b = origem_b if origem_b is not None else vazio
     fig = go.Figure()
     marcador = max(2.5, escala(len(dados), 7, 3))
     traco = max(1.1, escala(len(dados), 2.4, 1.4))
     fig.add_trace(go.Scatter(
         x=dados["EIXO"], y=dados[col_a], name=nome_a, mode="lines+markers",
-        customdata=dados["HOVER"],
+        customdata=extra_a,
         line=dict(color=COR_ESCURA, width=traco, shape="spline", smoothing=0.9, dash="dot"),
         marker=dict(size=marcador, symbol="circle"),
-        yaxis="y", hovertemplate=f"{nome_a}: %{{y:,.0f}}<extra></extra>",
+        yaxis="y", hovertemplate=f"{nome_a}: %{{y:,.0f}}%{{customdata}}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
         x=dados["EIXO"], y=dados[col_b], name=nome_b, mode="lines+markers",
-        customdata=dados["HOVER"],
+        customdata=extra_b,
         line=dict(color=COR_AZUL, width=traco + 0.6, shape="spline", smoothing=0.9),
         marker=dict(size=marcador, symbol="circle"),
-        yaxis="y2", hovertemplate=f"{nome_b}: %{{y:,.0f}}<extra></extra>",
+        yaxis="y2", hovertemplate=f"{nome_b}: %{{y:,.0f}}%{{customdata}}<extra></extra>",
     ))
     base = {k: v for k, v in LAYOUT_BASE.items() if k not in {"showlegend", "hovermode"}}
     fig.update_layout(
@@ -1293,42 +1303,42 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
     c1, c2, c3 = st.columns(pesos, gap="small")
     fr1, fr2, fr3 = [0.97 * peso / sum(pesos) for peso in pesos]
 
-    # No consolidado, o maior e o menor do resumo passam a ser estados
-    def ranking(coluna: str) -> pd.Series | None:
-        if base_estados is None or base_estados["UF"].nunique() < 2:
-            return None
-        return ranking_estados(base_estados, coluna)
-
     with c1, st.container(border=True):
         titulo_painel("Veículos", "rotas / dia", linha=1)
-        mini_indicadores(resumo, "VEICULOS", por_estado=ranking("VEICULOS"))
+        mini_indicadores(resumo, "VEICULOS")
         faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="suave", fracao=fr1)
-        st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura, fracao=fr1),
-                        width="stretch", config=CONFIG_GRAFICO, key="g_veiculos")
+        st.plotly_chart(
+            grafico_barras(resumo, "VEICULOS", altura=altura, fracao=fr1,
+                           origem=origem_por_dia(base_estados, resumo, "VEICULOS")),
+            width="stretch", config=CONFIG_GRAFICO, key="g_veiculos")
         faixa_eixo(list(resumo["EIXO"]), fracao=fr1)
 
     with c2, st.container(border=True):
         titulo_painel("Ocupação", "% · peso ÷ capacidade", linha=1)
-        mini_indicadores(resumo, "OCUPACAO_PCT", sufixo="%",
-                         por_estado=ranking("OCUPACAO_PCT"))
+        mini_indicadores(resumo, "OCUPACAO_PCT", sufixo="%")
         faixa_numeros([num(v * 100) if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
                       cor="suave", fracao=fr2)
-        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura, fracao=fr2,
-                                       formato="%{y:.0%}"),
-                        width="stretch", config=CONFIG_GRAFICO, key="g_ocupacao")
+        st.plotly_chart(
+            grafico_barras(resumo, "OCUPACAO", altura=altura, fracao=fr2,
+                           formato="%{y:.0%}",
+                           origem=origem_por_dia(base_estados, resumo, "OCUPACAO",
+                                                 sufixo="%", percentual=True)),
+            width="stretch", config=CONFIG_GRAFICO, key="g_ocupacao")
         faixa_eixo(list(resumo["EIXO"]), fracao=fr2)
 
     with c3, st.container(border=True):
         titulo_painel("Drop", rotulo_drop, linha=1)
-        mini_indicadores(resumo, coluna_drop, rotulos=("Média", "Maior", "Menor"),
-                         por_estado=ranking(coluna_drop))
+        mini_indicadores(resumo, coluna_drop, rotulos=("Média", "Maior", "Menor"))
         faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="suave", fracao=fr3)
-        st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura, fracao=fr3),
-                        width="stretch", config=CONFIG_GRAFICO, key="g_drop_dia")
+        st.plotly_chart(
+            grafico_drop_por_dia(resumo, coluna_drop, altura=altura, fracao=fr3,
+                                 origem=origem_por_dia(base_estados, resumo, coluna_drop)),
+            width="stretch", config=CONFIG_GRAFICO, key="g_drop_dia")
         faixa_eixo(list(resumo["EIXO"]), fracao=fr3)
 
 
-def linha_dois(resumo: pd.DataFrame, altura: int = 345) -> None:
+def linha_dois(resumo: pd.DataFrame, altura: int = 345,
+               base_estados: pd.DataFrame | None = None) -> None:
     """Bloco analítico: os dois gráficos de maior área da tela."""
     c1, c2 = st.columns(2, gap="small")
     meia_tela = 0.485
@@ -1339,8 +1349,11 @@ def linha_dois(resumo: pd.DataFrame, altura: int = 345) -> None:
         faixa_numeros([num(v) for v in resumo["ENTREGAS"]], cor="azul", fracao=meia_tela)
         faixa_numeros([num(v) for v in resumo["MEDIA_PARADAS"]], cor="suave", fracao=meia_tela)
         st.plotly_chart(
-            grafico_duas_linhas(resumo, "MEDIA_PARADAS", "ENTREGAS", "Média de paradas", "Entregas",
-                                altura=altura, fracao=meia_tela),
+            grafico_duas_linhas(resumo, "MEDIA_PARADAS", "ENTREGAS",
+                                "Média de paradas", "Entregas",
+                                altura=altura, fracao=meia_tela,
+                                origem_a=origem_por_dia(base_estados, resumo, "MEDIA_PARADAS"),
+                                origem_b=origem_por_dia(base_estados, resumo, "ENTREGAS")),
             width="stretch", config=CONFIG_GRAFICO, key="g_paradas",
         )
         faixa_eixo(list(resumo["EIXO"]), fracao=meia_tela)
@@ -1352,7 +1365,9 @@ def linha_dois(resumo: pd.DataFrame, altura: int = 345) -> None:
         faixa_numeros([toneladas(v) for v in resumo["PESO"]], cor="suave", fracao=meia_tela)
         st.plotly_chart(
             grafico_duas_linhas(resumo, "PESO", "CAPACIDADE", "Peso (kg)", "Capacidade (kg)",
-                                altura=altura, fracao=meia_tela),
+                                altura=altura, fracao=meia_tela,
+                                origem_a=origem_por_dia(base_estados, resumo, "PESO"),
+                                origem_b=origem_por_dia(base_estados, resumo, "CAPACIDADE")),
             width="stretch", config=CONFIG_GRAFICO, key="g_peso",
         )
         faixa_eixo(list(resumo["EIXO"]), fracao=meia_tela)
@@ -1539,7 +1554,8 @@ def main() -> None:
             else:
                 linha_um(pagina, coluna_drop, rotulo_drop, altura=altura_cima,
                          base_estados=df_dia if selecao == "TODOS" else None)
-                linha_dois(pagina, altura=altura_baixo)
+                linha_dois(pagina, altura=altura_baixo,
+                           base_estados=df_dia if selecao == "TODOS" else None)
 
     with aba_semana:
         semanal = indicadores_por_dia(df, por="Semana")
