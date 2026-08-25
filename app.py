@@ -256,6 +256,31 @@ div[data-testid="stTabs"] [data-baseweb="tab-list"] { gap: 18px; margin-bottom: 
 div[data-testid="stTabs"] [data-baseweb="tab-panel"] { padding-top: 4px; }
 div[data-testid="stTabs"] [data-baseweb="tab"] { padding: 2px 0; }
 
+/* ── Cards de semana (rodapé da aba diária) ─────────────────────────────── */
+.rotulo-semanas {
+    text-align: right; font-family: 'Archivo', Arial, sans-serif; font-size: 9px;
+    font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
+    color: #98A2AE; margin: 6px 2px 4px 0;
+}
+div[data-testid="stHorizontalBlock"] button[kind="secondary"],
+div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+    white-space: pre-line; line-height: 1.25; border-radius: 12px;
+    padding: 8px 6px; min-height: 58px;
+    font-family: 'Archivo', Arial, sans-serif; font-size: 11px; font-weight: 600;
+    box-shadow: 0 1px 2px rgba(20, 22, 26, .04);
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
+    background: #FFFFFF; border: 1px solid #E7EBF0; color: #48525E;
+}
+div[data-testid="stHorizontalBlock"] button[kind="secondary"]:hover {
+    border-color: #5D87B0; color: #14161A; transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(45, 90, 140, .12);
+}
+div[data-testid="stHorizontalBlock"] button[kind="primary"] {
+    background: #2F5B87; border: 1px solid #2F5B87; color: #FFFFFF;
+}
+
 /* Paginação dos slides */
 .paginacao {
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700; font-size: 20px;
@@ -1145,6 +1170,52 @@ def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
     )
 
 
+def _escolher_semana(semana: str) -> None:
+    """Callback dos cards de semana: roda antes do redesenho da página."""
+    atual = st.session_state.get("semana_sel", "TODAS")
+    st.session_state["semana_sel"] = "TODAS" if atual == semana else semana
+    st.session_state["slide"] = 1
+
+
+def cards_de_semana(df: pd.DataFrame, selecionada: str) -> None:
+    """
+    Cards de semana no canto inferior direito.
+
+    Clicar numa semana deixa nos gráficos apenas os dias dela; clicar de novo
+    (ou em "Período completo") volta ao período inteiro. As semanas já vêm
+    separadas por mês no rótulo (JUL/S1, AGO/S1...).
+    """
+    resumo = (df.groupby("SEMANA")
+                .agg(INICIO=("DATA", "min"), FIM=("DATA", "max"),
+                     DIAS=("DATA", "nunique"), ROTAS=("ROTA", "count"))
+                .sort_values("INICIO"))
+    if resumo.empty:
+        return
+
+    semanas = list(resumo.index)
+    st.markdown('<div class="rotulo-semanas">Filtrar por semana</div>',
+                unsafe_allow_html=True)
+
+    # o bloco fica encostado à direita: a primeira coluna é só espaço
+    largura_cartao = 1.0
+    colunas = st.columns([max(0.5, 12 - (len(semanas) + 1) * largura_cartao)]
+                         + [largura_cartao] * (len(semanas) + 1), gap="small")
+
+    with colunas[1]:
+        st.button("Período\ncompleto", key="semana_todas", width="stretch",
+                  type="primary" if selecionada == "TODAS" else "secondary",
+                  on_click=lambda: st.session_state.update(semana_sel="TODAS", slide=1))
+
+    for coluna, semana in zip(colunas[2:], semanas):
+        linha = resumo.loc[semana]
+        periodo = f"{linha['INICIO'].strftime('%d/%m')}–{linha['FIM'].strftime('%d/%m')}"
+        with coluna:
+            st.button(f"{semana}\n{periodo}\n{num(linha['ROTAS'])} rotas",
+                      key=f"semana_{semana}", width="stretch",
+                      type="primary" if semana == selecionada else "secondary",
+                      on_click=_escolher_semana, args=(semana,))
+
+
 def _mudar_slide(passo: int, total: int) -> None:
     """Callback dos botões: roda antes do redesenho, então nunca fica travado."""
     atual = int(st.session_state.get("slide", 1))
@@ -1385,7 +1456,13 @@ def main() -> None:
     aba_dia, aba_semana = st.tabs(["Por dia", "Por semana"])
 
     with aba_dia:
-        resumo = indicadores_por_dia(df, por="Dia")
+        semana_sel = st.session_state.get("semana_sel", "TODAS")
+        semanas_validas = set(df["SEMANA"].unique())
+        if semana_sel not in semanas_validas:
+            semana_sel = "TODAS"
+        df_dia = df if semana_sel == "TODAS" else df[df["SEMANA"] == semana_sel]
+
+        resumo = indicadores_por_dia(df_dia, por="Dia")
         if resumo.empty:
             st.warning("Nenhuma rota no período selecionado.")
         else:
@@ -1406,6 +1483,7 @@ def main() -> None:
             else:
                 linha_um(pagina, coluna_drop, rotulo_drop, altura=altura_cima)
                 linha_dois(pagina, altura=altura_baixo)
+            cards_de_semana(df, semana_sel)
 
     with aba_semana:
         semanal = indicadores_por_dia(df, por="Semana")
