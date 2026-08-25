@@ -256,17 +256,12 @@ div[data-testid="stTabs"] [data-baseweb="tab-list"] { gap: 18px; margin-bottom: 
 div[data-testid="stTabs"] [data-baseweb="tab-panel"] { padding-top: 4px; }
 div[data-testid="stTabs"] [data-baseweb="tab"] { padding: 2px 0; }
 
-/* ── Cards de semana (rodapé da aba diária) ─────────────────────────────── */
-.rotulo-semanas {
-    text-align: right; font-family: 'Archivo', Arial, sans-serif; font-size: 9px;
-    font-weight: 600; letter-spacing: .14em; text-transform: uppercase;
-    color: #98A2AE; margin: 6px 2px 4px 0;
-}
+/* ── Cards de semana (topo da aba diária) ───────────────────────────────── */
 div[data-testid="stHorizontalBlock"] button[kind="secondary"],
 div[data-testid="stHorizontalBlock"] button[kind="primary"] {
-    white-space: pre-line; line-height: 1.25; border-radius: 12px;
-    padding: 8px 6px; min-height: 58px;
-    font-family: 'Archivo', Arial, sans-serif; font-size: 11px; font-weight: 600;
+    line-height: 1.1; border-radius: 10px; padding: 6px 4px; min-height: 0;
+    font-family: 'Archivo', Arial, sans-serif; font-size: 11px; font-weight: 700;
+    letter-spacing: .04em; text-transform: uppercase;
     box-shadow: 0 1px 2px rgba(20, 22, 26, .04);
     transition: transform .15s ease, box-shadow .15s ease;
 }
@@ -1193,16 +1188,15 @@ def cards_de_semana(df: pd.DataFrame, selecionada: str) -> None:
         return
 
     semanas = list(resumo.index)
-    st.markdown('<div class="rotulo-semanas">Filtrar por semana</div>',
-                unsafe_allow_html=True)
 
-    # o bloco fica encostado à direita: a primeira coluna é só espaço
-    largura_cartao = 1.0
-    colunas = st.columns([max(0.5, 12 - (len(semanas) + 1) * largura_cartao)]
-                         + [largura_cartao] * (len(semanas) + 1), gap="small")
+    # fila encostada à direita: a primeira coluna serve só de espaço
+    largura = 0.62
+    colunas = st.columns([max(0.5, 12 - (len(semanas) + 1) * largura)]
+                         + [largura] * (len(semanas) + 1), gap="small")
 
     with colunas[1]:
-        st.button("Período\ncompleto", key="semana_todas", width="stretch",
+        st.button("Tudo", key="semana_todas", width="stretch",
+                  help="Volta ao período completo",
                   type="primary" if selecionada == "TODAS" else "secondary",
                   on_click=lambda: st.session_state.update(semana_sel="TODAS", slide=1))
 
@@ -1210,8 +1204,8 @@ def cards_de_semana(df: pd.DataFrame, selecionada: str) -> None:
         linha = resumo.loc[semana]
         periodo = f"{linha['INICIO'].strftime('%d/%m')}–{linha['FIM'].strftime('%d/%m')}"
         with coluna:
-            st.button(f"{semana}\n{periodo}\n{num(linha['ROTAS'])} rotas",
-                      key=f"semana_{semana}", width="stretch",
+            st.button(semana, key=f"semana_{semana}", width="stretch",
+                      help=f"{periodo} · {num(linha['ROTAS'])} rotas",
                       type="primary" if semana == selecionada else "secondary",
                       on_click=_escolher_semana, args=(semana,))
 
@@ -1468,6 +1462,7 @@ def main() -> None:
         else:
             pagina = navegar_slides(resumo, dias_slide)
             cabecalho(selecao, pagina, por="Dia")
+            cards_de_semana(df, semana_sel)
             if tamanho["modo_painel"] and renderizar_painel is None:
                 st.warning(
                     "O modo painel precisa do arquivo **painel_arrastavel.py** na mesma "
@@ -1483,7 +1478,6 @@ def main() -> None:
             else:
                 linha_um(pagina, coluna_drop, rotulo_drop, altura=altura_cima)
                 linha_dois(pagina, altura=altura_baixo)
-            cards_de_semana(df, semana_sel)
 
     with aba_semana:
         semanal = indicadores_por_dia(df, por="Semana")
