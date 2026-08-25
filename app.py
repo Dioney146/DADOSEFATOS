@@ -307,8 +307,11 @@ div[data-testid="stTabs"] [data-baseweb="tab"] { padding: 2px 0; }
     display: inline-flex; align-items: center; gap: 7px;
 }
 .leg-cor { width: 12px; height: 12px; display: inline-block; }
-.sem-faixa { display: flex; border-top: 1px solid #14161A; padding-top: 8px; margin: 0 2px 4px 2px; }
-.sem-cel { flex: 1; text-align: center; padding: 0 4px; min-width: 0; }
+.sem-faixa {
+    display: grid; width: 100%; box-sizing: border-box;
+    border-top: 1px solid #E3E7EB; padding-top: 8px; margin: 0 0 4px 0;
+}
+.sem-cel { text-align: center; min-width: 0; overflow: hidden; }
 .sem-val {
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif;
     font-weight: 700; font-size: 27px; line-height: 1.05; color: #14161A;
@@ -1211,8 +1214,11 @@ def grafico_semanal(resumo: pd.DataFrame, coluna: str, altura: int = 190) -> go.
             hovertemplate="%{x}<br>%{y}<extra></extra>",
         )
     )
-    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0.5)
-    fig.update_xaxes(**EIXO_X, showticklabels=False, type="category")
+    base = {k: v for k, v in LAYOUT_BASE.items() if k != "margin"}
+    fig.update_layout(**base, height=altura, bargap=0.5, autosize=True,
+                      margin=dict(l=0, r=0, t=4, b=6))
+    fig.update_xaxes(**EIXO_X, showticklabels=False, type="category",
+                     range=[-0.5, len(resumo) - 0.5])
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
 
@@ -1226,7 +1232,12 @@ def valores_semanais(resumo: pd.DataFrame, valores: list[str], rodapes: list[str
         f'<div class="sem-rot">{rodape}</div></div>'
         for valor, rodape in zip(valores, rodapes)
     )
-    st.markdown(f'<div class="sem-faixa">{celulas}</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="sem-faixa" '
+        f'style="grid-template-columns: repeat({len(valores)}, minmax(0, 1fr))">'
+        f'{celulas}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def painel_semanal(resumo: pd.DataFrame, coluna: str, titulo: str, nota: str,
