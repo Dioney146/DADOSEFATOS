@@ -929,15 +929,63 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
     return fig
 
 
-def mini_indicadores(dados: pd.DataFrame, coluna: str, sufixo: str = "",
-                     rotulos: tuple[str, str, str] = ("Média", "Máximo", "Mínimo")) -> None:
+def ranking_estados(df: pd.DataFrame, coluna: str) -> pd.Series:
     """
-    Resumo do indicador dentro do próprio card: média do período e os dias de
-    maior e menor valor. Mesma leitura para Veículos, Ocupação e Drop.
+    Valor do indicador em cada estado, no período filtrado.
+
+    Usa a mesma conta do painel, só que aplicada a um estado por vez: ocupação
+    e drop vêm dos totais do estado; veículos, da média diária de placas.
+    """
+    valores = {}
+    for uf, parte in df.groupby("UF"):
+        dia = indicadores_por_dia(parte, por="Dia")
+        if dia.empty:
+            continue
+        if coluna == "VEICULOS":
+            valores[uf] = dia["VEICULOS"].mean()
+        elif coluna == "OCUPACAO_PCT":
+            valores[uf] = dia["PESO"].sum() / max(dia["CAPACIDADE"].sum(), 1) * 100
+        elif coluna == "DROP_PARADA":
+            valores[uf] = dia["PESO"].sum() / max(dia["PARADAS"].sum(), 1)
+        elif coluna == "DROP_VEICULO":
+            valores[uf] = dia["PESO"].sum() / max(dia["VEICULOS"].sum(), 1)
+        elif coluna == "DROP_ROTA":
+            valores[uf] = dia["PESO"].sum() / max(dia["ROTAS"].sum(), 1)
+        else:
+            valores[uf] = dia[coluna].mean()
+    return pd.Series(valores, dtype="float64")
+
+
+def mini_indicadores(dados: pd.DataFrame, coluna: str, sufixo: str = "",
+                     rotulos: tuple[str, str, str] = ("Média", "Máximo", "Mínimo"),
+                     por_estado: pd.Series | None = None) -> None:
+    """
+    Resumo do indicador dentro do próprio card.
+
+    Por padrão mostra a média do período e os dias de maior e menor valor.
+    No consolidado (`por_estado` preenchido), o maior e o menor passam a ser
+    os ESTADOS, com a sigla no lugar da data.
     """
     validos = dados.dropna(subset=[coluna])
     if validos.empty:
         return
+
+    if por_estado is not None and len(por_estado.dropna()) > 1:
+        classificado = por_estado.dropna()
+        topo, base = classificado.idxmax(), classificado.idxmin()
+        blocos = [
+            (rotulos[0], num(validos[coluna].mean()) + sufixo, "período"),
+            ("Maior estado", num(classificado[topo]) + sufixo, topo),
+            ("Menor estado", num(classificado[base]) + sufixo, base),
+        ]
+        html = "".join(
+            f'<div class="mini-item"><div class="mini-rot">{rot}</div>'
+            f'<div class="mini-val">{val}</div><div class="mini-dia">{dia}</div></div>'
+            for rot, val, dia in blocos
+        )
+        st.markdown(f'<div class="mini">{html}</div>', unsafe_allow_html=True)
+        return
+
     melhor = validos.loc[validos[coluna].idxmax()]
     pior = validos.loc[validos[coluna].idxmin()]
     blocos = [
@@ -1239,15 +1287,21 @@ def navegar_slides(resumo: pd.DataFrame, dias_slide: str) -> pd.DataFrame:
 
 
 def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
-             altura: int = 215) -> None:
+             altura: int = 215, base_estados: pd.DataFrame | None = None) -> None:
     """Bloco operacional: Veículos e Ocupação lado a lado, Drop como card de performance."""
     pesos = [0.95, 0.95, 1.20]
     c1, c2, c3 = st.columns(pesos, gap="small")
     fr1, fr2, fr3 = [0.97 * peso / sum(pesos) for peso in pesos]
 
+    # No consolidado, o maior e o menor do resumo passam a ser estados
+    def ranking(coluna: str) -> pd.Series | None:
+        if base_estados is None or base_estados["UF"].nunique() < 2:
+            return None
+        return ranking_estados(base_estados, coluna)
+
     with c1, st.container(border=True):
         titulo_painel("Veículos", "rotas / dia", linha=1)
-        mini_indicadores(resumo, "VEICULOS")
+        mini_indicadores(resumo, "VEICULOS", por_estado=ranking("VEICULOS"))
         faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="suave", fracao=fr1)
         st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura, fracao=fr1),
                         width="stretch", config=CONFIG_GRAFICO, key="g_veiculos")
@@ -1255,7 +1309,8 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 
     with c2, st.container(border=True):
         titulo_painel("Ocupação", "% · peso ÷ capacidade", linha=1)
-        mini_indicadores(resumo, "OCUPACAO_PCT", sufixo="%")
+        mini_indicadores(resumo, "OCUPACAO_PCT", sufixo="%",
+                         por_estado=ranking("OCUPACAO_PCT"))
         faixa_numeros([num(v * 100) if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
                       cor="suave", fracao=fr2)
         st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura, fracao=fr2,
@@ -1265,7 +1320,8 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
 
     with c3, st.container(border=True):
         titulo_painel("Drop", rotulo_drop, linha=1)
-        mini_indicadores(resumo, coluna_drop, rotulos=("Média", "Maior", "Menor"))
+        mini_indicadores(resumo, coluna_drop, rotulos=("Média", "Maior", "Menor"),
+                         por_estado=ranking(coluna_drop))
         faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="suave", fracao=fr3)
         st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura, fracao=fr3),
                         width="stretch", config=CONFIG_GRAFICO, key="g_drop_dia")
@@ -1481,7 +1537,8 @@ def main() -> None:
                     altura_total=int(700 * proporcao),
                 )
             else:
-                linha_um(pagina, coluna_drop, rotulo_drop, altura=altura_cima)
+                linha_um(pagina, coluna_drop, rotulo_drop, altura=altura_cima,
+                         base_estados=df_dia if selecao == "TODOS" else None)
                 linha_dois(pagina, altura=altura_baixo)
 
     with aba_semana:
