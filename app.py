@@ -883,14 +883,15 @@ def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> Non
 
 
 def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
-                   fracao: float = 0.30) -> go.Figure:
+                   fracao: float = 0.30, formato: str = "%{y:,.0f}") -> go.Figure:
+    """`formato` define como o valor aparece no tooltip (ex.: '%{y:.0%}')."""
     largura, vao = largura_da_barra(len(dados))
     fig = go.Figure(
         go.Bar(
             x=dados["EIXO"], y=dados[coluna], customdata=dados["HOVER"],
             marker_color=COR_AZUL, marker_line_width=0, width=largura,
             marker=dict(cornerradius=4),
-            hovertemplate="<b>%{customdata}</b><br>%{y}<extra></extra>",
+            hovertemplate="<b>%{customdata}</b><br>" + formato + "<extra></extra>",
         )
     )
     fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
@@ -914,7 +915,7 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
             x=dados["EIXO"], y=dados[coluna], width=largura, customdata=dados["HOVER"],
             marker_color=cores_pela_media(dados[coluna], media), marker_line_width=0,
             marker=dict(cornerradius=4),
-            hovertemplate="<b>%{customdata}</b><br>%{y:.1f} kg<extra></extra>",
+            hovertemplate="<b>%{customdata}</b><br>%{y:,.0f} kg<extra></extra>",
         )
     )
     fig.add_hline(
@@ -963,7 +964,7 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
         customdata=dados["HOVER"],
         line=dict(color=COR_ESCURA, width=traco, shape="spline", smoothing=0.9, dash="dot"),
         marker=dict(size=marcador, symbol="circle"),
-        yaxis="y", hovertemplate=f"{nome_a}: %{{y:,.1f}}<extra></extra>",
+        yaxis="y", hovertemplate=f"{nome_a}: %{{y:,.0f}}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
         x=dados["EIXO"], y=dados[col_b], name=nome_b, mode="lines+markers",
@@ -1257,7 +1258,8 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
         mini_indicadores(resumo, "OCUPACAO_PCT", sufixo="%")
         faixa_numeros([num(v * 100) if pd.notna(v) else "—" for v in resumo["OCUPACAO"]],
                       cor="suave", fracao=fr2)
-        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura, fracao=fr2),
+        st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura, fracao=fr2,
+                                       formato="%{y:.0%}"),
                         width="stretch", config=CONFIG_GRAFICO, key="g_ocupacao")
         faixa_eixo(list(resumo["EIXO"]), fracao=fr2)
 
@@ -1341,12 +1343,13 @@ def legenda_semanas(resumo: pd.DataFrame) -> None:
     st.markdown(f'<div class="legenda">{"".join(itens)}</div>', unsafe_allow_html=True)
 
 
-def grafico_semanal(resumo: pd.DataFrame, coluna: str, altura: int = 190) -> go.Figure:
+def grafico_semanal(resumo: pd.DataFrame, coluna: str, altura: int = 190,
+                    formato: str = "%{y:,.0f}") -> go.Figure:
     fig = go.Figure(
         go.Bar(
             x=resumo["ROTULO"], y=resumo[coluna], width=0.45,
             marker_color=cores_das_semanas(len(resumo)), marker_line_width=0,
-            hovertemplate="%{x}<br>%{y}<extra></extra>",
+            hovertemplate="<b>%{x}</b><br>" + formato + "<extra></extra>",
         )
     )
     base = {k: v for k, v in LAYOUT_BASE.items() if k != "margin"}
@@ -1377,10 +1380,11 @@ def valores_semanais(resumo: pd.DataFrame, valores: list[str], rodapes: list[str
 
 def painel_semanal(resumo: pd.DataFrame, coluna: str, titulo: str, nota: str,
                    valores: list[str], rodapes: list[str], altura: int, chave: str,
-                   compacta: bool = False) -> None:
+                   compacta: bool = False, formato: str = "%{y:,.0f}") -> None:
     with st.container(border=True):
         titulo_painel(titulo, nota)
-        st.plotly_chart(grafico_semanal(resumo, coluna, altura=altura), width="stretch",
+        st.plotly_chart(grafico_semanal(resumo, coluna, altura=altura, formato=formato),
+                        width="stretch",
                         config={"displayModeBar": False}, key=f"sem_{chave}")
         valores_semanais(resumo, valores, rodapes, compacta=compacta)
 
@@ -1397,7 +1401,8 @@ def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
                        [num(v) for v in resumo["VEICULOS"]], siglas, altura, "veiculos")
     with c2:
         painel_semanal(resumo, "OCUPACAO", "Ocupação", "peso ÷ capacidade",
-                       [f"{num(v * 100)}%" for v in resumo["OCUPACAO"]], siglas, altura, "ocupacao")
+                       [f"{num(v * 100)}%" for v in resumo["OCUPACAO"]], siglas, altura, "ocupacao",
+                       formato="%{y:.0%}")
     with c3:
         painel_semanal(resumo, coluna_drop, "Drop", rotulo_drop,
                        [num(v) for v in resumo[coluna_drop]], siglas, altura, "drop")
