@@ -273,6 +273,14 @@ div[data-testid="stTabs"] [data-baseweb="tab"] { padding: 2px 0; }
     line-height: 1.15; font-size: inherit;
     font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; font-weight: 700;
 }
+.faixa-eixo {
+    display: grid; width: 100%; max-width: 100%; box-sizing: border-box;
+    margin: 2px 0 0 0; padding: 0; overflow: hidden;
+    font-family: 'Archivo', Arial, sans-serif; font-weight: 600; color: #98A2AE;
+    letter-spacing: .02em;
+}
+.eixo-cel { min-width: 0; text-align: center; overflow: hidden; white-space: nowrap; }
+
 /* Hierarquia de cor: valor principal em grafite, apoio em azul, secundário em cinza */
 .faixa-forte { color: #14161A; }
 .faixa-azul { color: #3F6E9C; }
@@ -800,6 +808,31 @@ def faixa_numeros(valores: list[str], cor: str = "forte", ajuste: int = 0,
     )
 
 
+def faixa_eixo(valores: list[str], fracao: float = 0.30) -> None:
+    """
+    Rótulos dos dias, na mesma grade dos números acima.
+
+    Desenhar o eixo em HTML (e não dentro do gráfico) garante que cada dia caia
+    exatamente na mesma coluna do valor correspondente, independentemente da
+    largura que o Plotly resolva usar.
+    """
+    if not valores:
+        return
+    quantidade = len(valores)
+    passo = passo_dos_rotulos(quantidade, fracao)
+    corpo = corpo_do_eixo(quantidade)
+    celulas = "".join(
+        f'<div class="eixo-cel">{v if i % passo == 0 else ""}</div>'
+        for i, v in enumerate(valores)
+    )
+    st.markdown(
+        f'<div class="faixa-eixo" '
+        f'style="grid-template-columns: repeat({quantidade}, minmax(0, 1fr)); '
+        f'font-size:{corpo}px">{celulas}</div>',
+        unsafe_allow_html=True,
+    )
+
+
 def passo_dos_rotulos(quantidade: int, fracao: float) -> int:
     """
     De quantos em quantos dias escrever o rótulo do eixo.
@@ -822,20 +855,11 @@ def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> Non
     rótulos dos dias ficarem na mesma vertical dos números da faixa acima.
     """
     quantidade = len(dados)
-    fig.update_layout(
-        autosize=True,
-        margin=dict(l=0, r=0, t=4, b=int(round(escala(quantidade, 26, 18)))),
-    )
-    passo = passo_dos_rotulos(quantidade, fracao)
-    eixo = dict(EIXO_X)
-    eixo["tickfont"] = dict(size=corpo_do_eixo(quantidade), color=COR_SUAVE)
-
-    fig.update_xaxes(**eixo, type="category", tickangle=0, automargin=False,
-                     tickmode="array",
-                     tickvals=list(dados["EIXO"])[::passo],
-                     ticktext=list(dados["EIXO"])[::passo],
-                     # sem folga nas pontas: a 1ª e a última coluna encostam na borda
-                     range=[-0.5, quantidade - 0.5])
+    fig.update_layout(autosize=True, margin=dict(l=0, r=0, t=4, b=2))
+    # Os rótulos dos dias são desenhados fora do gráfico (ver faixa_eixo),
+    # para ficarem alinhados com os números da faixa de cima.
+    fig.update_xaxes(**EIXO_X, type="category", showticklabels=False,
+                     automargin=False, range=[-0.5, quantidade - 0.5])
 
 
 def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
@@ -1161,6 +1185,7 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
         faixa_numeros([num(v) for v in resumo["ROTAS"]], cor="suave", fracao=fr1)
         st.plotly_chart(grafico_barras(resumo, "VEICULOS", altura=altura, fracao=fr1),
                         width="stretch", config=CONFIG_GRAFICO, key="g_veiculos")
+        faixa_eixo(list(resumo["EIXO"]), fracao=fr1)
 
     with c2, st.container(border=True):
         titulo_painel("Ocupação", "% · peso ÷ capacidade", linha=1)
@@ -1169,6 +1194,7 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
                       cor="suave", fracao=fr2)
         st.plotly_chart(grafico_barras(resumo, "OCUPACAO", altura=altura, fracao=fr2),
                         width="stretch", config=CONFIG_GRAFICO, key="g_ocupacao")
+        faixa_eixo(list(resumo["EIXO"]), fracao=fr2)
 
     with c3, st.container(border=True):
         titulo_painel("Drop", rotulo_drop, linha=1)
@@ -1176,6 +1202,7 @@ def linha_um(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
         faixa_numeros([num(v) for v in resumo[coluna_drop]], cor="suave", fracao=fr3)
         st.plotly_chart(grafico_drop_por_dia(resumo, coluna_drop, altura=altura, fracao=fr3),
                         width="stretch", config=CONFIG_GRAFICO, key="g_drop_dia")
+        faixa_eixo(list(resumo["EIXO"]), fracao=fr3)
 
 
 def linha_dois(resumo: pd.DataFrame, altura: int = 345) -> None:
@@ -1193,6 +1220,7 @@ def linha_dois(resumo: pd.DataFrame, altura: int = 345) -> None:
                                 altura=altura, fracao=meia_tela),
             width="stretch", config=CONFIG_GRAFICO, key="g_paradas",
         )
+        faixa_eixo(list(resumo["EIXO"]), fracao=meia_tela)
 
     with c2, st.container(border=True):
         titulo_painel("Peso × capacidade por dia", linha=2,
@@ -1204,6 +1232,7 @@ def linha_dois(resumo: pd.DataFrame, altura: int = 345) -> None:
                                 altura=altura, fracao=meia_tela),
             width="stretch", config=CONFIG_GRAFICO, key="g_peso",
         )
+        faixa_eixo(list(resumo["EIXO"]), fracao=meia_tela)
 
 
 def figuras_do_painel(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str) -> list[dict]:
