@@ -810,13 +810,13 @@ def corpo_do_eixo(quantidade: int) -> int:
     return max(7, int(round(escala(quantidade, 13, 8))))
 
 
-def largura_da_barra(quantidade: int) -> tuple[float, float]:
+def largura_da_barra(quantidade: int) -> float:
     """
-    Barra e vão proporcionais: com poucos dias a barra é mais estreita e o vão
-    maior; com o mês cheio a barra engorda e o vão encolhe, sem sobrepor.
+    Vão entre as barras. Com poucos dias o vão é maior (barra mais estreita);
+    com o mês cheio ele encolhe. A largura em si fica por conta do Plotly, que
+    divide o espaço em partes iguais — assim toda barra sai do mesmo tamanho.
     """
-    vao = max(0.08, escala(quantidade, 0.42, 0.14))
-    return 1.0 - vao, vao
+    return float(entre(escala(quantidade, 0.45, 0.18), 0.15, 0.45))
 
 
 # Fração da célula que o número pode ocupar: o resto vira respiro entre eles.
@@ -925,19 +925,19 @@ def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
     `formato` define como o valor aparece no tooltip (ex.: '%{y:.0%}') e
     `origem` acrescenta a linha com o estado de maior e menor valor no dia.
     """
-    largura, vao = largura_da_barra(len(dados))
+    vao = largura_da_barra(len(dados))
     extra = origem if origem is not None else ["" for _ in range(len(dados))]
     fig = go.Figure(
         go.Bar(
             x=dados["EIXO"], y=dados[coluna],
             customdata=list(zip(dados["HOVER"], extra)),
-            marker_color=COR_AZUL, marker_line_width=0, width=largura,
+            marker_color=COR_AZUL, marker_line_width=0,
             marker=dict(cornerradius=4),
             hovertemplate="<b>%{customdata[0]}</b><br>" + formato
                           + "%{customdata[1]}<extra></extra>",
         )
     )
-    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao, bargroupgap=0)
     eixo_datas(fig, dados, fracao)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
@@ -953,11 +953,11 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
                          origem: list[str] | None = None) -> go.Figure:
     """Drop em ordem cronológica, no mesmo eixo dos demais painéis do dia."""
     media = float(dados[coluna].mean())
-    largura, vao = largura_da_barra(len(dados))
+    vao = largura_da_barra(len(dados))
     extra = origem if origem is not None else ["" for _ in range(len(dados))]
     fig = go.Figure(
         go.Bar(
-            x=dados["EIXO"], y=dados[coluna], width=largura,
+            x=dados["EIXO"], y=dados[coluna],
             customdata=list(zip(dados["HOVER"], extra)),
             marker_color=cores_pela_media(dados[coluna], media), marker_line_width=0,
             marker=dict(cornerradius=4),
@@ -970,7 +970,7 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
         annotation_text=f"média {num(media)}", annotation_position="top left",
         annotation_font=dict(family="IBM Plex Mono, monospace", size=9, color=COR_SUAVE),
     )
-    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao)
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao, bargroupgap=0)
     eixo_datas(fig, dados, fracao)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
@@ -1515,14 +1515,15 @@ def grafico_semanal(resumo: pd.DataFrame, coluna: str, altura: int = 190,
                     formato: str = "%{y:,.0f}") -> go.Figure:
     fig = go.Figure(
         go.Bar(
-            x=resumo["ROTULO"], y=resumo[coluna], width=0.45,
+            x=resumo["ROTULO"], y=resumo[coluna],
             marker_color=cores_das_semanas(len(resumo)), marker_line_width=0,
+            marker=dict(cornerradius=4),
             hovertemplate="<b>%{x}</b><br>" + formato + "<extra></extra>",
         )
     )
     base = {k: v for k, v in LAYOUT_BASE.items() if k != "margin"}
-    fig.update_layout(**base, height=altura, bargap=0.5, autosize=True,
-                      margin=dict(l=0, r=0, t=4, b=6))
+    fig.update_layout(**base, height=altura, bargap=0.45, bargroupgap=0,
+                      autosize=True, margin=dict(l=0, r=0, t=4, b=6))
     fig.update_xaxes(**EIXO_X, showticklabels=False, type="category",
                      range=[-0.5, len(resumo) - 0.5])
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
