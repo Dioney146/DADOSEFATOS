@@ -13,6 +13,3 @@ showSidebarNavigation = false
 
 [browser]
 gatherUsageStats = false
-
-[ui]
-hideTopBar = true
