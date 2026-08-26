@@ -1004,8 +1004,16 @@ def origem_por_dia(base: pd.DataFrame | None, resumo: pd.DataFrame, coluna: str,
             linhas.append("")
             continue
         valores = tabela.loc[data].dropna()
-        if len(valores) < 2:
+        if valores.empty:
             linhas.append("")
+            continue
+        if len(valores) == 1:
+            # dia com um estado só: mostra qual é, em vez de deixar sem origem
+            unico = valores.index[0]
+            v = valores.iloc[0] * 100 if percentual else valores.iloc[0]
+            linhas.append(
+                f"<br><span style='color:#8B949E'>só</span> {unico} {num(v)}{sufixo}"
+            )
             continue
         topo, base_ = valores.idxmax(), valores.idxmin()
         maior = valores[topo] * 100 if percentual else valores[topo]
@@ -1258,6 +1266,59 @@ def cabecalho(uf: str, resumo: pd.DataFrame, por: str = "Dia") -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+METRICAS_POR_ESTADO = {
+    "Rotas": ("ROTAS", 0, ""),
+    "Veículos": ("VEICULOS", 0, ""),
+    "Drop (kg/parada)": ("DROP_PARADA", 0, ""),
+    "Ocupação (%)": ("OCUPACAO_PCT", 0, "%"),
+    "Entregas": ("ENTREGAS", 0, ""),
+    "Paradas": ("PARADAS", 0, ""),
+    "Peso (kg)": ("PESO", 0, ""),
+    "Capacidade (kg)": ("CAPACIDADE", 0, ""),
+}
+
+
+def detalhe_por_estado(base: pd.DataFrame) -> None:
+    """
+    Tabela dia a dia com o valor de cada estado, para rastrear de onde vem um
+    número fora da curva. Aparece só no consolidado.
+    """
+    if base is None or base.empty or base["UF"].nunique() < 2:
+        return
+
+    with st.expander("Ver o que cada estado fez em cada dia"):
+        escolha = st.selectbox("Indicador", list(METRICAS_POR_ESTADO), index=2,
+                               key="metrica_estados")
+        coluna, casas, sufixo = METRICAS_POR_ESTADO[escolha]
+
+        por_estado = {}
+        for uf, parte in base.groupby("UF"):
+            dia = indicadores_por_dia(parte, por="Dia")
+            if not dia.empty:
+                por_estado[uf] = dia.set_index("ROTULO")[coluna]
+        if not por_estado:
+            return
+
+        tabela = pd.DataFrame(por_estado).round(casas)
+        tabela.index.name = "Data"
+        tabela["Estados no dia"] = tabela.notna().sum(axis=1)
+        tabela["Maior"] = tabela[list(por_estado)].idxmax(axis=1)
+        tabela["Menor"] = tabela[list(por_estado)].idxmin(axis=1)
+
+        st.dataframe(tabela.reset_index(), width="stretch", hide_index=True,
+                     key="tabela_estados")
+        st.download_button(
+            f"Baixar {escolha.lower()} por estado (CSV)",
+            tabela.reset_index().to_csv(index=False, sep=";", decimal=",").encode("utf-8-sig"),
+            file_name=f"por_estado_{coluna.lower()}.csv",
+            mime="text/csv", key="baixar_estados",
+        )
+        st.caption(
+            "Células vazias são dias em que aquele estado não teve rota. "
+            "Quando um único estado roda no dia, ele sozinho define o número do consolidado."
+        )
 
 
 def _escolher_semana(semana: str) -> None:
@@ -1592,6 +1653,8 @@ def main() -> None:
                          base_estados=df_dia if selecao == "TODOS" else None)
                 linha_dois(pagina, altura=altura_baixo,
                            base_estados=df_dia if selecao == "TODOS" else None)
+            if selecao == "TODOS":
+                detalhe_por_estado(df_dia)
 
     with aba_semana:
         semanal = indicadores_por_dia(df, por="Semana")
