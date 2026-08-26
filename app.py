@@ -810,6 +810,21 @@ def corpo_do_eixo(quantidade: int) -> int:
     return max(7, int(round(escala(quantidade, 13, 8))))
 
 
+# A barra nunca pode encostar na borda do card: sobra ao menos esta fração de
+# coluna livre em cada ponta (7% de cada lado no caso mais apertado).
+FOLGA_MINIMA = 0.14
+
+
+def categorias(resumo: pd.DataFrame) -> list[str]:
+    """
+    A lista de categorias do painel — a mesma para tudo.
+
+    Gráfico, faixa de valores e faixa de rótulos derivam desta lista, então a
+    quantidade de barras acompanha automaticamente os filtros aplicados.
+    """
+    return list(resumo["ROTULO"])
+
+
 def posicoes(quantidade: int) -> list[int]:
     """
     Posições no eixo X: 0, 1, 2 … n-1, uma por categoria.
@@ -823,11 +838,19 @@ def posicoes(quantidade: int) -> list[int]:
 
 def largura_relativa(quantidade: int) -> float:
     """
-    Fração da coluna ocupada pela barra: com poucas categorias a barra é mais
-    estreita (mais respiro), com muitas ela engorda. Nunca chega a 1, então
-    duas barras vizinhas jamais se encostam.
+    Fração da coluna ocupada pela barra.
+
+    Cada categoria tem uma coluna de largura 1 e a barra é centrada nela, então
+    ela se estende meia largura para cada lado. Como o teto é 1 - FOLGA_MINIMA
+    (0,86), a metade máxima é 0,43 — menor que os 0,5 de meia coluna que existem
+    entre o centro da primeira barra e a borda do gráfico. Ou seja: nenhuma
+    barra pode ser cortada, com qualquer quantidade de categorias.
+
+    Poucas categorias → barra mais estreita e mais respiro;
+    muitas categorias → barra mais larga dentro da coluna, que já é menor.
     """
-    return float(entre(escala(quantidade, 0.55, 0.86), 0.5, 0.9))
+    teto = 1.0 - FOLGA_MINIMA
+    return float(entre(escala(quantidade, 0.55, teto), 0.45, teto))
 
 
 # Fração da célula que o número pode ocupar: o resto vira respiro entre eles.
