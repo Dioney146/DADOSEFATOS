@@ -912,10 +912,11 @@ def eixo_datas(fig: go.Figure, dados: pd.DataFrame, fracao: float = 0.30) -> Non
     """
     quantidade = len(dados)
     fig.update_layout(autosize=True, margin=dict(l=0, r=0, t=4, b=2))
-    # Os rótulos dos dias são desenhados fora do gráfico (ver faixa_eixo),
-    # para ficarem alinhados com os números da faixa de cima.
-    fig.update_xaxes(**EIXO_X, type="category", showticklabels=False,
-                     automargin=False, range=[-0.5, quantidade - 0.5])
+    # Eixo numérico com uma unidade por dia: cada coluna vale 1/n da largura,
+    # igual às células da grade de números e de datas desenhadas em HTML.
+    fig.update_xaxes(**EIXO_X, type="linear", showticklabels=False,
+                     automargin=False, fixedrange=True,
+                     range=[-0.5, quantidade - 0.5])
 
 
 def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
@@ -929,15 +930,15 @@ def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
     extra = origem if origem is not None else ["" for _ in range(len(dados))]
     fig = go.Figure(
         go.Bar(
-            x=dados["EIXO"], y=dados[coluna],
+            x=list(range(len(dados))), y=dados[coluna],
             customdata=list(zip(dados["HOVER"], extra)),
             marker_color=COR_AZUL, marker_line_width=0,
-            marker=dict(cornerradius=4),
+            marker=dict(cornerradius=4), width=1 - vao,
             hovertemplate="<b>%{customdata[0]}</b><br>" + formato
                           + "%{customdata[1]}<extra></extra>",
         )
     )
-    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao, bargroupgap=0)
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0, bargroupgap=0)
     eixo_datas(fig, dados, fracao)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
@@ -957,10 +958,10 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
     extra = origem if origem is not None else ["" for _ in range(len(dados))]
     fig = go.Figure(
         go.Bar(
-            x=dados["EIXO"], y=dados[coluna],
+            x=list(range(len(dados))), y=dados[coluna],
             customdata=list(zip(dados["HOVER"], extra)),
             marker_color=cores_pela_media(dados[coluna], media), marker_line_width=0,
-            marker=dict(cornerradius=4),
+            marker=dict(cornerradius=4), width=1 - vao,
             hovertemplate="<b>%{customdata[0]}</b><br>%{y:,.0f} kg"
                           "%{customdata[1]}<extra></extra>",
         )
@@ -970,7 +971,7 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
         annotation_text=f"média {num(media)}", annotation_position="top left",
         annotation_font=dict(family="IBM Plex Mono, monospace", size=9, color=COR_SUAVE),
     )
-    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=vao, bargroupgap=0)
+    fig.update_layout(**LAYOUT_BASE, height=altura, bargap=0, bargroupgap=0)
     eixo_datas(fig, dados, fracao)
     fig.update_yaxes(**EIXO_Y, showticklabels=False)
     return fig
@@ -1062,14 +1063,14 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
     marcador = max(2.5, escala(len(dados), 7, 3))
     traco = max(1.1, escala(len(dados), 2.4, 1.4))
     fig.add_trace(go.Scatter(
-        x=dados["EIXO"], y=dados[col_a], name=nome_a, mode="lines+markers",
+        x=list(range(len(dados))), y=dados[col_a], name=nome_a, mode="lines+markers",
         customdata=extra_a,
         line=dict(color=COR_ESCURA, width=traco, shape="spline", smoothing=0.9, dash="dot"),
         marker=dict(size=marcador, symbol="circle"),
         yaxis="y", hovertemplate=f"{nome_a}: %{{y:,.0f}}%{{customdata}}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=dados["EIXO"], y=dados[col_b], name=nome_b, mode="lines+markers",
+        x=list(range(len(dados))), y=dados[col_b], name=nome_b, mode="lines+markers",
         customdata=extra_b,
         line=dict(color=COR_AZUL, width=traco + 0.6, shape="spline", smoothing=0.9),
         marker=dict(size=marcador, symbol="circle"),
@@ -1513,20 +1514,30 @@ def legenda_semanas(resumo: pd.DataFrame) -> None:
 
 def grafico_semanal(resumo: pd.DataFrame, coluna: str, altura: int = 190,
                     formato: str = "%{y:,.0f}") -> go.Figure:
+    """
+    Uma coluna por período, em posição fixa.
+
+    O eixo é numérico (0, 1, 2, …) com uma unidade por período e limites em
+    -0,5 e n-0,5. Assim cada barra ocupa exatamente 1/n da largura do card —
+    a mesma fração usada pela grade de valores abaixo do gráfico, o que faz a
+    barra cair sempre no centro do seu número, em qualquer resolução.
+    """
+    quantidade = len(resumo)
+    posicoes = list(range(quantidade))
     fig = go.Figure(
         go.Bar(
-            x=resumo["ROTULO"], y=resumo[coluna],
-            marker_color=cores_das_semanas(len(resumo)), marker_line_width=0,
-            marker=dict(cornerradius=4),
-            hovertemplate="<b>%{x}</b><br>" + formato + "<extra></extra>",
+            x=posicoes, y=resumo[coluna], customdata=list(resumo["ROTULO"]),
+            marker_color=cores_das_semanas(quantidade), marker_line_width=0,
+            marker=dict(cornerradius=4), width=0.55,
+            hovertemplate="<b>%{customdata}</b><br>" + formato + "<extra></extra>",
         )
     )
     base = {k: v for k, v in LAYOUT_BASE.items() if k != "margin"}
-    fig.update_layout(**base, height=altura, bargap=0.45, bargroupgap=0,
+    fig.update_layout(**base, height=altura, bargap=0, bargroupgap=0,
                       autosize=True, margin=dict(l=0, r=0, t=4, b=6))
-    fig.update_xaxes(**EIXO_X, showticklabels=False, type="category",
-                     range=[-0.5, len(resumo) - 0.5])
-    fig.update_yaxes(**EIXO_Y, showticklabels=False)
+    fig.update_xaxes(**EIXO_X, showticklabels=False, type="linear",
+                     range=[-0.5, quantidade - 0.5], fixedrange=True)
+    fig.update_yaxes(**EIXO_Y, showticklabels=False, fixedrange=True)
     return fig
 
 
