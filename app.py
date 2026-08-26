@@ -397,8 +397,34 @@ html, body { overflow-x: hidden; }
 iframe[title="st.iframe"], iframe[height="0"] { height: 0 !important; display: block; }
 div[data-testid="stElementContainer"]:has(iframe[height="0"]) { display: none !important; }
 
-/* Menu do canto (System/Light/Dark) escondido: o site é sempre claro */
-#MainMenu, [data-testid="stMainMenu"] { display: none !important; }
+/* ── Interface do Streamlit escondida: o site deve parecer sistema próprio ──
+   Some com o menu, o botão de editar/Fork, o ícone do GitHub, a estrela, o
+   "Deploy", o rodapé e o aviso de status. Nada do dashboard é afetado.       */
+#MainMenu,
+[data-testid="stMainMenu"],
+[data-testid="stToolbar"],
+[data-testid="stToolbarActions"],
+[data-testid="stActionButton"],
+[data-testid="stAppDeployButton"],
+[data-testid="stDeployButton"],
+[data-testid="stStatusWidget"],
+[data-testid="stDecoration"],
+[data-testid="stAppViewBlockContainer"] > div:first-child:empty,
+footer, #GithubIcon,
+a[href*="share.streamlit.io"],
+a[href*="streamlit.io/cloud"],
+a[href*="github.com"][target="_blank"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+/* A faixa do topo fica apenas como fundo, sem controles */
+header[data-testid="stHeader"] { pointer-events: none; }
+header[data-testid="stHeader"] button[data-testid="stExpandSidebarButton"],
+header[data-testid="stHeader"] div[data-testid="stSidebarCollapseButton"],
+header[data-testid="stHeader"] [data-testid="stSidebarCollapsedControl"] {
+    pointer-events: auto;   /* o botão da barra lateral continua funcionando */
+    visibility: visible !important; display: flex !important;
+}
 
 /* Impressão (Ctrl+P) — sai igual a um slide em PDF */
 @media print {
