@@ -810,13 +810,24 @@ def corpo_do_eixo(quantidade: int) -> int:
     return max(7, int(round(escala(quantidade, 13, 8))))
 
 
-def largura_da_barra(quantidade: int) -> float:
+def posicoes(quantidade: int) -> list[int]:
     """
-    Vão entre as barras. Com poucos dias o vão é maior (barra mais estreita);
-    com o mês cheio ele encolhe. A largura em si fica por conta do Plotly, que
-    divide o espaço em partes iguais — assim toda barra sai do mesmo tamanho.
+    Posições no eixo X: 0, 1, 2 … n-1, uma por categoria.
+
+    Gráfico, faixa de valores e faixa de rótulos usam esta mesma contagem, e o
+    eixo vai de -0,5 a n-0,5. Cada categoria ocupa 1/n da largura do card, do
+    mesmo jeito que a grade CSS — o alinhamento é aritmético, não visual.
     """
-    return float(entre(escala(quantidade, 0.45, 0.18), 0.15, 0.45))
+    return list(range(quantidade))
+
+
+def largura_relativa(quantidade: int) -> float:
+    """
+    Fração da coluna ocupada pela barra: com poucas categorias a barra é mais
+    estreita (mais respiro), com muitas ela engorda. Nunca chega a 1, então
+    duas barras vizinhas jamais se encostam.
+    """
+    return float(entre(escala(quantidade, 0.55, 0.86), 0.5, 0.9))
 
 
 # Fração da célula que o número pode ocupar: o resto vira respiro entre eles.
@@ -926,14 +937,13 @@ def grafico_barras(dados: pd.DataFrame, coluna: str, altura: int = 300,
     `formato` define como o valor aparece no tooltip (ex.: '%{y:.0%}') e
     `origem` acrescenta a linha com o estado de maior e menor valor no dia.
     """
-    vao = largura_da_barra(len(dados))
     extra = origem if origem is not None else ["" for _ in range(len(dados))]
     fig = go.Figure(
         go.Bar(
-            x=list(range(len(dados))), y=dados[coluna],
+            x=posicoes(len(dados)), y=dados[coluna],
             customdata=list(zip(dados["HOVER"], extra)),
             marker_color=COR_AZUL, marker_line_width=0,
-            marker=dict(cornerradius=4), width=1 - vao,
+            marker=dict(cornerradius=4), width=largura_relativa(len(dados)),
             hovertemplate="<b>%{customdata[0]}</b><br>" + formato
                           + "%{customdata[1]}<extra></extra>",
         )
@@ -954,14 +964,13 @@ def grafico_drop_por_dia(dados: pd.DataFrame, coluna: str, altura: int = 250,
                          origem: list[str] | None = None) -> go.Figure:
     """Drop em ordem cronológica, no mesmo eixo dos demais painéis do dia."""
     media = float(dados[coluna].mean())
-    vao = largura_da_barra(len(dados))
     extra = origem if origem is not None else ["" for _ in range(len(dados))]
     fig = go.Figure(
         go.Bar(
-            x=list(range(len(dados))), y=dados[coluna],
+            x=posicoes(len(dados)), y=dados[coluna],
             customdata=list(zip(dados["HOVER"], extra)),
             marker_color=cores_pela_media(dados[coluna], media), marker_line_width=0,
-            marker=dict(cornerradius=4), width=1 - vao,
+            marker=dict(cornerradius=4), width=largura_relativa(len(dados)),
             hovertemplate="<b>%{customdata[0]}</b><br>%{y:,.0f} kg"
                           "%{customdata[1]}<extra></extra>",
         )
@@ -1063,14 +1072,14 @@ def grafico_duas_linhas(dados: pd.DataFrame, col_a: str, col_b: str,
     marcador = max(2.5, escala(len(dados), 7, 3))
     traco = max(1.1, escala(len(dados), 2.4, 1.4))
     fig.add_trace(go.Scatter(
-        x=list(range(len(dados))), y=dados[col_a], name=nome_a, mode="lines+markers",
+        x=posicoes(len(dados)), y=dados[col_a], name=nome_a, mode="lines+markers",
         customdata=extra_a,
         line=dict(color=COR_ESCURA, width=traco, shape="spline", smoothing=0.9, dash="dot"),
         marker=dict(size=marcador, symbol="circle"),
         yaxis="y", hovertemplate=f"{nome_a}: %{{y:,.0f}}%{{customdata}}<extra></extra>",
     ))
     fig.add_trace(go.Scatter(
-        x=list(range(len(dados))), y=dados[col_b], name=nome_b, mode="lines+markers",
+        x=posicoes(len(dados)), y=dados[col_b], name=nome_b, mode="lines+markers",
         customdata=extra_b,
         line=dict(color=COR_AZUL, width=traco + 0.6, shape="spline", smoothing=0.9),
         marker=dict(size=marcador, symbol="circle"),
@@ -1129,7 +1138,7 @@ def barra_lateral() -> tuple[pd.DataFrame, str]:
     st.sidebar.markdown("## Filtros")
     ufs = ["TODOS"] + sorted(df["UF"].unique())
     uf = st.sidebar.selectbox(
-        "Estado", ufs,
+        "Estado", ufs, key="estado_sel",
         format_func=lambda c: ("Todos os estados" if c == "TODOS"
                                else f"{c} — {ESTADOS.get(c, 'Não identificado')}"),
     )
@@ -1523,12 +1532,11 @@ def grafico_semanal(resumo: pd.DataFrame, coluna: str, altura: int = 190,
     barra cair sempre no centro do seu número, em qualquer resolução.
     """
     quantidade = len(resumo)
-    posicoes = list(range(quantidade))
     fig = go.Figure(
         go.Bar(
-            x=posicoes, y=resumo[coluna], customdata=list(resumo["ROTULO"]),
+            x=posicoes(quantidade), y=resumo[coluna], customdata=list(resumo["ROTULO"]),
             marker_color=cores_das_semanas(quantidade), marker_line_width=0,
-            marker=dict(cornerradius=4), width=0.55,
+            marker=dict(cornerradius=4), width=largura_relativa(quantidade),
             hovertemplate="<b>%{customdata}</b><br>" + formato + "<extra></extra>",
         )
     )
@@ -1559,8 +1567,20 @@ def valores_semanais(resumo: pd.DataFrame, valores: list[str], rodapes: list[str
 
 
 def painel_semanal(resumo: pd.DataFrame, coluna: str, titulo: str, nota: str,
-                   valores: list[str], rodapes: list[str], altura: int, chave: str,
+                   altura: int, chave: str, texto=None, rodape=None,
                    compacta: bool = False, formato: str = "%{y:,.0f}") -> None:
+    """
+    Um painel semanal: gráfico e faixa de valores nascem do MESMO `resumo`.
+
+    `texto` formata o número de cada linha e `rodape` o rótulo; ambos recebem a
+    linha inteira, então a ordem e a quantidade sempre acompanham o gráfico.
+    """
+    texto = texto or (lambda linha: num(linha[coluna]))
+    rodape = rodape or (lambda linha: linha["ROTULO"])
+
+    valores = [texto(linha) for _, linha in resumo.iterrows()]
+    rodapes = [rodape(linha) for _, linha in resumo.iterrows()]
+
     with st.container(border=True):
         titulo_painel(titulo, nota)
         st.plotly_chart(grafico_semanal(resumo, coluna, altura=altura, formato=formato),
@@ -1572,34 +1592,30 @@ def painel_semanal(resumo: pd.DataFrame, coluna: str, titulo: str, nota: str,
 def visao_semanal(resumo: pd.DataFrame, coluna_drop: str, rotulo_drop: str,
                   altura: int = 190) -> None:
     """Os seis indicadores da semana, em dois blocos de três painéis."""
-    siglas = list(resumo["ROTULO"])
     legenda_semanas(resumo)
 
     c1, c2, c3 = st.columns(3, gap="small")
     with c1:
-        painel_semanal(resumo, "VEICULOS", "Veículos", "rotas",
-                       [num(v) for v in resumo["VEICULOS"]], siglas, altura, "veiculos")
+        painel_semanal(resumo, "VEICULOS", "Veículos", "rotas", altura, "veiculos")
     with c2:
-        painel_semanal(resumo, "OCUPACAO", "Ocupação", "peso ÷ capacidade",
-                       [f"{num(v * 100)}%" for v in resumo["OCUPACAO"]], siglas, altura, "ocupacao",
+        painel_semanal(resumo, "OCUPACAO", "Ocupação", "peso ÷ capacidade", altura, "ocupacao",
+                       texto=lambda linha: f"{num(linha['OCUPACAO'] * 100)}%",
                        formato="%{y:.0%}")
     with c3:
-        painel_semanal(resumo, coluna_drop, "Drop", rotulo_drop,
-                       [num(v) for v in resumo[coluna_drop]], siglas, altura, "drop")
+        painel_semanal(resumo, coluna_drop, "Drop", rotulo_drop, altura, "drop")
 
     c4, c5, c6 = st.columns(3, gap="small")
     with c4:
-        painel_semanal(resumo, "MEDIA_PARADAS", "Média de paradas", "por rota",
-                       [num(v) for v in resumo["MEDIA_PARADAS"]], siglas, altura, "paradas")
+        painel_semanal(resumo, "MEDIA_PARADAS", "Média de paradas", "por rota", altura, "paradas")
     with c5:
-        painel_semanal(resumo, "ENTREGAS", "Entregas", "ordens",
-                       [num(v) for v in resumo["ENTREGAS"]], siglas, altura, "entregas",
+        painel_semanal(resumo, "ENTREGAS", "Entregas", "ordens", altura, "entregas",
                        compacta=len(resumo) > 5)
     with c6:
-        rodapes_peso = [f"{s} · cap {num(c / 1000, 1)} t" for s, c in zip(siglas, resumo["CAPACIDADE"])]
-        painel_semanal(resumo, "PESO", "Peso", "toneladas · capacidade abaixo",
-                       [f"{num(v / 1000, 1)} t" for v in resumo["PESO"]],
-                       rodapes_peso, altura, "peso", compacta=True)
+        painel_semanal(resumo, "PESO", "Peso", "toneladas · capacidade abaixo", altura, "peso",
+                       texto=lambda linha: f"{num(linha['PESO'] / 1000, 1)} t",
+                       rodape=lambda linha: f"{linha['ROTULO']} · cap "
+                                            f"{num(linha['CAPACIDADE'] / 1000, 1)} t",
+                       compacta=True)
 
 
 def main() -> None:
