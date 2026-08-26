@@ -135,7 +135,9 @@ header[data-testid="stHeader"] {
     background: #F2F5F9 !important; height: 2.6rem; z-index: 999;
 }
 .block-container {
-    padding-top: 1.7rem !important; padding-bottom: 6px !important;
+    padding-top: 1.7rem !important;
+    /* espaço para o selo flutuante do canto inferior direito não cobrir o eixo */
+    padding-bottom: 52px !important;
     padding-left: clamp(8px, 0.8vw, 20px) !important;
     padding-right: clamp(8px, 0.8vw, 20px) !important;
     max-width: 100% !important; width: 100%; margin: 0;
@@ -300,6 +302,9 @@ div[data-testid="stHorizontalBlock"] button[kind="primary"] {
     letter-spacing: .02em;
 }
 .eixo-cel { min-width: 0; text-align: center; overflow: hidden; white-space: nowrap; }
+/* O último painel da linha de baixo reserva a faixa onde flutua o selo */
+div[data-testid="stHorizontalBlock"] > div[data-testid="stColumn"]:last-child
+    .faixa-eixo { padding-right: 0; }
 
 /* Hierarquia de cor: valor principal em grafite, apoio em azul, secundário em cinza */
 .faixa-forte { color: #14161A; }
@@ -402,7 +407,6 @@ div[data-testid="stElementContainer"]:has(iframe[height="0"]) { display: none !i
    "Deploy", o rodapé e o aviso de status. Nada do dashboard é afetado.       */
 #MainMenu,
 [data-testid="stMainMenu"],
-[data-testid="stToolbar"],
 [data-testid="stToolbarActions"],
 [data-testid="stActionButton"],
 [data-testid="stAppDeployButton"],
@@ -417,13 +421,19 @@ a[href*="github.com"][target="_blank"] {
     display: none !important;
     visibility: hidden !important;
 }
-/* A faixa do topo fica apenas como fundo, sem controles */
-header[data-testid="stHeader"] { pointer-events: none; }
-header[data-testid="stHeader"] button[data-testid="stExpandSidebarButton"],
-header[data-testid="stHeader"] div[data-testid="stSidebarCollapseButton"],
-header[data-testid="stHeader"] [data-testid="stSidebarCollapsedControl"] {
-    pointer-events: auto;   /* o botão da barra lateral continua funcionando */
-    visibility: visible !important; display: flex !important;
+/* O único controle do Streamlit que fica: abrir/fechar a barra de filtros */
+header[data-testid="stHeader"],
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="stSidebarCollapseButton"],
+button[data-testid="stExpandSidebarButton"],
+button[data-testid="stBaseButton-headerNoPadding"],
+header[data-testid="stHeader"] button {
+    display: flex !important; visibility: visible !important;
+    pointer-events: auto !important; opacity: 1 !important;
+}
+/* Deixa o botão sempre alcançável, mesmo com a lateral fechada */
+[data-testid="stSidebarCollapsedControl"] {
+    position: fixed !important; top: 10px; left: 10px; z-index: 1001;
 }
 
 /* Impressão (Ctrl+P) — sai igual a um slide em PDF */
