@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indicadores Delly's</title>
+<link rel="icon" href="assets/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
+<style>
+:root{
+  --texto:#14161A; --suave:#8B949E; --azul:#5D87B0; --azul-claro:#8FB3D4;
+  --escura:#2C3440; --grade:#E4E8EC; --borda:#EAEEF3; --fundo:#F2F5F9;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;overflow-x:hidden;background:var(--fundo)}
+body{
+  font-family:'Archivo',Arial,sans-serif;color:var(--texto);
+  padding:14px clamp(8px,.8vw,20px) 52px;
+}
+button{font-family:inherit}
+
+/* ── Cabeçalho ───────────────────────────────────────────────────────────── */
+.cab{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  background:#fff;border:1px solid var(--borda);border-radius:14px;
+  padding:clamp(8px,.7vw,14px) clamp(12px,1vw,20px);margin-bottom:10px;
+  box-shadow:0 1px 2px rgba(20,22,26,.03),0 6px 20px rgba(20,22,26,.04);
+}
+.cab-id{display:flex;align-items:center;gap:12px}
+.cab-barra{width:4px;height:clamp(30px,2.6vw,44px);border-radius:4px;
+  background:linear-gradient(180deg,#5D87B0 0%,#2C3440 100%);display:block}
+.cab-titulo{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  letter-spacing:.01em;font-size:clamp(24px,2vw,38px);line-height:1;
+  text-transform:uppercase;margin:0}
+.cab-sub{font-size:clamp(9px,.72vw,11px);font-weight:600;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--suave);margin-top:3px}
+.cab-sep{color:#C7CFD8;margin:0 3px}
+.cab-meta{display:flex;gap:8px}
+.kpi-chip{background:#fff;border:1px solid #E7EBF0;border-radius:12px;padding:7px 16px;
+  min-width:92px;text-align:right;box-shadow:0 1px 2px rgba(20,22,26,.04)}
+.kpi-chip.destaque{background:#14161A;border-color:#14161A}
+.kpi-rot{font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#98A2AE}
+.kpi-val{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:clamp(18px,1.45vw,27px);line-height:1.15;white-space:nowrap}
+.kpi-chip.destaque .kpi-val{color:#fff}
+.kpi-chip.destaque .kpi-rot{color:var(--azul-claro)}
+
+/* ── Barra de filtros ────────────────────────────────────────────────────── */
+.barra{
+  display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 18px;background:#fff;
+  border:1px solid var(--borda);border-radius:14px;padding:10px 16px;margin-bottom:10px;
+  box-shadow:0 1px 2px rgba(20,22,26,.03),0 6px 20px rgba(20,22,26,.04);
+}
+.campo{display:flex;flex-direction:column;gap:4px}
+.campo>label{font-size:9px;font-weight:600;letter-spacing:.14em;
+  text-transform:uppercase;color:#98A2AE}
+.campo select,.campo input{
+  font-family:'Archivo',Arial,sans-serif;font-size:13px;color:var(--texto);background:#fff;
+  border:1px solid #DCE2E9;border-radius:9px;padding:6px 10px;min-height:34px;
+}
+.campo select:focus-visible,.campo input:focus-visible,button:focus-visible{
+  outline:2px solid var(--azul);outline-offset:1px}
+.periodo{display:flex;align-items:center;gap:6px}
+.periodo span{color:#98A2AE;font-size:12px}
+.abas{margin-left:auto;display:flex;gap:6px}
+.aba{border:1px solid #E7EBF0;background:#fff;color:#48525E;border-radius:10px;
+  padding:8px 18px;font-size:11px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;cursor:pointer}
+.aba[aria-selected="true"]{background:#2F5B87;border-color:#2F5B87;color:#fff}
+
+/* ── Painéis ─────────────────────────────────────────────────────────────── */
+.linha{display:grid;gap:clamp(6px,.7vw,16px);margin-bottom:clamp(6px,.7vw,16px);align-items:stretch}
+.linha-1{grid-template-columns:.95fr .95fr 1.2fr}
+.linha-2{grid-template-columns:1fr 1fr}
+.linha-3{grid-template-columns:repeat(3,1fr)}
+.card{
+  background:#fff;border:1px solid var(--borda);border-radius:14px;
+  padding:clamp(8px,.7vw,14px) clamp(8px,.7vw,16px) clamp(4px,.4vw,8px);
+  box-shadow:0 1px 2px rgba(20,22,26,.03),0 6px 20px rgba(20,22,26,.045);
+  transition:box-shadow .18s ease,transform .18s ease;display:flex;flex-direction:column;
+}
+.card:hover{box-shadow:0 2px 4px rgba(20,22,26,.05),0 10px 28px rgba(45,90,140,.10);
+  transform:translateY(-1px)}
+.painel-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:6px}
+.painel-titulo{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:clamp(16px,1.15vw,23px);text-transform:uppercase;letter-spacing:.01em;line-height:1}
+.painel-nota{font-size:clamp(8px,.62vw,10px);font-weight:600;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--azul);background:#EFF4FA;border-radius:20px;
+  padding:3px 10px;white-space:nowrap}
+.painel-series{display:flex;gap:12px;align-items:center}
+.serie{display:inline-flex;align-items:center;gap:6px;font-size:clamp(8px,.62vw,10px);
+  font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#6B7684;white-space:nowrap}
+.serie i{width:14px;height:3px;border-radius:2px;display:inline-block}
+
+/* ── Mini estatísticas ───────────────────────────────────────────────────── */
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#F7F9FC;
+  border:1px solid #EEF2F7;border-radius:10px;padding:8px 10px;margin:2px 0 6px}
+.mini-item{text-align:center}
+.mini-item+.mini-item{border-left:1px solid #E7ECF2}
+.mini-rot{font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#98A2AE}
+.mini-val{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:clamp(20px,1.5vw,28px);line-height:1.05}
+.mini-item:first-child .mini-val{color:#3F6E9C}
+.mini-dia{font-size:9px;color:#98A2AE;letter-spacing:.04em}
+
+/* ── Faixas de números alinhadas às colunas do gráfico ───────────────────── */
+.faixa{display:grid;width:100%;margin:2px 0 4px;overflow:hidden}
+.faixa-cel{min-width:0;text-align:center;overflow:hidden;white-space:nowrap;line-height:1.15;
+  font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700}
+.faixa-forte{color:var(--texto)}
+.faixa-azul{color:#3F6E9C}
+.faixa-suave{color:#7A8794}
+.faixa-eixo{display:grid;width:100%;margin-top:2px;overflow:hidden;font-weight:600;
+  color:#98A2AE;letter-spacing:.02em}
+.eixo-cel{min-width:0;text-align:center;overflow:hidden;white-space:nowrap}
+.grafico{width:100%}
+
+/* ── Navegação de páginas e semanas ──────────────────────────────────────── */
+.controles{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.paginacao{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:20px;min-width:64px;text-align:center}
+.semanas{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.pilula{border:1px solid #E7EBF0;background:#fff;color:#48525E;border-radius:10px;
+  padding:6px 12px;font-size:11px;font-weight:700;letter-spacing:.04em;
+  text-transform:uppercase;cursor:pointer;box-shadow:0 1px 2px rgba(20,22,26,.04);
+  transition:transform .15s ease,box-shadow .15s ease}
+.pilula:hover{border-color:var(--azul);color:var(--texto);transform:translateY(-1px);
+  box-shadow:0 6px 16px rgba(45,90,140,.12)}
+.pilula[aria-pressed="true"]{background:#2F5B87;border-color:#2F5B87;color:#fff}
+.pilula:disabled{opacity:.35;cursor:default;transform:none;box-shadow:none}
+
+/* ── Visão por semana ────────────────────────────────────────────────────── */
+.legenda{display:flex;gap:8px 20px;justify-content:flex-end;flex-wrap:wrap;margin:0 0 10px}
+.leg-item{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:7px}
+.leg-cor{width:12px;height:12px;display:inline-block}
+.sem-faixa{display:grid;width:100%;border-top:1px solid #E3E7EB;padding-top:8px;margin-bottom:4px}
+.sem-cel{text-align:center;min-width:0;overflow:hidden}
+.sem-val{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:27px;line-height:1.05;white-space:nowrap}
+.sem-cel.compacta .sem-val{font-size:19px}
+.sem-cel.compacta .sem-rot{font-size:9px;letter-spacing:.04em}
+.sem-rot{font-family:'IBM Plex Mono',Consolas,monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:#7C858D}
+
+/* ── Detalhe por estado e rodapé ─────────────────────────────────────────── */
+details.detalhe{background:#fff;border:1px solid var(--borda);border-radius:14px;
+  padding:10px 16px;margin-bottom:10px}
+details.detalhe summary{cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:#48525E}
+.tabela-rolagem{overflow:auto;max-height:420px;margin-top:10px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{border-bottom:1px solid #EEF2F7;padding:6px 10px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:#fff}
+thead th{position:sticky;top:0;background:#fff;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:#7C858D}
+.fonte{font-family:'IBM Plex Mono',Consolas,monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:#7C858D;margin-top:22px;border-top:1px solid #DCDFE3;padding-top:10px}
+.aviso{background:#fff;border:1px solid var(--borda);border-radius:14px;padding:18px 20px;
+  font-size:13px;line-height:1.6}
+.selo{position:fixed;top:14px;right:16px;z-index:1000;width:40px;height:40px;border-radius:12px;
+  object-fit:cover;background:#fff;border:1px solid #E3E7EB;padding:2px;
+  box-shadow:0 1px 2px rgba(20,22,26,.06);pointer-events:none}
+[hidden]{display:none !important}
+
+@media (max-width:900px){
+  .linha-1,.linha-2,.linha-3{grid-template-columns:1fr}
+  .cab{flex-wrap:wrap;gap:10px}
+  .abas{margin-left:0;width:100%}
+  .selo{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .card,.pilula{transition:none}
+  .card:hover{transform:none}
+}
+@media print{
+  .barra,.controles,details.detalhe{display:none !important}
+  body{padding:0}
+  .card{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<img class="selo" src="assets/favicon.png" alt="" onerror="this.remove()">
+
+<header class="cab">
+  <div class="cab-id">
+    <span class="cab-barra"></span>
+    <div>
+      <p class="cab-titulo" id="cabTitulo">Indicadores por dia</p>
+      <div class="cab-sub" id="cabSub">Carregando a base de rotas…</div>
+    </div>
+  </div>
+  <div class="cab-meta">
+    <div class="kpi-chip"><div class="kpi-rot">Período</div><div class="kpi-val" id="kpiPeriodo">—</div></div>
+    <div class="kpi-chip"><div class="kpi-rot" id="kpiUnidadeRot">Dias</div><div class="kpi-val" id="kpiUnidade">0</div></div>
+    <div class="kpi-chip destaque"><div class="kpi-rot">Rotas</div><div class="kpi-val" id="kpiRotas">0</div></div>
+  </div>
+</header>
+
+<div class="barra" id="barra" hidden>
+  <div class="campo">
+    <label for="fEstado">Estado</label>
+    <select id="fEstado"></select>
+  </div>
+  <div class="campo">
+    <label for="fInicio">Período</label>
+    <div class="periodo">
+      <input type="date" id="fInicio"><span>até</span><input type="date" id="fFim">
+    </div>
+  </div>
+  <div class="campo">
+    <label for="fDrop">Calcular o drop por</label>
+    <select id="fDrop">
+      <option value="Parada">Parada</option>
+      <option value="Veículo">Veículo</option>
+      <option value="Rota">Rota</option>
+    </select>
+  </div>
+  <div class="campo">
+    <label for="fColunas">Colunas por tela</label>
+    <select id="fColunas">
+      <option>10</option><option>15</option><option>20</option>
+      <option selected>31</option><option value="Todos">Todos</option>
+    </select>
+  </div>
+  <div class="abas" role="tablist">
+    <button class="aba" id="abaDia" role="tab" aria-selected="true">Por dia</button>
+    <button class="aba" id="abaSemana" role="tab" aria-selected="false">Por semana</button>
+  </div>
+</div>
+
+<div class="aviso" id="aviso" hidden></div>
+
+<main id="conteudo" hidden>
+  <section id="viewDia">
+    <div class="controles" id="controles"></div>
+    <div class="linha linha-1" id="diaLinha1"></div>
+    <div class="linha linha-2" id="diaLinha2"></div>
+    <details class="detalhe" id="detalheEstados" hidden>
+      <summary>Ver o que cada estado fez em cada dia</summary>
+      <div class="campo" style="margin-top:10px">
+        <label for="fIndicador">Indicador</label>
+        <select id="fIndicador"></select>
+      </div>
+      <div class="tabela-rolagem" id="tabelaEstados"></div>
+      <p style="font-size:11px;color:#7C858D;line-height:1.5">
+        Células vazias são dias em que aquele estado não teve rota. Quando um único estado
+        roda no dia, ele sozinho define o número do consolidado.
+      </p>
+    </details>
+  </section>
+
+  <section id="viewSemana" hidden>
+    <div class="legenda" id="legendaSemanas"></div>
+    <div class="linha linha-3" id="semLinha1"></div>
+    <div class="linha linha-3" id="semLinha2"></div>
+  </section>
+
+  <div class="fonte" id="rodape"></div>
+</main>
+
+<script>
+"use strict";
+
+/* ──────────────────────────────────────────────────────────────────────────
+   ESTADO DA PÁGINA
+   ────────────────────────────────────────────────────────────────────────── */
+
+const COR = {
+  texto:"#14161A", suave:"#8B949E", azul:"#5D87B0", azulClaro:"#8FB3D4",
+  escura:"#2C3440", grade:"#E4E8EC"
+};
+
+const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
+
+const METRICAS_ESTADO = {
+  "Rotas":["rotas",""], "Veículos":["veiculos",""], "Drop (kg/parada)":["dropParada",""],
+  "Ocupação (%)":["ocupacaoPct","%"], "Entregas":["entregas",""], "Paradas":["paradas",""],
+  "Peso (kg)":["peso",""], "Capacidade (kg)":["capacidade",""]
+};
+
+let BASE = null;
+const filtros = {
+  uf:"TODOS", inicio:null, fim:null, drop:"Parada",
+  colunas:"31", semana:"TODAS", pagina:1, aba:"dia", indicador:"Drop (kg/parada)"
+};
+
+/* ──────────────────────────────────────────────────────────────────────────
+   FORMATAÇÃO
+   ────────────────────────────────────────────────────────────────────────── */
+
+function num(valor, casas = 0){
+  if(valor === null || valor === undefined || !isFinite(valor)) return "—";
+  return Number(valor).toLocaleString("pt-BR",
+    {minimumFractionDigits:casas, maximumFractionDigits:casas});
+}
+function toneladas(valor){
+  if(valor === null || valor === undefined || !isFinite(valor)) return "—";
+  return num(valor/1000) + "t";
+}
+function dataCurta(iso){ const [a,m,d] = iso.split("-"); return `${d}/${m}`; }
+function dataLonga(iso){ const [a,m,d] = iso.split("-"); return `${d}/${m}/${a}`; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   AGREGAÇÃO — os mesmos indicadores da apresentação
+   ────────────────────────────────────────────────────────────────────────── */
+
+const CAMPOS = ["rotas","veiculos","paradas","entregas","peso","capacidade","valor","distancia"];
+
+function derivar(linha){
+  linha.ocupacao     = linha.capacidade ? linha.peso/linha.capacidade : null;
+  linha.ocupacaoPct  = linha.ocupacao === null ? null : linha.ocupacao*100;
+  linha.mediaParadas = linha.rotas ? linha.paradas/linha.rotas : null;
+  linha.dropParada   = linha.paradas ? linha.peso/linha.paradas : null;
+  linha.dropVeiculo  = linha.veiculos ? linha.peso/linha.veiculos : null;
+  linha.dropRota     = linha.rotas ? linha.peso/linha.rotas : null;
+  return linha;
+}
+
+function registrosFiltrados(){
+  return BASE.registros.filter(r =>
+    (filtros.uf === "TODOS" || r.uf === filtros.uf) &&
+    (!filtros.inicio || r.data >= filtros.inicio) &&
+    (!filtros.fim    || r.data <= filtros.fim));
+}
+
+/** Uma linha por dia. Somar veículos entre estados é correto: a contagem já
+ *  foi feita por estado, então placas iguais em UFs diferentes não se juntam. */
+function porDia(registros){
+  const mapa = new Map();
+  for(const r of registros){
+    if(!mapa.has(r.data)){
+      const zero = {data:r.data, semana:r.semana};
+      CAMPOS.forEach(c => zero[c] = 0);
+      mapa.set(r.data, zero);
+    }
+    const linha = mapa.get(r.data);
+    CAMPOS.forEach(c => linha[c] += r[c]);
+  }
+  const dias = [...mapa.values()].sort((a,b) => a.data.localeCompare(b.data));
+  const umMes = new Set(dias.map(d => d.data.slice(0,7))).size <= 1;
+  return dias.map(d => {
+    d.rotulo = dataCurta(d.data);
+    d.eixo   = umMes ? d.data.slice(8,10) : dataCurta(d.data);
+    d.hover  = dataLonga(d.data);
+    return derivar(d);
+  });
+}
+
+/** Uma linha por semana. Veículos da semana = soma dos veículos de cada dia
+ *  (uma placa que rodou cinco dias conta cinco vezes), como sempre foi. */
+function porSemana(registros){
+  const mapa = new Map();
+  for(const r of registros){
+    if(!mapa.has(r.semana)){
+      const zero = {semana:r.semana, inicio:r.data, fim:r.data, datas:new Set()};
+      CAMPOS.forEach(c => zero[c] = 0);
+      mapa.set(r.semana, zero);
+    }
+    const linha = mapa.get(r.semana);
+    CAMPOS.forEach(c => linha[c] += r[c]);
+    linha.datas.add(r.data);
+    if(r.data < linha.inicio) linha.inicio = r.data;
+    if(r.data > linha.fim)    linha.fim = r.data;
+  }
+  return [...mapa.values()]
+    .sort((a,b) => a.inicio.localeCompare(b.inicio))
+    .map(s => {
+      s.dias   = s.datas.size;
+      s.rotulo = s.semana;
+      s.eixo   = s.semana;
+      s.hover  = `${s.semana} · ${dataCurta(s.inicio)}–${dataCurta(s.fim)}`;
+      return derivar(s);
+    });
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   ESCALAS — número de colunas define fonte e largura de barra
+   ────────────────────────────────────────────────────────────────────────── */
+
+const LIMITE_FAIXA = 45;
+const FOLGA_MINIMA = 0.14;
+const OCUPACAO_CELULA = 0.78;
+
+const entre = (v,min,max) => Math.max(min, Math.min(max, v));
+
+function escala(quantidade, comPoucos, comMuitos){
+  const proporcao = entre((quantidade-7)/24, 0, 1);
+  let valor = comPoucos + (comMuitos-comPoucos)*proporcao;
+  if(quantidade > 31) valor += (comMuitos-comPoucos) * entre((quantidade-31)/31,0,1) * 0.5;
+  return valor;
+}
+function corpoDoEixo(q){ return Math.max(7, Math.round(escala(q,13,8))); }
+function larguraRelativa(q){
+  const teto = 1 - FOLGA_MINIMA;
+  return entre(escala(q,0.55,teto), 0.45, teto);
+}
+function passoDosRotulos(quantidade, fracao){
+  const larguraColuna = (fracao*1600)/Math.max(quantidade,1);
+  const larguraTexto = corpoDoEixo(quantidade)*2*0.62 + 6;
+  let passo = 1;
+  while(larguraColuna*passo < larguraTexto && passo < 5) passo++;
+  return passo;
+}
+
+function faixaNumeros(valores, cor = "forte", fracao = 0.30, ajuste = 0){
+  if(!valores.length || valores.length > LIMITE_FAIXA) return "";
+  const q = valores.length;
+  let corpo = Math.round(escala(q,19,9));
+  const espaco = escala(q,0,-0.05).toFixed(3) + "em";
+  const maisLongo = Math.max(...valores.map(v => String(v).length), 2);
+  if(q > 16 && maisLongo > 2) corpo -= maisLongo - 2;
+  corpo = Math.max(6, corpo + ajuste);
+  const tetoVw = ((fracao*100)/q * OCUPACAO_CELULA)/(maisLongo*0.58);
+  const classe = {azul:"faixa-azul", suave:"faixa-suave"}[cor] || "faixa-forte";
+  return `<div class="faixa" style="grid-template-columns:repeat(${q},minmax(0,1fr));
+    font-size:min(${corpo}px,${tetoVw.toFixed(3)}vw);letter-spacing:${espaco}">`
+    + valores.map(v => `<div class="faixa-cel ${classe}">${v}</div>`).join("")
+    + `</div>`;
+}
+
+function faixaEixo(valores, fracao = 0.30){
+  if(!valores.length) return "";
+  const q = valores.length;
+  const passo = passoDosRotulos(q, fracao);
+  return `<div class="faixa-eixo" style="grid-template-columns:repeat(${q},minmax(0,1fr));
+    font-size:${corpoDoEixo(q)}px">`
+    + valores.map((v,i) => `<div class="eixo-cel">${i % passo === 0 ? v : ""}</div>`).join("")
+    + `</div>`;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   GRÁFICOS
+   ────────────────────────────────────────────────────────────────────────── */
+
+const CONFIG = {displayModeBar:false, responsive:true};
+
+function layoutBase(altura, quantidade){
+  return {
+    height:altura, autosize:true, margin:{l:0,r:0,t:4,b:2},
+    paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
+    font:{family:"Archivo, sans-serif", size:11, color:COR.texto},
+    showlegend:false, hovermode:"x unified", bargap:0, bargroupgap:0,
+    hoverlabel:{font:{size:12, family:"Archivo, sans-serif", color:COR.texto},
+                bgcolor:"#FFFFFF", bordercolor:"#E7EBF0"},
+    xaxis:{showgrid:false, zeroline:false, showline:false, ticks:"", type:"linear",
+           showticklabels:false, fixedrange:true, range:[-0.5, quantidade-0.5],
+           showspikes:true, spikemode:"toaxis", spikethickness:1, spikedash:"dot",
+           spikecolor:"#C7D2DD", spikesnap:"cursor"},
+    yaxis:{showgrid:true, gridcolor:COR.grade, zeroline:false, showline:false,
+           nticks:4, showticklabels:false, fixedrange:true}
+  };
+}
+
+const posicoes = q => Array.from({length:q}, (_,i) => i);
+
+function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}", origem = null, cores = null){
+  const q = dados.length;
+  const extra = origem || dados.map(() => "");
+  Plotly.newPlot(div, [{
+    type:"bar", x:posicoes(q), y:dados.map(d => d[campo]),
+    customdata:dados.map((d,i) => [d.hover, extra[i]]),
+    marker:{color:cores || COR.azul, line:{width:0}, cornerradius:4},
+    width:larguraRelativa(q),
+    hovertemplate:"<b>%{customdata[0]}</b><br>" + formato + "%{customdata[1]}<extra></extra>"
+  }], layoutBase(altura, q), CONFIG);
+}
+
+function graficoDrop(div, dados, campo, altura, fracao, origem = null){
+  const validos = dados.map(d => d[campo]).filter(v => v !== null && isFinite(v));
+  const media = validos.reduce((a,b) => a+b, 0)/Math.max(validos.length,1);
+  const cores = dados.map(d => (d[campo] !== null && d[campo] >= media) ? COR.azul : COR.azulClaro);
+  const q = dados.length;
+  const extra = origem || dados.map(() => "");
+  const layout = layoutBase(altura, q);
+  layout.shapes = [{type:"line", xref:"paper", x0:0, x1:1, yref:"y", y0:media, y1:media,
+                    line:{width:1, dash:"dot", color:COR.escura}}];
+  layout.annotations = [{xref:"paper", x:0, y:media, yref:"y", text:`média ${num(media)}`,
+                         showarrow:false, xanchor:"left", yanchor:"bottom",
+                         font:{family:"IBM Plex Mono, monospace", size:9, color:COR.suave}}];
+  Plotly.newPlot(div, [{
+    type:"bar", x:posicoes(q), y:dados.map(d => d[campo]),
+    customdata:dados.map((d,i) => [d.hover, extra[i]]),
+    marker:{color:cores, line:{width:0}, cornerradius:4}, width:larguraRelativa(q),
+    hovertemplate:"<b>%{customdata[0]}</b><br>%{y:,.0f} kg%{customdata[1]}<extra></extra>"
+  }], layout, CONFIG);
+}
+
+function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura, origemA, origemB){
+  const q = dados.length;
+  const marcador = Math.max(2.5, escala(q,7,3));
+  const traco = Math.max(1.1, escala(q,2.4,1.4));
+  const layout = layoutBase(altura, q);
+  layout.yaxis2 = {overlaying:"y", side:"right", visible:false};
+  Plotly.newPlot(div, [
+    {type:"scatter", mode:"lines+markers", x:posicoes(q), y:dados.map(d => d[campoA]),
+     customdata:origemA || dados.map(() => ""),
+     line:{color:COR.escura, width:traco, shape:"spline", smoothing:0.9, dash:"dot"},
+     marker:{size:marcador}, yaxis:"y",
+     hovertemplate:`${nomeA}: %{y:,.0f}%{customdata}<extra></extra>`},
+    {type:"scatter", mode:"lines+markers", x:posicoes(q), y:dados.map(d => d[campoB]),
+     customdata:origemB || dados.map(() => ""),
+     line:{color:COR.azul, width:traco+0.6, shape:"spline", smoothing:0.9},
+     marker:{size:marcador}, yaxis:"y2",
+     hovertemplate:`${nomeB}: %{y:,.0f}%{customdata}<extra></extra>`}
+  ], layout, CONFIG);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   BLOCOS DE HTML
+   ────────────────────────────────────────────────────────────────────────── */
+
+function tituloPainel(titulo, nota, series){
+  const direita = series
+    ? `<span class="painel-series">` + series.map(([nome,cor]) =>
+        `<span class="serie"><i style="background:${cor}"></i>${nome}</span>`).join("") + `</span>`
+    : `<span class="painel-nota">${nota || ""}</span>`;
+  return `<div class="painel-topo"><span class="painel-titulo">${titulo}</span>${direita}</div>`;
+}
+
+function miniIndicadores(dados, campo, sufixo = "", rotulos = ["Média","Máximo","Mínimo"]){
+  const validos = dados.filter(d => d[campo] !== null && isFinite(d[campo]));
+  if(!validos.length) return "";
+  const media = validos.reduce((a,d) => a + d[campo], 0)/validos.length;
+  const melhor = validos.reduce((a,b) => b[campo] > a[campo] ? b : a);
+  const pior   = validos.reduce((a,b) => b[campo] < a[campo] ? b : a);
+  const blocos = [
+    [rotulos[0], num(media)+sufixo, "período"],
+    [rotulos[1], num(melhor[campo])+sufixo, melhor.rotulo],
+    [rotulos[2], num(pior[campo])+sufixo, pior.rotulo]
+  ];
+  return `<div class="mini">` + blocos.map(([rot,val,dia]) =>
+    `<div class="mini-item"><div class="mini-rot">${rot}</div>
+     <div class="mini-val">${val}</div><div class="mini-dia">${dia}</div></div>`).join("")
+    + `</div>`;
+}
+
+/** No consolidado, mostra no tooltip o estado de maior e o de menor valor do dia. */
+function origemPorDia(registros, resumo, campo, sufixo = "", percentual = false){
+  const vazio = resumo.map(() => "");
+  const ufs = [...new Set(registros.map(r => r.uf))];
+  if(filtros.uf !== "TODOS" || ufs.length < 2) return vazio;
+
+  const tabela = new Map();  // data -> {uf: valor}
+  for(const uf of ufs){
+    for(const linha of porDia(registros.filter(r => r.uf === uf))){
+      if(!tabela.has(linha.data)) tabela.set(linha.data, {});
+      tabela.get(linha.data)[uf] = linha[campo];
+    }
+  }
+  return resumo.map(linha => {
+    const doDia = tabela.get(linha.data) || {};
+    const pares = Object.entries(doDia).filter(([,v]) => v !== null && isFinite(v));
+    if(!pares.length) return "";
+    const fmt = v => num(percentual ? v*100 : v) + sufixo;
+    if(pares.length === 1)
+      return `<br><span style='color:#8B949E'>só</span> ${pares[0][0]} ${fmt(pares[0][1])}`;
+    const topo = pares.reduce((a,b) => b[1] > a[1] ? b : a);
+    const base = pares.reduce((a,b) => b[1] < a[1] ? b : a);
+    return `<br><span style='color:#8B949E'>maior</span> ${topo[0]} ${fmt(topo[1])}`
+         + `　<span style='color:#8B949E'>menor</span> ${base[0]} ${fmt(base[1])}`;
+  });
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   VISÃO POR DIA
+   ────────────────────────────────────────────────────────────────────────── */
+
+const CAMPO_DROP = {"Parada":"dropParada", "Veículo":"dropVeiculo", "Rota":"dropRota"};
+const ROTULO_DROP = {"Parada":"kg / parada", "Veículo":"kg / veículo", "Rota":"kg / rota"};
+
+function desenharDia(registros, resumo){
+  const campoDrop = CAMPO_DROP[filtros.drop];
+  const rotuloDrop = ROTULO_DROP[filtros.drop];
+  const pesos = [0.95, 0.95, 1.20];
+  const soma = pesos.reduce((a,b) => a+b, 0);
+  const [fr1, fr2, fr3] = pesos.map(p => 0.97*p/soma);
+  const eixo = resumo.map(d => d.eixo);
+  const alturaCima = 215, alturaBaixo = 345;
+
+  document.getElementById("diaLinha1").innerHTML = `
+    <div class="card">
+      ${tituloPainel("Veículos","rotas / dia")}
+      ${miniIndicadores(resumo,"veiculos")}
+      ${faixaNumeros(resumo.map(d => num(d.rotas)),"suave",fr1)}
+      <div class="grafico" id="gVeiculos"></div>
+      ${faixaEixo(eixo,fr1)}
+    </div>
+    <div class="card">
+      ${tituloPainel("Ocupação","% · peso ÷ capacidade")}
+      ${miniIndicadores(resumo,"ocupacaoPct","%")}
+      ${faixaNumeros(resumo.map(d => d.ocupacao === null ? "—" : num(d.ocupacao*100)),"suave",fr2)}
+      <div class="grafico" id="gOcupacao"></div>
+      ${faixaEixo(eixo,fr2)}
+    </div>
+    <div class="card">
+      ${tituloPainel("Drop",rotuloDrop)}
+      ${miniIndicadores(resumo,campoDrop,"",["Média","Maior","Menor"])}
+      ${faixaNumeros(resumo.map(d => num(d[campoDrop])),"suave",fr3)}
+      <div class="grafico" id="gDrop"></div>
+      ${faixaEixo(eixo,fr3)}
+    </div>`;
+
+  const meia = 0.485;
+  document.getElementById("diaLinha2").innerHTML = `
+    <div class="card">
+      ${tituloPainel("Paradas × entregas",null,[["Entregas",COR.azul],["Média de paradas",COR.escura]])}
+      ${faixaNumeros(resumo.map(d => num(d.entregas)),"azul",meia)}
+      ${faixaNumeros(resumo.map(d => num(d.mediaParadas)),"suave",meia)}
+      <div class="grafico" id="gParadas"></div>
+      ${faixaEixo(eixo,meia)}
+    </div>
+    <div class="card">
+      ${tituloPainel("Peso × capacidade por dia",null,[["Capacidade (t)",COR.azul],["Peso (t)",COR.escura]])}
+      ${faixaNumeros(resumo.map(d => toneladas(d.capacidade)),"azul",meia)}
+      ${faixaNumeros(resumo.map(d => toneladas(d.peso)),"suave",meia)}
+      <div class="grafico" id="gPeso"></div>
+      ${faixaEixo(eixo,meia)}
+    </div>`;
+
+  graficoBarras(document.getElementById("gVeiculos"), resumo, "veiculos", alturaCima, fr1,
+    "%{y:,.0f}", origemPorDia(registros, resumo, "veiculos"));
+  graficoBarras(document.getElementById("gOcupacao"), resumo, "ocupacao", alturaCima, fr2,
+    "%{y:.0%}", origemPorDia(registros, resumo, "ocupacao", "%", true));
+  graficoDrop(document.getElementById("gDrop"), resumo, campoDrop, alturaCima, fr3,
+    origemPorDia(registros, resumo, campoDrop));
+  graficoDuasLinhas(document.getElementById("gParadas"), resumo,
+    "mediaParadas", "entregas", "Média de paradas", "Entregas", alturaBaixo,
+    origemPorDia(registros, resumo, "mediaParadas"), origemPorDia(registros, resumo, "entregas"));
+  graficoDuasLinhas(document.getElementById("gPeso"), resumo,
+    "peso", "capacidade", "Peso (kg)", "Capacidade (kg)", alturaBaixo,
+    origemPorDia(registros, resumo, "peso"), origemPorDia(registros, resumo, "capacidade"));
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   VISÃO POR SEMANA
+   ────────────────────────────────────────────────────────────────────────── */
+
+const corDaSemana = i => i % 2 === 0 ? COR.azul : COR.azulClaro;
+
+function painelSemanal(id, titulo, nota){
+  return `<div class="card">${tituloPainel(titulo, nota)}
+    <div class="grafico" id="${id}"></div><div id="${id}Valores"></div></div>`;
+}
+
+function valoresSemanais(id, resumo, valores, rodapes, compacta = false){
+  const classe = compacta ? "sem-cel compacta" : "sem-cel";
+  document.getElementById(id + "Valores").innerHTML =
+    `<div class="sem-faixa" style="grid-template-columns:repeat(${valores.length},minmax(0,1fr))">`
+    + valores.map((v,i) => `<div class="${classe}"><div class="sem-val">${v}</div>
+        <div class="sem-rot">${rodapes[i]}</div></div>`).join("") + `</div>`;
+}
+
+function desenharSemana(resumo){
+  const campoDrop = CAMPO_DROP[filtros.drop];
+  const rotuloDrop = ROTULO_DROP[filtros.drop];
+  const altura = 220;
+  const cores = resumo.map((_,i) => corDaSemana(i));
+
+  document.getElementById("legendaSemanas").innerHTML = resumo.map((s,i) =>
+    `<span class="leg-item"><span class="leg-cor" style="background:${corDaSemana(i)}"></span>
+     ${s.rotulo} · ${dataCurta(s.inicio)}–${dataCurta(s.fim)} · ${num(s.dias)} dias</span>`).join("");
+
+  document.getElementById("semLinha1").innerHTML =
+    painelSemanal("sVeiculos","Veículos","rotas")
+  + painelSemanal("sOcupacao","Ocupação","peso ÷ capacidade")
+  + painelSemanal("sDrop","Drop",rotuloDrop);
+
+  document.getElementById("semLinha2").innerHTML =
+    painelSemanal("sParadas","Média de paradas","por rota")
+  + painelSemanal("sEntregas","Entregas","ordens")
+  + painelSemanal("sPeso","Peso","toneladas · capacidade abaixo");
+
+  const rotulos = resumo.map(s => s.rotulo);
+
+  graficoBarras(document.getElementById("sVeiculos"), resumo, "veiculos", altura, .32, "%{y:,.0f}", null, cores);
+  valoresSemanais("sVeiculos", resumo, resumo.map(s => num(s.veiculos)), rotulos);
+
+  graficoBarras(document.getElementById("sOcupacao"), resumo, "ocupacao", altura, .32, "%{y:.0%}", null, cores);
+  valoresSemanais("sOcupacao", resumo, resumo.map(s => num(s.ocupacao*100)+"%"), rotulos);
+
+  graficoBarras(document.getElementById("sDrop"), resumo, campoDrop, altura, .32, "%{y:,.0f}", null, cores);
+  valoresSemanais("sDrop", resumo, resumo.map(s => num(s[campoDrop])), rotulos);
+
+  graficoBarras(document.getElementById("sParadas"), resumo, "mediaParadas", altura, .32, "%{y:,.0f}", null, cores);
+  valoresSemanais("sParadas", resumo, resumo.map(s => num(s.mediaParadas)), rotulos);
+
+  graficoBarras(document.getElementById("sEntregas"), resumo, "entregas", altura, .32, "%{y:,.0f}", null, cores);
+  valoresSemanais("sEntregas", resumo, resumo.map(s => num(s.entregas)), rotulos, resumo.length > 5);
+
+  graficoBarras(document.getElementById("sPeso"), resumo, "peso", altura, .32, "%{y:,.0f}", null, cores);
+  valoresSemanais("sPeso", resumo, resumo.map(s => num(s.peso/1000,1)+" t"),
+    resumo.map(s => `${s.rotulo} · cap ${num(s.capacidade/1000,1)} t`), true);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   CONTROLES: páginas e semanas
+   ────────────────────────────────────────────────────────────────────────── */
+
+function desenharControles(resumo, semanasDisponiveis){
+  const alvo = document.getElementById("controles");
+  const tamanho = filtros.colunas === "Todos" ? resumo.length : parseInt(filtros.colunas,10);
+  const total = Math.max(1, Math.ceil(resumo.length/Math.max(tamanho,1)));
+  filtros.pagina = Math.min(Math.max(1, filtros.pagina), total);
+
+  const paginacao = total > 1 ? `
+    <button class="pilula" id="pgAnterior" ${filtros.pagina === 1 ? "disabled" : ""}>‹</button>
+    <div class="paginacao">${filtros.pagina} / ${total}</div>
+    <button class="pilula" id="pgProxima" ${filtros.pagina === total ? "disabled" : ""}>›</button>` : "";
+
+  const semanas = `<div class="semanas">
+      <button class="pilula" data-semana="TODAS"
+        aria-pressed="${filtros.semana === "TODAS"}" title="Volta ao período completo">Tudo</button>`
+    + semanasDisponiveis.map(s => `<button class="pilula" data-semana="${s.semana}"
+        aria-pressed="${filtros.semana === s.semana}"
+        title="${dataCurta(s.inicio)}–${dataCurta(s.fim)} · ${num(s.rotas)} rotas">${s.semana}</button>`).join("")
+    + `</div>`;
+
+  alvo.innerHTML = paginacao + semanas;
+
+  const anterior = document.getElementById("pgAnterior");
+  const proxima  = document.getElementById("pgProxima");
+  if(anterior) anterior.onclick = () => { filtros.pagina--; render(); };
+  if(proxima)  proxima.onclick  = () => { filtros.pagina++; render(); };
+
+  alvo.querySelectorAll("[data-semana]").forEach(botao => {
+    botao.onclick = () => {
+      const escolhida = botao.dataset.semana;
+      filtros.semana = (escolhida === filtros.semana && escolhida !== "TODAS") ? "TODAS" : escolhida;
+      filtros.pagina = 1;
+      render();
+    };
+  });
+
+  return {tamanho, total};
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   TABELA POR ESTADO
+   ────────────────────────────────────────────────────────────────────────── */
+
+function desenharDetalheEstados(registros){
+  const bloco = document.getElementById("detalheEstados");
+  const ufs = [...new Set(registros.map(r => r.uf))].sort();
+  if(filtros.uf !== "TODOS" || ufs.length < 2){ bloco.hidden = true; return; }
+  bloco.hidden = false;
+
+  const seletor = document.getElementById("fIndicador");
+  if(!seletor.options.length){
+    seletor.innerHTML = Object.keys(METRICAS_ESTADO)
+      .map(n => `<option${n === filtros.indicador ? " selected" : ""}>${n}</option>`).join("");
+    seletor.onchange = () => { filtros.indicador = seletor.value; render(); };
+  }
+
+  const [campo, sufixo] = METRICAS_ESTADO[filtros.indicador];
+  const linhas = new Map();
+  for(const uf of ufs){
+    for(const dia of porDia(registros.filter(r => r.uf === uf))){
+      if(!linhas.has(dia.rotulo)) linhas.set(dia.rotulo, {});
+      linhas.get(dia.rotulo)[uf] = dia[campo];
+    }
+  }
+
+  const cabecalho = ["Data", ...ufs, "Estados no dia", "Maior", "Menor"];
+  const corpo = [...linhas.entries()].map(([data, valores]) => {
+    const pares = Object.entries(valores).filter(([,v]) => v !== null && isFinite(v));
+    const topo = pares.length ? pares.reduce((a,b) => b[1] > a[1] ? b : a)[0] : "—";
+    const base = pares.length ? pares.reduce((a,b) => b[1] < a[1] ? b : a)[0] : "—";
+    const celulas = ufs.map(uf => valores[uf] === undefined || valores[uf] === null
+      ? "" : num(valores[uf]) + sufixo);
+    return `<tr><td>${data}</td>` + celulas.map(c => `<td>${c}</td>`).join("")
+      + `<td>${pares.length}</td><td>${topo}</td><td>${base}</td></tr>`;
+  }).join("");
+
+  document.getElementById("tabelaEstados").innerHTML =
+    `<table><thead><tr>` + cabecalho.map(c => `<th>${c}</th>`).join("")
+    + `</tr></thead><tbody>${corpo}</tbody></table>`;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   RENDERIZAÇÃO
+   ────────────────────────────────────────────────────────────────────────── */
+
+function atualizarCabecalho(resumo, porSemanaAtivo){
+  const nomeEstado = filtros.uf === "TODOS"
+    ? "Consolidado · Todos os estados"
+    : `${filtros.uf} · ${BASE.estados[filtros.uf] || "Estado não identificado"}`;
+  document.getElementById("cabTitulo").textContent =
+    porSemanaAtivo ? "Indicadores por semana" : "Indicadores por dia";
+  document.getElementById("cabSub").innerHTML =
+    `${nomeEstado}<span class="cab-sep">·</span> Delly's Food Service`;
+  document.getElementById("kpiUnidadeRot").textContent = porSemanaAtivo ? "Semanas" : "Dias";
+  document.getElementById("kpiPeriodo").textContent = resumo.length
+    ? `${resumo[0].rotulo} – ${resumo[resumo.length-1].rotulo}` : "—";
+  document.getElementById("kpiUnidade").textContent = num(resumo.length);
+  document.getElementById("kpiRotas").textContent =
+    num(resumo.reduce((a,d) => a + d.rotas, 0));
+}
+
+function render(){
+  const registros = registrosFiltrados();
+  const viewDia = document.getElementById("viewDia");
+  const viewSemana = document.getElementById("viewSemana");
+  const porSemanaAtivo = filtros.aba === "semana";
+  viewDia.hidden = porSemanaAtivo;
+  viewSemana.hidden = !porSemanaAtivo;
+
+  if(!registros.length){
+    mostrarAviso("Nenhuma rota no período selecionado. Amplie as datas ou troque o estado.");
+    atualizarCabecalho([], porSemanaAtivo);
+    return;
+  }
+  document.getElementById("aviso").hidden = true;
+
+  const semanasDisponiveis = porSemana(registros);
+
+  if(porSemanaAtivo){
+    atualizarCabecalho(semanasDisponiveis, true);
+    desenharSemana(semanasDisponiveis);
+  }else{
+    const doPeriodo = filtros.semana === "TODAS"
+      ? registros : registros.filter(r => r.semana === filtros.semana);
+    const resumoTodo = porDia(doPeriodo.length ? doPeriodo : registros);
+    const {tamanho} = desenharControles(resumoTodo, semanasDisponiveis);
+    const pagina = filtros.colunas === "Todos" ? resumoTodo
+      : resumoTodo.slice((filtros.pagina-1)*tamanho, filtros.pagina*tamanho);
+    atualizarCabecalho(pagina, false);
+    desenharDia(doPeriodo.length ? doPeriodo : registros, pagina);
+    desenharDetalheEstados(doPeriodo.length ? doPeriodo : registros);
+  }
+
+  document.getElementById("rodape").textContent =
+    `Fonte: relatório de rotas RoadNet · ${num(BASE.rotas_processadas)} rotas processadas · `
+    + `base gerada em ${BASE.gerado_em} · arquivos: ${BASE.arquivos.join(", ")}`;
+}
+
+function mostrarAviso(texto){
+  const aviso = document.getElementById("aviso");
+  aviso.innerHTML = texto;
+  aviso.hidden = false;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   ABERTURA
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** O site abre no mês corrente; se ainda não houver rotas dele, no mês mais
+ *  recente que existir na base. */
+function periodoInicial(datas){
+  const hoje = new Date();
+  const mesAtual = `${hoje.getFullYear()}-${String(hoje.getMonth()+1).padStart(2,"0")}`;
+  const meses = [...new Set(datas.map(d => d.slice(0,7)))].sort();
+  const alvo = meses.includes(mesAtual) ? mesAtual : meses[meses.length-1];
+  const doMes = datas.filter(d => d.startsWith(alvo));
+  return [doMes[0], doMes[doMes.length-1]];
+}
+
+function ligarFiltros(datas){
+  const estado = document.getElementById("fEstado");
+  const ufs = [...new Set(BASE.registros.map(r => r.uf))].sort();
+  estado.innerHTML = `<option value="TODOS">Todos os estados</option>`
+    + ufs.map(uf => `<option value="${uf}">${uf} — ${BASE.estados[uf] || "Não identificado"}</option>`).join("");
+  estado.onchange = () => { filtros.uf = estado.value; filtros.pagina = 1; render(); };
+
+  const inicio = document.getElementById("fInicio");
+  const fim = document.getElementById("fFim");
+  inicio.min = fim.min = datas[0];
+  inicio.max = fim.max = datas[datas.length-1];
+  [filtros.inicio, filtros.fim] = periodoInicial(datas);
+  inicio.value = filtros.inicio;
+  fim.value = filtros.fim;
+  inicio.onchange = () => { filtros.inicio = inicio.value; filtros.pagina = 1; filtros.semana = "TODAS"; render(); };
+  fim.onchange    = () => { filtros.fim = fim.value; filtros.pagina = 1; filtros.semana = "TODAS"; render(); };
+
+  const drop = document.getElementById("fDrop");
+  drop.onchange = () => { filtros.drop = drop.value; render(); };
+
+  const colunas = document.getElementById("fColunas");
+  colunas.onchange = () => { filtros.colunas = colunas.value; filtros.pagina = 1; render(); };
+
+  const abaDia = document.getElementById("abaDia");
+  const abaSemana = document.getElementById("abaSemana");
+  const trocarAba = escolha => {
+    filtros.aba = escolha;
+    abaDia.setAttribute("aria-selected", escolha === "dia");
+    abaSemana.setAttribute("aria-selected", escolha === "semana");
+    render();
+  };
+  abaDia.onclick = () => trocarAba("dia");
+  abaSemana.onclick = () => trocarAba("semana");
+}
+
+async function iniciar(){
+  try{
+    const resposta = await fetch("dados.json", {cache:"no-cache"});
+    if(!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+    BASE = await resposta.json();
+  }catch(erro){
+    mostrarAviso(
+      `<strong>A base de rotas não foi carregada.</strong><br>
+       Rode <code>python build_dados.py</code> na raiz do repositório para gerar
+       <code>public/dados.json</code> a partir das planilhas da pasta <code>dados/</code>,
+       e publique de novo. Detalhe técnico: ${erro.message}.`);
+    return;
+  }
+
+  if(!BASE.registros || !BASE.registros.length){
+    mostrarAviso("A base foi carregada, mas está vazia. Confira as planilhas em <code>dados/</code>.");
+    return;
+  }
+
+  const datas = [...new Set(BASE.registros.map(r => r.data))].sort();
+  ligarFiltros(datas);
+  document.getElementById("barra").hidden = false;
+  document.getElementById("conteudo").hidden = false;
+  render();
+
+  let largura = window.innerWidth;
+  window.addEventListener("resize", () => {
+    if(Math.abs(window.innerWidth - largura) < 2) return;
+    largura = window.innerWidth;
+    document.querySelectorAll(".js-plotly-plot").forEach(g => Plotly.Plots.resize(g));
+  });
+}
+
+iniciar();
+</script>
+</body>
+</html>
