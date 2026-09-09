@@ -1,0 +1,66 @@
+# Atualiza a base do site sempre que uma planilha entra na pasta dados/.
+#
+# Fluxo: você envia AM.xlsx pelo site do GitHub → este robô roda o
+# build_dados.py no servidor do GitHub → ele grava public/dados.json e faz o
+# commit sozinho → a Vercel publica. Nada precisa ser instalado na sua máquina.
+#
+# Antes do primeiro uso, libere a escrita para o robô:
+# Settings → Actions → General → Workflow permissions → Read and write permissions → Save
+
+name: Atualizar base do site
+
+on:
+  push:
+    paths:
+      - "dados/**"          # só reage quando chega planilha nova
+      - "build_dados.py"
+  workflow_dispatch:        # e também no botão "Run workflow", quando você quiser
+
+permissions:
+  contents: write
+
+concurrency:
+  group: atualizar-base     # dois envios seguidos não brigam pelo mesmo commit
+  cancel-in-progress: true
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar o repositório
+        uses: actions/checkout@v4
+
+      - name: Preparar o Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar as bibliotecas de leitura de planilha
+        run: pip install -r requirements.txt
+
+      - name: Gerar o public/dados.json
+        run: python build_dados.py
+
+      - name: Publicar a base atualizada
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/dados.json public/assets
+          if git diff --staged --quiet; then
+            echo "A base não mudou; nada a publicar."
+            exit 0
+          fi
+          git commit -m "Atualiza a base do site a partir das planilhas"
+          git push
+
+      - name: Resumo
+        if: always()
+        run: |
+          echo "### Base do site" >> $GITHUB_STEP_SUMMARY
+          if [ -f public/dados.json ]; then
+            echo "Arquivo gerado: $(du -h public/dados.json | cut -f1)" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "O arquivo não foi gerado. Confira o passo anterior." >> $GITHUB_STEP_SUMMARY
+          fi
