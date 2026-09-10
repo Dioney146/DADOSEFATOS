@@ -237,20 +237,6 @@ button{font-family:inherit}
 .kpi-unidade{font-size:.55em;font-weight:600;color:var(--tenue);margin-left:3px}
 .kpi-card.forte .kpi-unidade{color:var(--azul-claro)}
 
-/* Bloco de análise */
-.palco-texto{
-  font-size:clamp(13px,1.02vw,15.5px);line-height:1.65;color:#39424E;
-  margin:16px 0 6px;background:#F8FAFD;border:1px solid var(--grade);
-  border-left:3px solid var(--marca-clara);border-radius:0 12px 12px 0;
-  padding:14px 18px;max-width:none;
-}
-.palco-texto b{
-  color:var(--marca);font-weight:700;background:#E9F0F9;
-  padding:1px 6px;border-radius:6px;white-space:nowrap;
-}
-.palco-texto b.alta{color:#2E7D32;background:#EAF5E6}
-.palco-texto b.baixa{color:#9A5B22;background:#FAF0E4}
-
 /* ── Detalhe por estado e rodapé ─────────────────────────────────────────── */
 details.detalhe{background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);
   padding:12px 18px;margin-bottom:12px;box-shadow:var(--sombra)}
@@ -396,14 +382,6 @@ body.industrial .kpi-card.forte{
 body.industrial .kpi-card.forte .rotulo{color:#9CC0E4}
 body.industrial .kpi-unidade{color:#7FA9D8}
 
-body.industrial .palco-texto{
-  background:rgba(255,255,255,.03);border-color:#22314B;border-left-color:var(--verde);
-  color:#C3D2E4;
-}
-body.industrial .palco-texto b{background:rgba(156,192,228,.14);color:#CFE0F3}
-body.industrial .palco-texto b.alta{background:rgba(76,162,47,.18);color:#8FDA6E}
-body.industrial .palco-texto b.baixa{background:rgba(255,255,255,.08);color:#AEC0D6}
-
 body.industrial .faixa-eixo{color:#6E819C}
 body.industrial .eixo-cel.eixo-fds{color:#7FA9D8}
 body.industrial .eixo-cel.eixo-feriado{color:#93A6BF}
@@ -503,7 +481,6 @@ body.industrial .aviso code{background:#0C1729;color:#9CC0E4}
           </div>
           <div class="palco-kpis" id="palcoKpis"></div>
         </div>
-        <p class="palco-texto" id="palcoTexto"></p>
         <div class="grafico" id="palcoGrafico"></div>
         <div id="palcoEixo"></div>
       </div>
@@ -879,12 +856,28 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
   }, opcoes.rotulos ? rotulosDeBarra(dados, campo, q, false) : {})], layout, CONFIG);
 }
 
-function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura, origemA, origemB){
+/**
+ * Duas séries no mesmo eixo de datas.
+ *
+ * `bandas` separa as linhas em faixas verticais próprias — a série A em cima,
+ * a B embaixo, sem se cruzarem. Use quando as grandezas forem diferentes
+ * (ordens x paradas por rota), onde o cruzamento não quer dizer nada. Com
+ * grandezas iguais (peso x capacidade) mantenha sobreposto: ali a distância
+ * entre as linhas é a informação.
+ */
+function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
+                           origemA, origemB, bandas = false){
   const q = dados.length;
   const marcador = Math.max(2.5, escala(q,7,3));
   const traco = Math.max(1.1, escala(q,2.4,1.4));
   const layout = layoutBase(altura, q, dados);
-  layout.yaxis2 = {overlaying:"y", side:"right", visible:false};
+  if(bandas){
+    // duas faixas com um respiro no meio; cada série usa a sua por inteiro
+    layout.yaxis  = Object.assign({}, layout.yaxis, {domain:[0.56, 1]});
+    layout.yaxis2 = Object.assign({}, layout.yaxis, {domain:[0, 0.44], anchor:"x"});
+  }else{
+    layout.yaxis2 = {overlaying:"y", side:"right", visible:false};
+  }
   Plotly.newPlot(div, [
     {type:"scatter", mode:"lines+markers", x:posicoes(q), y:dados.map(d => d[campoA]),
      customdata:origemA || dados.map(() => ""),
@@ -1018,7 +1011,8 @@ function desenharDia(registros, resumo){
     origemPorDia(registros, resumo, campoDrop));
   graficoDuasLinhas(document.getElementById("gParadas"), resumo,
     "mediaParadas", "entregas", "Média de paradas", "Entregas", alturaBaixo,
-    origemPorDia(registros, resumo, "mediaParadas"), origemPorDia(registros, resumo, "entregas"));
+    origemPorDia(registros, resumo, "mediaParadas"),
+    origemPorDia(registros, resumo, "entregas"), true);
   graficoDuasLinhas(document.getElementById("gPeso"), resumo,
     "peso", "capacidade", "Peso (kg)", "Capacidade (kg)", alturaBaixo,
     origemPorDia(registros, resumo, "peso"), origemPorDia(registros, resumo, "capacidade"));
@@ -1116,7 +1110,7 @@ const SECOES = [
   {id:"entregas", menu:"Quantidade de entrega", titulo:"Quantidade de entrega",
    nota:"ordens entregues e média de paradas por rota", forma:"linhas",
    campoA:"mediaParadas", campoB:"entregas", nomeA:"Média de paradas", nomeB:"Entregas",
-   campo:"entregas", unidade:""},
+   campo:"entregas", unidade:"", bandas:true},
   {id:"ocupacao", menu:"Ocupação da frota", titulo:"Ocupação da frota",
    nota:"peso embarcado ÷ capacidade contratada", forma:"barra", campo:"ocupacao",
    formato:"%{y:.0%}", percentual:true, unidade:"%"},
@@ -1131,57 +1125,6 @@ function valorDaSecao(linha, secao){
   const v = linha[secao.campo];
   if(v === null || !isFinite(v)) return null;
   return secao.percentual ? v*100 : v;
-}
-
-/**
- * Texto de leitura do indicador, montado a partir dos próprios números.
- *
- * A ideia é a mesma da apresentação impressa: dizer a média do período, onde
- * ficaram os extremos e o que explica os vales — que quase sempre são os dias
- * sem operação normal.
- */
-function narrativa(resumo, secao){
-  const validos = resumo.filter(d => valorDaSecao(d, secao) !== null);
-  if(validos.length < 2) return "";
-
-  const valores = validos.map(d => valorDaSecao(d, secao));
-  const media = valores.reduce((a,b) => a+b, 0)/valores.length;
-  const maior = validos.reduce((a,b) => valorDaSecao(b,secao) > valorDaSecao(a,secao) ? b : a);
-  const menor = validos.reduce((a,b) => valorDaSecao(b,secao) < valorDaSecao(a,secao) ? b : a);
-  const u = secao.unidade;
-
-  const uteis = validos.filter(d => d.tipo === "util");
-  const parados = validos.filter(d => d.tipo !== "util");
-  const mediaUtil = uteis.length
-    ? uteis.map(d => valorDaSecao(d,secao)).reduce((a,b)=>a+b,0)/uteis.length : null;
-
-  const partes = [];
-  partes.push(`A média do período ficou em <b>${num(media)}${u}</b>, `
-    + `com pico de <b class="alta">${num(valorDaSecao(maior,secao))}${u}</b> em ${maior.rotulo} `
-    + `e mínimo de <b class="baixa">${num(valorDaSecao(menor,secao))}${u}</b> em ${menor.rotulo}.`);
-
-  if(parados.length && mediaUtil !== null){
-    const mediaParada = parados.map(d => valorDaSecao(d,secao)).reduce((a,b)=>a+b,0)/parados.length;
-    const diferenca = mediaUtil ? (mediaParada/mediaUtil - 1)*100 : 0;
-    const sentido = diferenca >= 0 ? "acima" : "abaixo";
-    const classe = diferenca >= 0 ? "alta" : "baixa";
-    const leitura = diferenca >= 0
-      ? "com menos rotas rodando, cada uma carrega mais"
-      : "é o que explica os vales do gráfico";
-    partes.push(`Nos ${num(parados.length)} dias sem operação normal `
-      + `(fins de semana e feriados) o indicador ficou em <b>${num(mediaParada)}${u}</b>, `
-      + `<b class="${classe}">${num(Math.abs(diferenca))}% ${sentido}</b> da média dos dias úteis `
-      + `(<b>${num(mediaUtil)}${u}</b>) — ${leitura}.`);
-  }
-
-  const acima = valores.filter(v => v >= media).length;
-  partes.push(`No total, <b>${num(acima)} de ${num(valores.length)}</b> dias `
-    + `ficaram na média ou acima dela.`);
-
-  if(filtros.uf === "TODOS")
-    partes.push(`Os números são o consolidado dos estados; use o filtro para isolar um deles.`);
-
-  return partes.join(" ");
 }
 
 function desenharSlides(registros, resumo){
@@ -1217,8 +1160,6 @@ function desenharSlides(registros, resumo){
        <div class="kpi-numero">${val}${uni ? `<span class="kpi-unidade">${uni}</span>` : ""}</div>
      </div>`).join("");
 
-  document.getElementById("palcoTexto").innerHTML = narrativa(resumo, secao);
-
   const palco = document.getElementById("palcoGrafico");
   const altura = Math.max(300, Math.round(window.innerHeight * 0.44));
   const fracao = 0.72;
@@ -1226,7 +1167,7 @@ function desenharSlides(registros, resumo){
   if(secao.forma === "linhas"){
     graficoDuasLinhas(palco, resumo, secao.campoA, secao.campoB, secao.nomeA, secao.nomeB,
       altura, origemPorDia(registros, resumo, secao.campoA),
-      origemPorDia(registros, resumo, secao.campoB));
+      origemPorDia(registros, resumo, secao.campoB), !!secao.bandas);
   }else if(secao.forma === "drop"){
     graficoDrop(palco, resumo, secao.campo, altura, fracao,
       origemPorDia(registros, resumo, secao.campo), {rotulos:true, extremos:true});
