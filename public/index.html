@@ -166,8 +166,7 @@ button{font-family:inherit}
 .faixa-eixo{display:grid;width:100%;margin-top:4px;overflow:hidden;font-weight:600;
   color:var(--tenue);letter-spacing:.02em}
 .eixo-cel{min-width:0;text-align:center;overflow:hidden;white-space:nowrap}
-.eixo-cel.eixo-fds{color:var(--marca-clara)}
-.eixo-cel.eixo-feriado{color:var(--ambar)}
+.eixo-cel.eixo-feriado{color:#C8873C;font-weight:700}
 .grafico{width:100%}
 
 /* ── Visão por semana ────────────────────────────────────────────────────── */
@@ -395,8 +394,7 @@ body.industrial .kpi-card.forte .rotulo{color:#9CC0E4}
 body.industrial .kpi-unidade{color:#7FA9D8}
 
 body.industrial .faixa-eixo{color:#6E819C}
-body.industrial .eixo-cel.eixo-fds{color:#7FA9D8}
-body.industrial .eixo-cel.eixo-feriado{color:#93A6BF}
+body.industrial .eixo-cel.eixo-feriado{color:#8FD46A;font-weight:700}
 
 body.industrial .fonte{background:rgba(255,255,255,.025);border-color:#22314B;color:#6E819C}
 body.industrial .fonte b{color:#93A6BF}
@@ -525,14 +523,14 @@ const TEMA_CLARO = {
   texto:"#0F1723", suave:"#9AA5B1", grade:"#EDF1F6",
   barra:"#2E6BB0", barraFraca:"#9CC0E4", linhaA:"#123C7A", linhaB:"#2E6BB0",
   melhor:"#4CA22F", pior:"#C8873C", media:"#123C7A",
-  fds:"rgba(93,135,176,.07)", feriado:"rgba(200,135,60,.10)",
+  feriadoRotulo:"#C8873C",
   hoverFundo:"#FFFFFF", hoverBorda:"#E7EBF0", hoverTexto:"#0F1723",
 };
 const TEMA_ESCURO = {
   texto:"#E9EFF7", suave:"#8095AF", grade:"rgba(255,255,255,.06)",
   barra:"#4A81C2", barraFraca:"#2B4A72", linhaA:"#9CC0E4", linhaB:"#4A81C2",
   melhor:"#63C13F", pior:"#8FA3BC", media:"#9CC0E4",
-  fds:"rgba(255,255,255,.045)", feriado:"rgba(255,255,255,.085)",
+  feriadoRotulo:"#8FD46A",
   hoverFundo:"#14223A", hoverBorda:"#2B3D5C", hoverTexto:"#E9EFF7",
 };
 let TEMA = TEMA_CLARO;
@@ -760,7 +758,7 @@ function faixaEixo(dados, fracao = 0.30){
   if(!dados.length) return "";
   const q = dados.length;
   const passo = passoDosRotulos(q, fracao);
-  const classe = {sabado:"eixo-fds", domingo:"eixo-fds", feriado:"eixo-feriado"};
+  const classe = {feriado:"eixo-feriado"};
   return `<div class="faixa-eixo" style="grid-template-columns:repeat(${q},minmax(0,1fr));
     font-size:${corpoDoEixo(q)}px">`
     + dados.map((d,i) => `<div class="eixo-cel ${classe[d.tipo] || ""}">`
@@ -768,13 +766,15 @@ function faixaEixo(dados, fracao = 0.30){
     + `</div>`;
 }
 
-/** Faixas de fundo nos dias sem operação normal: sábado, domingo e feriado. */
-function faixasEspeciais(dados){
-  const cor = {sabado:TEMA.fds, domingo:TEMA.fds, feriado:TEMA.feriado};
-  return dados.map((d,i) => cor[d.tipo] ? {
-    type:"rect", xref:"x", yref:"paper", x0:i-0.5, x1:i+0.5, y0:0, y1:1,
-    fillcolor:cor[d.tipo], line:{width:0}, layer:"below"
-  } : null).filter(Boolean);
+/**
+ * O gráfico não recebe mais faixas de fundo.
+ *
+ * Fim de semana deixou de ser marcado, e feriado é indicado apenas pela cor do
+ * rótulo do dia no eixo — marcação discreta, que não compete com as séries.
+ * A função continua existindo porque todos os layouts a chamam.
+ */
+function faixasEspeciais(){
+  return [];
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -910,7 +910,7 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
       type:"scatter", x:posicoes(q), y:dados.map(d => d[campoA]),
       customdata:origemA || dados.map(() => ""),
       // série A: tracejada, no tom mais claro do azul
-      line:{color:TEMA.linhaA, width:traco, shape:"spline", smoothing:0.55, dash:"dash"},
+      line:{color:TEMA.linhaA, width:traco, shape:"spline", smoothing:0.9, dash:"dot"},
       marker:{size:marcador}, yaxis:"y", mode:"lines+markers",
       hovertemplate:`${nomeA}: %{y:,.0f}%{customdata}<extra></extra>`
     }, comRotulos ? rotulosDeLinha(dados, campoA, q, TEMA.linhaA, "top center") : {}),
@@ -918,7 +918,7 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
       type:"scatter", x:posicoes(q), y:dados.map(d => d[campoB]),
       customdata:origemB || dados.map(() => ""),
       // série B: sólida, no azul cheio
-      line:{color:TEMA.linhaB, width:traco+0.6, shape:"spline", smoothing:0.55},
+      line:{color:TEMA.linhaB, width:traco+0.6, shape:"spline", smoothing:0.9},
       marker:{size:marcador}, yaxis:"y2", mode:"lines+markers",
       hovertemplate:`${nomeB}: %{y:,.0f}%{customdata}<extra></extra>`
     }, comRotulos ? rotulosDeLinha(dados, campoB, q, TEMA.linhaB, "bottom center") : {})
@@ -1143,14 +1143,14 @@ const SECOES = [
   {id:"entregas", menu:"Quantidade de entrega", titulo:"Quantidade de entrega",
    nota:"ordens entregues e média de paradas por rota", forma:"linhas",
    campoA:"mediaParadas", campoB:"entregas", nomeA:"Média de paradas", nomeB:"Entregas",
-   campo:"entregas", unidade:"", bandas:true},
+   campo:"entregas", unidade:"", bandas:true, rotulos:true},
   {id:"ocupacao", menu:"Ocupação da frota", titulo:"Ocupação da frota",
    nota:"peso embarcado ÷ capacidade contratada", forma:"barra", campo:"ocupacao",
    formato:"%{y:.0%}", percentual:true, unidade:"%"},
   {id:"peso", menu:"Peso × capacidade", titulo:"Peso × capacidade",
    nota:"toneladas embarcadas e capacidade disponível", forma:"linhas",
    campoA:"capacidade", campoB:"peso", nomeA:"Capacidade (kg)", nomeB:"Peso (kg)",
-   campo:"peso", unidade:" kg", rotulos:true},
+   campo:"peso", unidade:" kg", bandas:true, rotulos:true},
 ];
 
 /** Valor conforme a unidade da seção: percentual vira 0-100. */
@@ -1239,8 +1239,7 @@ function desenharControles(resumo, semanasDisponiveis){
     <button class="pilula" id="pgProxima" ${filtros.pagina === total ? "disabled" : ""}>›</button>` : "";
 
   const legenda = `<span class="legenda-dias">
-      <span><i style="background:rgba(93,135,176,.20)"></i>Fim de semana</span>
-      <span><i style="background:rgba(192,138,74,.30)"></i>Feriado</span>
+      <span><i style="background:${TEMA.feriadoRotulo}"></i>Feriado</span>
     </span>`;
 
   const semanas = `<div class="semanas">
