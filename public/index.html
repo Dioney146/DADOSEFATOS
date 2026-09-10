@@ -143,9 +143,9 @@ button{font-family:inherit}
 .painel-nota{font-size:9px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
   color:var(--marca-clara);background:#EDF3FA;border-radius:20px;padding:4px 11px;white-space:nowrap}
 .painel-series{display:flex;gap:14px;align-items:center}
-.serie{display:inline-flex;align-items:center;gap:6px;font-size:9px;font-weight:600;
-  letter-spacing:.1em;text-transform:uppercase;color:var(--suave);white-space:nowrap}
-.serie i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.serie{display:inline-flex;align-items:center;gap:8px;font-size:11.5px;font-weight:600;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--suave);white-space:nowrap}
+.serie i{width:22px;height:4px;border-radius:2px;display:inline-block}
 
 .mini{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#F8FAFD;
   border:1px solid var(--grade);border-radius:12px;padding:9px 10px;margin:0 0 8px}
@@ -224,14 +224,14 @@ button{font-family:inherit}
 /* KPIs executivos */
 .palco-kpis{display:flex;gap:10px}
 .kpi-card{
-  background:#FBFCFE;border:1px solid var(--linha);border-radius:13px;
-  padding:11px 20px;min-width:126px;border-top:3px solid var(--linha);
+  background:#FBFCFE;border:1px solid var(--linha);border-radius:12px;
+  padding:8px 15px;min-width:96px;border-top:2px solid var(--linha);
 }
 .kpi-card.forte{background:var(--marca);border-color:var(--marca);border-top-color:var(--verde)}
 .kpi-card .rotulo{color:var(--tenue)}
 .kpi-card.forte .rotulo{color:var(--azul-claro)}
 .kpi-numero{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
-  font-size:clamp(30px,2.6vw,44px);line-height:1.05;color:var(--tinta);white-space:nowrap;margin-top:2px}
+  font-size:clamp(22px,1.7vw,30px);line-height:1.05;color:var(--tinta);white-space:nowrap;margin-top:1px}
 .kpi-card.forte .kpi-numero{color:#fff}
 .kpi-unidade{font-size:.55em;font-weight:600;color:var(--tenue);margin-left:3px}
 .kpi-card.forte .kpi-unidade{color:var(--azul-claro)}
@@ -377,14 +377,15 @@ body.industrial .palco-corpo::after{
 body.industrial .palco-topo{border-bottom-color:#22314B}
 body.industrial .palco-titulo{color:#fff;font-size:clamp(30px,2.8vw,46px)}
 body.industrial .palco-nota{color:#7FA9D8}
+body.industrial .palco-nota .serie{color:#C3D2E4;font-size:12px}
 
 /* KPIs industriais: filete verde no topo e número grande em branco */
 body.industrial .kpi-card{
-  background:#16243C;border-color:#2A3B58;border-top:3px solid #2A3B58;
-  padding:13px 24px;min-width:140px;
+  background:#16243C;border-color:#2A3B58;border-top:2px solid #2A3B58;
+  padding:9px 16px;min-width:104px;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
 }
-body.industrial .kpi-card .kpi-numero{color:#fff;font-size:clamp(32px,3vw,50px)}
+body.industrial .kpi-card .kpi-numero{color:#fff;font-size:clamp(24px,1.9vw,34px)}
 body.industrial .kpi-card .rotulo{color:#6E819C}
 body.industrial .kpi-card.forte{
   background:linear-gradient(160deg,#1E4E86 0%,#16365E 100%);
@@ -787,7 +788,8 @@ function layoutBase(altura, quantidade, dados, comRotulos){
   return {
     shapes: dados ? faixasEspeciais(dados) : [],
     // com rótulo sobre a barra ou o ponto, o topo precisa de respiro
-    height:altura, autosize:true, margin:{l:0, r:0, t:comRotulos ? 26 : 4, b:2},
+    height:altura, autosize:true,
+    margin:{l:0, r:0, t:comRotulos ? 34 : 4, b:comRotulos ? 14 : 2},
     paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
     font:{family:"Archivo, sans-serif", size:11, color:TEMA.texto},
     showlegend:false, hovermode:"x unified", bargap:0, bargroupgap:0,
@@ -887,6 +889,7 @@ function rotulosDeLinha(dados, campo, quantidade, cor, posicao){
     mode:"lines+markers+text",
     text:dados.map(d => num(d[campo])),
     textposition:posicao,
+    cliponaxis:false,   // o número não é cortado pela borda da faixa
     textfont:{family:"Barlow Condensed, sans-serif",
               size:Math.max(10, Math.round(19 - quantidade*0.26)), color:cor},
   };
@@ -1174,7 +1177,7 @@ function desenharSlides(registros, resumo){
 
   document.getElementById("palcoTitulo").textContent = secao.titulo;
   document.getElementById("palcoNota").innerHTML = secao.forma === "linhas"
-    ? `${secao.nota} <span class="painel-series" style="margin-left:10px">`
+    ? `${secao.nota}<span class="painel-series" style="display:flex;margin-top:7px">`
       + `<span class="serie"><i style="background:${TEMA.linhaB}"></i>${secao.nomeB}</span>`
       + `<span class="serie"><i style="background:${TEMA.linhaA}"></i>${secao.nomeA}</span></span>`
     : secao.nota;
