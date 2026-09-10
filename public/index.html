@@ -318,9 +318,17 @@ body.industrial .palco{flex:1;min-height:0}
 body.industrial .palco-corpo{height:100%}
 body.industrial .fonte{margin-top:12px;flex-shrink:0}
 
+/* Cabeçalho com a foto da frota ao fundo. O degradê cobre o lado esquerdo,
+   onde ficam logo e título, e vai abrindo para a direita — a imagem aparece
+   atrás dos filtros sem tirar a legibilidade de nada. */
 body.industrial .cab{
-  background:linear-gradient(180deg,#132340 0%,#0F1B2E 100%);
+  background:
+    linear-gradient(95deg,
+      rgba(13,23,41,.97) 0%, rgba(15,27,46,.94) 34%,
+      rgba(15,27,46,.80) 58%, rgba(15,27,46,.62) 100%),
+    url("assets/hero.jpg") no-repeat right center/cover, #0F1B2E;
   border-color:#22314B;border-top:2px solid var(--verde);
+  min-height:104px;
 }
 body.industrial .cab-titulo{color:#fff}
 body.industrial .cab-sub{color:#7FA9D8}
