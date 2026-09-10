@@ -190,8 +190,8 @@ button{font-family:inherit}
   border-radius:var(--raio);padding:18px 12px;display:flex;flex-direction:column;gap:3px;
   box-shadow:var(--sombra);
 }
-.trilho-rot{font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
-  color:var(--azul-claro);opacity:.85;padding:2px 13px 12px}
+.trilho-rot{font-size:9px;font-weight:600;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--azul-claro);opacity:.8;padding:16px 22px 9px}
 .trilho button{
   display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:transparent;
   border:0;cursor:pointer;color:#C6D6E8;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
@@ -306,11 +306,7 @@ body.industrial{
   --suave:#8095AF;
   --tenue:#6E819C;
   --sombra:0 1px 2px rgba(0,0,0,.30),0 10px 30px rgba(0,0,0,.32);
-  background:#0A1322;
-  /* trama diagonal discreta, de chão de galpão */
-  background-image:repeating-linear-gradient(135deg,
-    rgba(255,255,255,.014) 0 2px, transparent 2px 9px);
-  color:var(--tinta);
+  background:#0A1322;color:var(--tinta);
 }
 body.industrial #conteudo{display:flex;flex-direction:column;flex:1;min-height:0}
 body.industrial #viewSlides{display:flex;flex-direction:column;flex:1;min-height:0}
@@ -327,8 +323,8 @@ body.industrial .cab{
       rgba(13,23,41,.97) 0%, rgba(15,27,46,.94) 34%,
       rgba(15,27,46,.80) 58%, rgba(15,27,46,.62) 100%),
     url("assets/hero.jpg") no-repeat right center/cover, #0F1B2E;
-  border-color:#22314B;border-top:2px solid var(--verde);
-  min-height:104px;
+  border-color:#22314B;border-top:3px solid var(--verde);
+  min-height:100px;
 }
 body.industrial .cab-titulo{color:#fff}
 body.industrial .cab-sub{color:#7FA9D8}
@@ -336,7 +332,15 @@ body.industrial .cab-divisor{background:#2A3B58}
 body.industrial .cab-logo{
   background:#fff;border-radius:9px;padding:4px 7px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 
-body.industrial .campo>label{color:#6E819C}
+body.industrial .cab-filtros{
+  background:rgba(8,16,29,.55);border:1px solid #1E2D46;border-radius:12px;
+  padding:9px 16px;gap:0;
+}
+body.industrial .cab-filtros .campo{padding:0 16px;position:relative}
+body.industrial .cab-filtros .campo + .campo::before{
+  content:"";position:absolute;left:0;top:3px;bottom:3px;width:1px;background:#1E2D46}
+body.industrial .cab-filtros .abas{margin-left:16px}
+body.industrial .campo>label{color:#6E819C;letter-spacing:.16em}
 body.industrial .campo select,body.industrial .campo input{
   background:#16243C;border-color:#2A3B58;color:#E9EFF7}
 body.industrial .campo select:hover,body.industrial .campo input:hover{border-color:#3E5A82}
@@ -350,8 +354,7 @@ body.industrial .aba[aria-selected="true"]{
 
 body.industrial .kpi-chip{background:#16243C;border-color:#2A3B58}
 body.industrial .kpi-chip .kpi-val{color:#E9EFF7}
-body.industrial .kpi-chip.destaque{
-  background:linear-gradient(160deg,#1E4E86 0%,#16365E 100%);border-color:#2A5A94}
+body.industrial .kpi-chip.destaque{background:#16365E;border-color:#2A5A94}
 body.industrial .cab-controles{border-top-color:#22314B}
 body.industrial .paginacao{color:#8095AF}
 body.industrial .pilula{background:#16243C;border-color:#2A3B58;color:#93A6BF}
@@ -362,29 +365,30 @@ body.industrial .legenda-dias{color:#6E819C}
 
 /* Trilho: mais compacto e com a barra de seleção em verde */
 body.industrial .trilho{
-  background:linear-gradient(180deg,#132340 0%,#0D1729 100%);
-  border:1px solid #22314B;padding:14px 10px;
+  background:#0E1A2D;border:1px solid #22314B;padding:0 0 12px;
+  border-radius:14px;overflow:hidden;
 }
-body.industrial .trilho button{color:#93A6BF;font-size:18px;padding:12px 13px}
+/* A marca também no topo do menu, sobre uma placa branca — a logo original,
+   sem recorte nem redesenho. */
+body.industrial .trilho-marca{
+  display:flex;align-items:center;justify-content:center;
+  padding:16px 14px;border-bottom:1px solid #1B2942;background:#0B1524;
+}
+body.industrial .trilho-marca img{height:38px;width:auto;display:block;
+  background:#fff;border-radius:8px;padding:5px 9px}
+body.industrial .trilho button{color:#93A6BF;font-size:17px;padding:11px 14px;
+  margin:0 8px;border-radius:8px;letter-spacing:.03em}
 body.industrial .trilho button:hover{background:rgba(255,255,255,.05)}
-body.industrial .trilho button[aria-current="true"]{
-  background:linear-gradient(90deg,rgba(76,162,47,.18) 0%,rgba(76,162,47,0) 100%);color:#fff}
+body.industrial .trilho button[aria-current="true"]{background:#152B45;color:#fff}
 
 /* Palco: painel de sala de controle */
 body.industrial .palco{grid-template-columns:210px 1fr}
 body.industrial .palco-corpo{
-  background:linear-gradient(180deg,#132340 0%,#0F1B2E 100%);
-  border:1px solid #22314B;position:relative;overflow:hidden;
+  background:#0E1A2D;border:1px solid #22314B;
 }
-/* silhueta de caminhão, quase imperceptível, no canto do palco */
-body.industrial .palco-corpo::after{
-  content:"";position:absolute;right:-26px;bottom:-30px;width:290px;height:190px;opacity:.045;
-  background:no-repeat right bottom/contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' fill='none' stroke='%23FFFFFF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M4 12h58v30H4zM62 22h20l14 12v8H62z'/><circle cx='24' cy='47' r='6'/><circle cx='82' cy='47' r='6'/><path d='M4 42h8M96 42h8'/></svg>");
-  pointer-events:none;
-}
-body.industrial .palco-topo{border-bottom-color:#22314B}
-body.industrial .palco-titulo{color:#fff;font-size:clamp(30px,2.8vw,46px)}
-body.industrial .palco-nota{color:#7FA9D8}
+body.industrial .palco-topo{border-bottom-color:#1B2942;padding-bottom:18px}
+body.industrial .palco-titulo{color:#fff;font-size:clamp(28px,2.4vw,40px);letter-spacing:.015em}
+body.industrial .palco-nota{color:#7C90AB;font-size:12px;letter-spacing:.03em;margin-top:7px}
 body.industrial .palco-nota .serie{color:#C3D2E4;font-size:12px}
 
 /* KPIs industriais: filete verde no topo e número grande em branco */
@@ -396,8 +400,7 @@ body.industrial .kpi-card{
 body.industrial .kpi-card .kpi-numero{color:#fff;font-size:clamp(24px,1.9vw,34px)}
 body.industrial .kpi-card .rotulo{color:#6E819C}
 body.industrial .kpi-card.forte{
-  background:linear-gradient(160deg,#1E4E86 0%,#16365E 100%);
-  border-color:#2A5A94;border-top-color:var(--verde);
+  background:#14304F;border-color:#28486F;border-top-color:var(--verde);
 }
 body.industrial .kpi-card.forte .rotulo{color:#9CC0E4}
 body.industrial .kpi-unidade{color:#7FA9D8}
@@ -816,16 +819,42 @@ function layoutBase(altura, quantidade, dados, comRotulos){
 const posicoes = q => Array.from({length:q}, (_,i) => i);
 
 /**
+ * Teto do eixo quando um dia foge completamente da curva.
+ *
+ * Um domingo com duas rotas pode dar um drop dez vezes maior que o normal, e
+ * no eixo cheio ele achata os outros trinta dias numa faixa ilegível. Aqui o
+ * teto é calculado pelo critério de Tukey (terceiro quartil + 1,5 vezes a
+ * amplitude interquartil): a escala passa a mostrar o comportamento do mês, e
+ * a barra que ultrapassa é desenhada até o topo, com o valor real no rótulo e
+ * uma seta indicando que ela sai da escala. Nenhum dado é alterado.
+ */
+function tetoDoEixo(valores){
+  const validos = valores.filter(v => v !== null && isFinite(v)).sort((a,b) => a-b);
+  if(validos.length < 5) return null;
+  const quartil = fracao => {
+    const posicao = (validos.length - 1) * fracao;
+    const baixo = Math.floor(posicao), alto = Math.ceil(posicao);
+    return validos[baixo] + (validos[alto] - validos[baixo]) * (posicao - baixo);
+  };
+  const q1 = quartil(0.25), q3 = quartil(0.75);
+  const limite = q3 + 1.5 * (q3 - q1);
+  const maximo = validos[validos.length - 1];
+  // só corta quando a diferença é grande de verdade
+  return maximo > limite * 1.35 ? limite * 1.08 : null;
+}
+
+/**
  * Realce de leitura: melhor dia em verde, pior em âmbar, os demais em azul.
  *
  * Só faz sentido onde a barra tem espaço para ser lida uma a uma — por isso o
  * modo apresentação usa, e os cartões pequenos da aba Dia não.
  */
+/** Uma cor para todas as barras; verde apenas no melhor resultado do período. */
 function coresComExtremos(valores){
   const validos = valores.filter(v => v !== null && isFinite(v));
   if(validos.length < 3) return valores.map(() => TEMA.barra);
-  const alto = Math.max(...validos), baixo = Math.min(...validos);
-  return valores.map(v => v === alto ? TEMA.melhor : v === baixo ? TEMA.pior : TEMA.barra);
+  const alto = Math.max(...validos);
+  return valores.map(v => v === alto ? TEMA.melhor : TEMA.barra);
 }
 
 /**
@@ -843,13 +872,14 @@ function corpoDoRotulo(textos, quantidade, fracao){
   return Math.max(7, Math.min(19, Math.floor(cabe)));
 }
 
-/** Rótulo sobre cada barra. */
-function rotulosDeBarra(dados, campo, quantidade, percentual, fracao){
+/** Rótulo sobre cada barra; a que ultrapassa o teto do eixo ganha uma seta. */
+function rotulosDeBarra(dados, campo, quantidade, percentual, fracao, teto){
   if(quantidade > LIMITE_FAIXA) return {};
   const texto = dados.map(d => {
     const v = d[campo];
     if(v === null || !isFinite(v)) return "";
-    return num(percentual ? v*100 : v);
+    const mostrado = percentual ? v*100 : v;
+    return (teto && v > teto ? "▲ " : "") + num(mostrado);
   });
   return {
     text:texto, textposition:"outside", cliponaxis:false,
@@ -864,14 +894,23 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
   const extra = origem || dados.map(() => "");
   const valores = dados.map(d => d[campo]);
   const marcador = cores || (opcoes.extremos ? coresComExtremos(valores) : TEMA.barra);
+  const layout = layoutBase(altura, q, dados, opcoes.rotulos);
+  const teto = tetoDoEixo(valores);
+  if(teto) layout.yaxis = Object.assign({}, layout.yaxis, {range:[0, teto]});
+  // a barra que passa do teto é desenhada até ele; o valor real vai no texto
+  const desenhados = valores.map(v => (teto && v > teto) ? teto : v);
+  const reais = valores.map(v => v === null || !isFinite(v) ? "—"
+    : num(opcoes.percentual ? v*100 : v) + (opcoes.percentual ? "%" : ""));
   Plotly.newPlot(div, [Object.assign({
-    type:"bar", x:posicoes(q), y:valores,
-    customdata:dados.map((d,i) => [d.hover, extra[i]]),
+    type:"bar", x:posicoes(q), y:desenhados,
+    customdata:dados.map((d,i) => [d.hover, extra[i], reais[i]]),
     marker:{color:marcador, line:{width:0}, cornerradius:5},
     width:larguraRelativa(q),
-    hovertemplate:"<b>%{customdata[0]}</b><br>" + formato + "%{customdata[1]}<extra></extra>"
-  }, opcoes.rotulos ? rotulosDeBarra(dados, campo, q, opcoes.percentual, fracao) : {})],
-  layoutBase(altura, q, dados, opcoes.rotulos), CONFIG);
+    hovertemplate:"<b>%{customdata[0]}</b><br>"
+      + (teto ? "%{customdata[2]}" : formato) + "%{customdata[1]}<extra></extra>"
+  }, opcoes.rotulos
+       ? rotulosDeBarra(dados, campo, q, opcoes.percentual, fracao, teto)
+       : {})], layout, CONFIG);
 }
 
 function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = {}){
@@ -883,17 +922,23 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
   const q = dados.length;
   const extra = origem || dados.map(() => "");
   const layout = layoutBase(altura, q, dados, opcoes.rotulos);
+  const teto = tetoDoEixo(dados.map(d => d[campo]));
+  if(teto) layout.yaxis = Object.assign({}, layout.yaxis, {range:[0, teto]});
   layout.shapes = layout.shapes.concat([{type:"line", xref:"paper", x0:0, x1:1, yref:"y",
                     y0:media, y1:media, line:{width:1, dash:"dot", color:TEMA.media}}]);
   layout.annotations = [{xref:"paper", x:1, y:media, yref:"y", text:`média ${num(media)}`,
                          showarrow:false, xanchor:"right", yanchor:"bottom",
                          font:{family:"IBM Plex Mono, monospace", size:9.5, color:TEMA.suave}}];
+  const desenhados = dados.map(d => (teto && d[campo] > teto) ? teto : d[campo]);
   Plotly.newPlot(div, [Object.assign({
-    type:"bar", x:posicoes(q), y:dados.map(d => d[campo]),
-    customdata:dados.map((d,i) => [d.hover, extra[i]]),
+    type:"bar", x:posicoes(q), y:desenhados,
+    customdata:dados.map((d,i) => [d.hover, extra[i], num(d[campo])]),
     marker:{color:cores, line:{width:0}, cornerradius:5}, width:larguraRelativa(q),
-    hovertemplate:"<b>%{customdata[0]}</b><br>%{y:,.0f} kg%{customdata[1]}<extra></extra>"
-  }, opcoes.rotulos ? rotulosDeBarra(dados, campo, q, false, fracao) : {})], layout, CONFIG);
+    hovertemplate:"<b>%{customdata[0]}</b><br>%{customdata[2]} kg"
+      + "%{customdata[1]}<extra></extra>"
+  }, opcoes.rotulos
+       ? rotulosDeBarra(dados, campo, q, false, fracao, teto)
+       : {})], layout, CONFIG);
 }
 
 /**
@@ -1057,7 +1102,7 @@ function desenharDia(registros, resumo){
       ${faixaEixo(resumo,meia)}
     </div>
     <div class="card">
-      ${tituloPainel("Peso × capacidade por dia",null,[["Capacidade (t)",COR.azul],["Peso (t)",COR.escura]])}
+      ${tituloPainel("Peso × capacidade por dia",null,[["Capacidade (t)",COR.escura],["Peso (t)",COR.azul]])}
       ${faixaNumeros(resumo.map(d => toneladas(d.capacidade)),"azul",meia)}
       ${faixaNumeros(resumo.map(d => toneladas(d.peso)),"suave",meia)}
       <div class="grafico" id="gPeso"></div>
@@ -1075,8 +1120,9 @@ function desenharDia(registros, resumo){
     origemPorDia(registros, resumo, "mediaParadas"),
     origemPorDia(registros, resumo, "entregas"), true);
   graficoDuasLinhas(document.getElementById("gPeso"), resumo,
-    "peso", "capacidade", "Peso (kg)", "Capacidade (kg)", alturaBaixo,
-    origemPorDia(registros, resumo, "peso"), origemPorDia(registros, resumo, "capacidade"));
+    "capacidade", "peso", "Capacidade (kg)", "Peso (kg)", alturaBaixo,
+    origemPorDia(registros, resumo, "capacidade"),
+    origemPorDia(registros, resumo, "peso"), true, false, meia);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -1192,7 +1238,9 @@ function desenharSlides(registros, resumo){
   const secao = SECOES.find(s => s.id === filtros.secao) || SECOES[0];
 
   document.getElementById("trilho").innerHTML =
-    `<div class="trilho-rot">Indicadores</div>`
+    `<div class="trilho-marca"><img src="assets/logo.png" alt="Delly's Food Service"
+       onerror="this.closest('.trilho-marca').remove()"></div>`
+    + `<div class="trilho-rot">Indicadores</div>`
     + SECOES.map(s => `<button data-secao="${s.id}" aria-current="${s.id === secao.id}">
         ${ICONES[s.id] || ""}<span>${s.menu}</span></button>`).join("");
 
