@@ -294,7 +294,9 @@ thead th{position:sticky;top:0;background:var(--papel);font-size:9.5px;letter-sp
    A classe entra e sai do <body> pelo render; as abas Dia e Semana seguem
    com o tema claro, sem nenhuma regra daqui.
    ══════════════════════════════════════════════════════════════════════════ */
+html.industrial{background:#0A1322}
 body.industrial{
+  min-height:100vh;
   --papel:#101C30;
   --linha:#22314B;
   --grade:#1B2942;
@@ -1116,8 +1118,8 @@ const SECOES = [
    formato:"%{y:.0%}", percentual:true, unidade:"%"},
   {id:"peso", menu:"Peso × capacidade", titulo:"Peso × capacidade",
    nota:"toneladas embarcadas e capacidade disponível", forma:"linhas",
-   campoA:"peso", campoB:"capacidade", nomeA:"Peso (kg)", nomeB:"Capacidade (kg)",
-   campo:"peso", unidade:" kg"},
+   campoA:"capacidade", campoB:"peso", nomeA:"Capacidade (kg)", nomeB:"Peso (kg)",
+   campo:"peso", unidade:" kg", bandas:true},
 ];
 
 /** Valor conforme a unidade da seção: percentual vira 0-100. */
@@ -1295,6 +1297,7 @@ function render(){
   document.getElementById("viewSlides").hidden = !slidesAtivo;
   // o tema industrial vale só na apresentação; Dia e Semana seguem claros
   document.body.classList.toggle("industrial", slidesAtivo);
+  document.documentElement.classList.toggle("industrial", slidesAtivo);
   TEMA = slidesAtivo ? TEMA_ESCURO : TEMA_CLARO;
   // na visão semanal cada barra já é uma semana: a faixa de pílulas não cabe ali
   controles.hidden = porSemanaAtivo;
