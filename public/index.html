@@ -828,9 +828,24 @@ function coresComExtremos(valores){
   return valores.map(v => v === alto ? TEMA.melhor : v === baixo ? TEMA.pior : TEMA.barra);
 }
 
-/** Rótulo sobre cada barra, só quando há largura suficiente para caber. */
-function rotulosDeBarra(dados, campo, quantidade, percentual){
-  if(quantidade > 24) return {};
+/**
+ * Corpo da fonte do rótulo, medido pelo espaço real de cada coluna.
+ *
+ * Divide-se a largura do cartão pelo número de colunas e compara-se com o
+ * número mais comprido da série: o texto usa o maior corpo que ainda cabe,
+ * entre 7 e 19px. Assim 31 dias mostram os valores em fonte menor, em vez de
+ * o rótulo simplesmente desaparecer.
+ */
+function corpoDoRotulo(textos, quantidade, fracao){
+  const larguraColuna = (window.innerWidth * fracao) / Math.max(quantidade, 1);
+  const digitos = Math.max(...textos.map(v => String(v).length), 1);
+  const cabe = larguraColuna / (digitos * 0.60);
+  return Math.max(7, Math.min(19, Math.floor(cabe)));
+}
+
+/** Rótulo sobre cada barra. */
+function rotulosDeBarra(dados, campo, quantidade, percentual, fracao){
+  if(quantidade > LIMITE_FAIXA) return {};
   const texto = dados.map(d => {
     const v = d[campo];
     if(v === null || !isFinite(v)) return "";
@@ -839,7 +854,7 @@ function rotulosDeBarra(dados, campo, quantidade, percentual){
   return {
     text:texto, textposition:"outside", cliponaxis:false,
     textfont:{family:"Barlow Condensed, sans-serif",
-              size:Math.round(escala(quantidade, 19, 12)), color:TEMA.texto}
+              size:corpoDoRotulo(texto, quantidade, fracao), color:TEMA.texto}
   };
 }
 
@@ -855,7 +870,7 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
     marker:{color:marcador, line:{width:0}, cornerradius:5},
     width:larguraRelativa(q),
     hovertemplate:"<b>%{customdata[0]}</b><br>" + formato + "%{customdata[1]}<extra></extra>"
-  }, opcoes.rotulos ? rotulosDeBarra(dados, campo, q, opcoes.percentual) : {})],
+  }, opcoes.rotulos ? rotulosDeBarra(dados, campo, q, opcoes.percentual, fracao) : {})],
   layoutBase(altura, q, dados, opcoes.rotulos), CONFIG);
 }
 
@@ -878,7 +893,7 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
     customdata:dados.map((d,i) => [d.hover, extra[i]]),
     marker:{color:cores, line:{width:0}, cornerradius:5}, width:larguraRelativa(q),
     hovertemplate:"<b>%{customdata[0]}</b><br>%{y:,.0f} kg%{customdata[1]}<extra></extra>"
-  }, opcoes.rotulos ? rotulosDeBarra(dados, campo, q, false) : {})], layout, CONFIG);
+  }, opcoes.rotulos ? rotulosDeBarra(dados, campo, q, false, fracao) : {})], layout, CONFIG);
 }
 
 /**
@@ -890,25 +905,27 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
  * grandezas iguais (peso x capacidade) mantenha sobreposto: ali a distância
  * entre as linhas é a informação.
  */
-/** Valor de cada ponto, na unidade da própria base. Some quando há dias demais. */
-function rotulosDeLinha(dados, campo, quantidade, cor, posicao){
-  if(quantidade > 26) return {mode:"lines+markers"};
+/** Valor de cada ponto, na unidade da própria base. */
+function rotulosDeLinha(dados, campo, quantidade, cor, posicao, fracao){
+  if(quantidade > LIMITE_FAIXA) return {mode:"lines+markers"};
+  const texto = dados.map(d => num(d[campo]));
   return {
     mode:"lines+markers+text",
-    text:dados.map(d => num(d[campo])),
+    text:texto,
     textposition:posicao,
     cliponaxis:false,   // o número não é cortado pela borda da faixa
     textfont:{family:"Barlow Condensed, sans-serif",
-              size:Math.max(10, Math.round(19 - quantidade*0.26)), color:cor},
+              size:corpoDoRotulo(texto, quantidade, fracao), color:cor},
   };
 }
 
 function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
-                           origemA, origemB, bandas = false, comRotulos = false){
+                           origemA, origemB, bandas = false, comRotulos = false,
+                           fracao = 0.72){
   const q = dados.length;
   const marcador = Math.max(2.5, escala(q,7,3));
   const traco = Math.max(1.1, escala(q,2.4,1.4));
-  const layout = layoutBase(altura, q, dados, comRotulos && q <= 26);
+  const layout = layoutBase(altura, q, dados, comRotulos && q <= LIMITE_FAIXA);
   if(bandas){
     // duas faixas com um respiro no meio; cada série usa a sua por inteiro
     layout.yaxis  = Object.assign({}, layout.yaxis, {domain:[0.56, 1]});
@@ -924,7 +941,7 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
       line:{color:TEMA.linhaA, width:traco, shape:"spline", smoothing:0.9, dash:"dot"},
       marker:{size:marcador}, yaxis:"y", mode:"lines+markers",
       hovertemplate:`${nomeA}: %{y:,.0f}%{customdata}<extra></extra>`
-    }, comRotulos ? rotulosDeLinha(dados, campoA, q, TEMA.linhaA, "top center") : {}),
+    }, comRotulos ? rotulosDeLinha(dados, campoA, q, TEMA.linhaA, "top center", fracao) : {}),
     Object.assign({
       type:"scatter", x:posicoes(q), y:dados.map(d => d[campoB]),
       customdata:origemB || dados.map(() => ""),
@@ -932,7 +949,7 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
       line:{color:TEMA.linhaB, width:traco+0.6, shape:"spline", smoothing:0.9},
       marker:{size:marcador}, yaxis:"y2", mode:"lines+markers",
       hovertemplate:`${nomeB}: %{y:,.0f}%{customdata}<extra></extra>`
-    }, comRotulos ? rotulosDeLinha(dados, campoB, q, TEMA.linhaB, "bottom center") : {})
+    }, comRotulos ? rotulosDeLinha(dados, campoB, q, TEMA.linhaB, "bottom center", fracao) : {})
   ], layout, CONFIG);
 }
 
@@ -1219,7 +1236,7 @@ function desenharSlides(registros, resumo){
   if(secao.forma === "linhas"){
     graficoDuasLinhas(palco, resumo, secao.campoA, secao.campoB, secao.nomeA, secao.nomeB,
       altura, origemPorDia(registros, resumo, secao.campoA),
-      origemPorDia(registros, resumo, secao.campoB), !!secao.bandas, !!secao.rotulos);
+      origemPorDia(registros, resumo, secao.campoB), !!secao.bandas, !!secao.rotulos, fracao);
   }else if(secao.forma === "drop"){
     graficoDrop(palco, resumo, secao.campo, altura, fracao,
       origemPorDia(registros, resumo, secao.campo), {rotulos:true, extremos:true});
