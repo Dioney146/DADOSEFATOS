@@ -786,7 +786,8 @@ const CONFIG = {displayModeBar:false, responsive:true};
 function layoutBase(altura, quantidade, dados, comRotulos){
   return {
     shapes: dados ? faixasEspeciais(dados) : [],
-    height:altura, autosize:true, margin:{l:0,r:0,t:4,b:2},
+    // com rótulo sobre a barra ou o ponto, o topo precisa de respiro
+    height:altura, autosize:true, margin:{l:0, r:0, t:comRotulos ? 26 : 4, b:2},
     paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
     font:{family:"Archivo, sans-serif", size:11, color:TEMA.texto},
     showlegend:false, hovermode:"x unified", bargap:0, bargroupgap:0,
@@ -879,12 +880,24 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
  * grandezas iguais (peso x capacidade) mantenha sobreposto: ali a distância
  * entre as linhas é a informação.
  */
+/** Valor de cada ponto, na unidade da própria base. Some quando há dias demais. */
+function rotulosDeLinha(dados, campo, quantidade, cor, posicao){
+  if(quantidade > 26) return {mode:"lines+markers"};
+  return {
+    mode:"lines+markers+text",
+    text:dados.map(d => num(d[campo])),
+    textposition:posicao,
+    textfont:{family:"Barlow Condensed, sans-serif",
+              size:Math.max(10, Math.round(19 - quantidade*0.26)), color:cor},
+  };
+}
+
 function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
-                           origemA, origemB, bandas = false){
+                           origemA, origemB, bandas = false, comRotulos = false){
   const q = dados.length;
   const marcador = Math.max(2.5, escala(q,7,3));
   const traco = Math.max(1.1, escala(q,2.4,1.4));
-  const layout = layoutBase(altura, q, dados);
+  const layout = layoutBase(altura, q, dados, comRotulos && q <= 26);
   if(bandas){
     // duas faixas com um respiro no meio; cada série usa a sua por inteiro
     layout.yaxis  = Object.assign({}, layout.yaxis, {domain:[0.56, 1]});
@@ -893,16 +906,22 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
     layout.yaxis2 = {overlaying:"y", side:"right", visible:false};
   }
   Plotly.newPlot(div, [
-    {type:"scatter", mode:"lines+markers", x:posicoes(q), y:dados.map(d => d[campoA]),
-     customdata:origemA || dados.map(() => ""),
-     line:{color:TEMA.linhaA, width:traco, shape:"spline", smoothing:0.9, dash:"dot"},
-     marker:{size:marcador}, yaxis:"y",
-     hovertemplate:`${nomeA}: %{y:,.0f}%{customdata}<extra></extra>`},
-    {type:"scatter", mode:"lines+markers", x:posicoes(q), y:dados.map(d => d[campoB]),
-     customdata:origemB || dados.map(() => ""),
-     line:{color:TEMA.linhaB, width:traco+0.6, shape:"spline", smoothing:0.9},
-     marker:{size:marcador}, yaxis:"y2",
-     hovertemplate:`${nomeB}: %{y:,.0f}%{customdata}<extra></extra>`}
+    Object.assign({
+      type:"scatter", x:posicoes(q), y:dados.map(d => d[campoA]),
+      customdata:origemA || dados.map(() => ""),
+      // série A: tracejada, no tom mais claro do azul
+      line:{color:TEMA.linhaA, width:traco, shape:"spline", smoothing:0.55, dash:"dash"},
+      marker:{size:marcador}, yaxis:"y", mode:"lines+markers",
+      hovertemplate:`${nomeA}: %{y:,.0f}%{customdata}<extra></extra>`
+    }, comRotulos ? rotulosDeLinha(dados, campoA, q, TEMA.linhaA, "top center") : {}),
+    Object.assign({
+      type:"scatter", x:posicoes(q), y:dados.map(d => d[campoB]),
+      customdata:origemB || dados.map(() => ""),
+      // série B: sólida, no azul cheio
+      line:{color:TEMA.linhaB, width:traco+0.6, shape:"spline", smoothing:0.55},
+      marker:{size:marcador}, yaxis:"y2", mode:"lines+markers",
+      hovertemplate:`${nomeB}: %{y:,.0f}%{customdata}<extra></extra>`
+    }, comRotulos ? rotulosDeLinha(dados, campoB, q, TEMA.linhaB, "bottom center") : {})
   ], layout, CONFIG);
 }
 
@@ -1131,7 +1150,7 @@ const SECOES = [
   {id:"peso", menu:"Peso × capacidade", titulo:"Peso × capacidade",
    nota:"toneladas embarcadas e capacidade disponível", forma:"linhas",
    campoA:"capacidade", campoB:"peso", nomeA:"Capacidade (kg)", nomeB:"Peso (kg)",
-   campo:"peso", unidade:" kg", bandas:true},
+   campo:"peso", unidade:" kg", rotulos:true},
 ];
 
 /** Valor conforme a unidade da seção: percentual vira 0-100. */
@@ -1189,7 +1208,7 @@ function desenharSlides(registros, resumo){
   if(secao.forma === "linhas"){
     graficoDuasLinhas(palco, resumo, secao.campoA, secao.campoB, secao.nomeA, secao.nomeB,
       altura, origemPorDia(registros, resumo, secao.campoA),
-      origemPorDia(registros, resumo, secao.campoB), !!secao.bandas);
+      origemPorDia(registros, resumo, secao.campoB), !!secao.bandas, !!secao.rotulos);
   }else if(secao.forma === "drop"){
     graficoDrop(palco, resumo, secao.campo, altura, fracao,
       origemPorDia(registros, resumo, secao.campo), {rotulos:true, extremos:true});
