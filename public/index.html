@@ -37,9 +37,6 @@ button{font-family:inherit}
 .cab-titulo{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
   letter-spacing:.01em;font-size:clamp(24px,2vw,38px);line-height:1;
   text-transform:uppercase;margin:0}
-.cab-sub{font-size:clamp(9px,.72vw,11px);font-weight:600;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--suave);margin-top:3px}
-.cab-sep{color:#C7CFD8;margin:0 3px}
 .cab-meta{display:flex;gap:8px;align-items:stretch}
 .kpi-chip{background:#fff;border:1px solid #E7EBF0;border-radius:12px;padding:7px 16px;
   min-width:92px;text-align:right;box-shadow:0 1px 2px rgba(20,22,26,.04)}
@@ -115,6 +112,12 @@ button{font-family:inherit}
 .faixa-eixo{display:grid;width:100%;margin-top:2px;overflow:hidden;font-weight:600;
   color:#98A2AE;letter-spacing:.02em}
 .eixo-cel{min-width:0;text-align:center;overflow:hidden;white-space:nowrap}
+.eixo-cel.eixo-fds{color:#5D87B0}
+.eixo-cel.eixo-feriado{color:#B5813F}
+.legenda-dias{display:flex;gap:12px;align-items:center;font-size:9.5px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:#98A2AE}
+.legenda-dias i{width:11px;height:11px;border-radius:3px;display:inline-block;
+  margin-right:5px;vertical-align:-2px}
 .grafico{width:100%}
 
 /* ── Navegação de páginas e semanas, na base do cabeçalho ────────────────── */
@@ -148,6 +151,42 @@ button{font-family:inherit}
 .sem-rot{font-family:'IBM Plex Mono',Consolas,monospace;font-size:10px;letter-spacing:.1em;
   text-transform:uppercase;color:#7C858D}
 
+/* ── Modo apresentação: trilho de seções e palco ─────────────────────────── */
+.palco{display:grid;grid-template-columns:236px 1fr;gap:clamp(6px,.7vw,16px);align-items:stretch}
+.trilho{
+  background:#2C3440;border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;gap:4px;
+  box-shadow:0 1px 2px rgba(20,22,26,.03),0 6px 20px rgba(20,22,26,.06);
+}
+.trilho-rot{font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+  color:#8FB3D4;padding:2px 12px 10px}
+.trilho button{
+  display:block;width:100%;text-align:left;background:transparent;border:0;cursor:pointer;
+  color:#C7D2DD;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:600;
+  font-size:19px;line-height:1.15;text-transform:uppercase;letter-spacing:.02em;
+  padding:9px 12px;border-radius:9px;border-left:3px solid transparent;
+  transition:background .15s ease,color .15s ease;
+}
+.trilho button:hover{background:rgba(255,255,255,.06);color:#fff}
+.trilho button[aria-current="true"]{background:rgba(143,179,212,.16);color:#fff;
+  border-left-color:#8FB3D4}
+.palco-corpo{
+  background:#fff;border:1px solid var(--borda);border-radius:14px;
+  padding:clamp(12px,1vw,20px) clamp(12px,1vw,22px) clamp(6px,.5vw,10px);
+  box-shadow:0 1px 2px rgba(20,22,26,.03),0 6px 20px rgba(20,22,26,.045);
+  display:flex;flex-direction:column;
+}
+.palco-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.palco-titulo{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:clamp(24px,2vw,34px);text-transform:uppercase;letter-spacing:.01em;margin:0;line-height:1}
+.palco-nota{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:#98A2AE;margin-top:4px}
+.palco-kpis{display:flex;gap:8px}
+.palco-texto{
+  font-size:clamp(13px,1.05vw,16px);line-height:1.6;color:#3A424C;margin:14px 0 4px;
+  max-width:96ch;border-left:3px solid #E7EBF0;padding-left:14px;
+}
+.palco-texto b{color:var(--texto);font-weight:600}
+
 /* ── Detalhe por estado e rodapé ─────────────────────────────────────────── */
 details.detalhe{background:#fff;border:1px solid var(--borda);border-radius:14px;
   padding:10px 16px;margin-bottom:10px}
@@ -167,6 +206,11 @@ thead th{position:sticky;top:0;background:#fff;font-size:10px;letter-spacing:.1e
 
 @media (max-width:900px){
   .linha-1,.linha-2,.linha-3{grid-template-columns:1fr}
+  .palco{grid-template-columns:1fr}
+  .trilho{flex-direction:row;overflow-x:auto;gap:6px}
+  .trilho-rot{display:none}
+  .trilho button{width:auto;white-space:nowrap;font-size:15px;border-left:0;border-bottom:3px solid transparent}
+  .trilho button[aria-current="true"]{border-left:0;border-bottom-color:#8FB3D4}
   .cab{gap:10px}
   .cab-filtros{margin-left:0;width:100%}
   .cab-meta{width:100%}
@@ -193,7 +237,6 @@ thead th{position:sticky;top:0;background:#fff;font-size:10px;letter-spacing:.1e
     <span class="cab-divisor"></span>
     <div>
       <p class="cab-titulo" id="cabTitulo">Indicadores por dia</p>
-      <div class="cab-sub" id="cabSub">Carregando a base de rotas…</div>
     </div>
   </div>
 
@@ -218,6 +261,7 @@ thead th{position:sticky;top:0;background:#fff;font-size:10px;letter-spacing:.1e
     <div class="abas" role="tablist">
       <button class="aba" id="abaDia" role="tab" aria-selected="true">Dia</button>
       <button class="aba" id="abaSemana" role="tab" aria-selected="false">Semana</button>
+      <button class="aba" id="abaSlides" role="tab" aria-selected="false">Apresentação</button>
     </div>
   </div>
 
@@ -257,6 +301,24 @@ thead th{position:sticky;top:0;background:#fff;font-size:10px;letter-spacing:.1e
     <div class="linha linha-3" id="semLinha2"></div>
   </section>
 
+  <section id="viewSlides" hidden>
+    <div class="palco">
+      <nav class="trilho" id="trilho" aria-label="Indicadores"></nav>
+      <div class="palco-corpo">
+        <div class="palco-topo">
+          <div>
+            <h2 class="palco-titulo" id="palcoTitulo"></h2>
+            <div class="palco-nota" id="palcoNota"></div>
+          </div>
+          <div class="palco-kpis" id="palcoKpis"></div>
+        </div>
+        <p class="palco-texto" id="palcoTexto"></p>
+        <div class="grafico" id="palcoGrafico"></div>
+        <div id="palcoEixo"></div>
+      </div>
+    </div>
+  </section>
+
   <div class="fonte" id="rodape"></div>
 </main>
 
@@ -283,7 +345,8 @@ const METRICAS_ESTADO = {
 let BASE = null;
 const filtros = {
   uf:"TODOS", inicio:null, fim:null, drop:"Parada",
-  colunas:"31", semana:"TODAS", pagina:1, aba:"dia", indicador:"Drop (kg/parada)"
+  colunas:"31", semana:"TODAS", pagina:1, aba:"dia", indicador:"Drop (kg/parada)",
+  secao:"drop"
 };
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -307,6 +370,73 @@ function dataLonga(iso){ const [a,m,d] = iso.split("-"); return `${d}/${m}/${a}`
    ────────────────────────────────────────────────────────────────────────── */
 
 const CAMPOS = ["rotas","veiculos","paradas","entregas","peso","capacidade","valor","distancia"];
+
+/* ──────────────────────────────────────────────────────────────────────────
+   FINS DE SEMANA E FERIADOS
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Feriados locais e pontos facultativos da operação. Para incluir um novo,
+   acrescente uma linha no formato "AAAA-MM-DD": "Nome do feriado".
+   Ex.: "2026-10-24": "Aniversário de Manaus"                                 */
+const FERIADOS_LOCAIS = {
+  // "2026-10-24": "Aniversário de Manaus",
+};
+
+/** Páscoa pelo algoritmo de Meeus, base dos feriados móveis. */
+function domingoDePascoa(ano){
+  const a = ano % 19, b = Math.floor(ano/100), c = ano % 100;
+  const d = Math.floor(b/4), e = b % 4, f = Math.floor((b+8)/25);
+  const g = Math.floor((b-f+1)/3), h = (19*a + b - d - g + 15) % 30;
+  const i = Math.floor(c/4), k = c % 4;
+  const l = (32 + 2*e + 2*i - h - k) % 7;
+  const m = Math.floor((a + 11*h + 22*l)/451);
+  const mes = Math.floor((h + l - 7*m + 114)/31);
+  const dia = ((h + l - 7*m + 114) % 31) + 1;
+  return new Date(Date.UTC(ano, mes-1, dia));
+}
+
+function iso(data){ return data.toISOString().slice(0,10); }
+function somarDias(data, dias){
+  const nova = new Date(data); nova.setUTCDate(nova.getUTCDate() + dias); return nova;
+}
+
+const cacheFeriados = new Map();
+
+function feriadosDoAno(ano){
+  if(cacheFeriados.has(ano)) return cacheFeriados.get(ano);
+  const pascoa = domingoDePascoa(ano);
+  const lista = {
+    [`${ano}-01-01`]:"Confraternização Universal",
+    [`${ano}-04-21`]:"Tiradentes",
+    [`${ano}-05-01`]:"Dia do Trabalho",
+    [`${ano}-09-07`]:"Independência",
+    [`${ano}-10-12`]:"Nossa Senhora Aparecida",
+    [`${ano}-11-02`]:"Finados",
+    [`${ano}-11-15`]:"Proclamação da República",
+    [`${ano}-11-20`]:"Consciência Negra",
+    [`${ano}-12-25`]:"Natal",
+    [iso(somarDias(pascoa,-48))]:"Carnaval",
+    [iso(somarDias(pascoa,-47))]:"Carnaval",
+    [iso(somarDias(pascoa,-2))]:"Sexta-feira Santa",
+    [iso(somarDias(pascoa,60))]:"Corpus Christi",
+  };
+  cacheFeriados.set(ano, lista);
+  return lista;
+}
+
+const DIAS_CURTOS = ["dom","seg","ter","qua","qui","sex","sáb"];
+
+/** Classifica a data: útil, sábado, domingo ou feriado (com o nome). */
+function tipoDoDia(dataIso){
+  const [a,m,d] = dataIso.split("-").map(Number);
+  const data = new Date(Date.UTC(a, m-1, d));
+  const feriado = FERIADOS_LOCAIS[dataIso] || feriadosDoAno(a)[dataIso];
+  if(feriado) return {tipo:"feriado", nome:feriado, semana:DIAS_CURTOS[data.getUTCDay()]};
+  const diaSemana = data.getUTCDay();
+  if(diaSemana === 0) return {tipo:"domingo", nome:"domingo", semana:"dom"};
+  if(diaSemana === 6) return {tipo:"sabado", nome:"sábado", semana:"sáb"};
+  return {tipo:"util", nome:"", semana:DIAS_CURTOS[diaSemana]};
+}
 
 function derivar(linha){
   linha.ocupacao     = linha.capacidade ? linha.peso/linha.capacidade : null;
@@ -341,9 +471,12 @@ function porDia(registros){
   const dias = [...mapa.values()].sort((a,b) => a.data.localeCompare(b.data));
   const umMes = new Set(dias.map(d => d.data.slice(0,7))).size <= 1;
   return dias.map(d => {
+    const marca = tipoDoDia(d.data);
     d.rotulo = dataCurta(d.data);
     d.eixo   = umMes ? d.data.slice(8,10) : dataCurta(d.data);
-    d.hover  = dataLonga(d.data);
+    d.tipo   = marca.tipo;
+    d.hover  = dataLonga(d.data) + " · "
+             + (marca.tipo === "feriado" ? marca.nome : marca.semana);
     return derivar(d);
   });
 }
@@ -420,14 +553,26 @@ function faixaNumeros(valores, cor = "forte", fracao = 0.30, ajuste = 0){
     + `</div>`;
 }
 
-function faixaEixo(valores, fracao = 0.30){
-  if(!valores.length) return "";
-  const q = valores.length;
+function faixaEixo(dados, fracao = 0.30){
+  if(!dados.length) return "";
+  const q = dados.length;
   const passo = passoDosRotulos(q, fracao);
+  const classe = {sabado:"eixo-fds", domingo:"eixo-fds", feriado:"eixo-feriado"};
   return `<div class="faixa-eixo" style="grid-template-columns:repeat(${q},minmax(0,1fr));
     font-size:${corpoDoEixo(q)}px">`
-    + valores.map((v,i) => `<div class="eixo-cel">${i % passo === 0 ? v : ""}</div>`).join("")
+    + dados.map((d,i) => `<div class="eixo-cel ${classe[d.tipo] || ""}">`
+        + (i % passo === 0 ? d.eixo : "") + `</div>`).join("")
     + `</div>`;
+}
+
+/** Faixas de fundo nos dias sem operação normal: sábado, domingo e feriado. */
+function faixasEspeciais(dados){
+  const cor = {sabado:"rgba(93,135,176,.07)", domingo:"rgba(93,135,176,.07)",
+               feriado:"rgba(192,138,74,.11)"};
+  return dados.map((d,i) => cor[d.tipo] ? {
+    type:"rect", xref:"x", yref:"paper", x0:i-0.5, x1:i+0.5, y0:0, y1:1,
+    fillcolor:cor[d.tipo], line:{width:0}, layer:"below"
+  } : null).filter(Boolean);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -436,8 +581,9 @@ function faixaEixo(valores, fracao = 0.30){
 
 const CONFIG = {displayModeBar:false, responsive:true};
 
-function layoutBase(altura, quantidade){
+function layoutBase(altura, quantidade, dados){
   return {
+    shapes: dados ? faixasEspeciais(dados) : [],
     height:altura, autosize:true, margin:{l:0,r:0,t:4,b:2},
     paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
     font:{family:"Archivo, sans-serif", size:11, color:COR.texto},
@@ -464,7 +610,7 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
     marker:{color:cores || COR.azul, line:{width:0}, cornerradius:4},
     width:larguraRelativa(q),
     hovertemplate:"<b>%{customdata[0]}</b><br>" + formato + "%{customdata[1]}<extra></extra>"
-  }], layoutBase(altura, q), CONFIG);
+  }], layoutBase(altura, q, dados), CONFIG);
 }
 
 function graficoDrop(div, dados, campo, altura, fracao, origem = null){
@@ -473,9 +619,9 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null){
   const cores = dados.map(d => (d[campo] !== null && d[campo] >= media) ? COR.azul : COR.azulClaro);
   const q = dados.length;
   const extra = origem || dados.map(() => "");
-  const layout = layoutBase(altura, q);
-  layout.shapes = [{type:"line", xref:"paper", x0:0, x1:1, yref:"y", y0:media, y1:media,
-                    line:{width:1, dash:"dot", color:COR.escura}}];
+  const layout = layoutBase(altura, q, dados);
+  layout.shapes = layout.shapes.concat([{type:"line", xref:"paper", x0:0, x1:1, yref:"y",
+                    y0:media, y1:media, line:{width:1, dash:"dot", color:COR.escura}}]);
   layout.annotations = [{xref:"paper", x:0, y:media, yref:"y", text:`média ${num(media)}`,
                          showarrow:false, xanchor:"left", yanchor:"bottom",
                          font:{family:"IBM Plex Mono, monospace", size:9, color:COR.suave}}];
@@ -491,7 +637,7 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura, ori
   const q = dados.length;
   const marcador = Math.max(2.5, escala(q,7,3));
   const traco = Math.max(1.1, escala(q,2.4,1.4));
-  const layout = layoutBase(altura, q);
+  const layout = layoutBase(altura, q, dados);
   layout.yaxis2 = {overlaying:"y", side:"right", visible:false};
   Plotly.newPlot(div, [
     {type:"scatter", mode:"lines+markers", x:posicoes(q), y:dados.map(d => d[campoA]),
@@ -576,7 +722,6 @@ function desenharDia(registros, resumo){
   const pesos = [0.95, 0.95, 1.20];
   const soma = pesos.reduce((a,b) => a+b, 0);
   const [fr1, fr2, fr3] = pesos.map(p => 0.97*p/soma);
-  const eixo = resumo.map(d => d.eixo);
   const alturaCima = 215, alturaBaixo = 345;
 
   document.getElementById("diaLinha1").innerHTML = `
@@ -585,21 +730,21 @@ function desenharDia(registros, resumo){
       ${miniIndicadores(resumo,"veiculos")}
       ${faixaNumeros(resumo.map(d => num(d.rotas)),"suave",fr1)}
       <div class="grafico" id="gVeiculos"></div>
-      ${faixaEixo(eixo,fr1)}
+      ${faixaEixo(resumo,fr1)}
     </div>
     <div class="card">
       ${tituloPainel("Ocupação","% · peso ÷ capacidade")}
       ${miniIndicadores(resumo,"ocupacaoPct","%")}
       ${faixaNumeros(resumo.map(d => d.ocupacao === null ? "—" : num(d.ocupacao*100)),"suave",fr2)}
       <div class="grafico" id="gOcupacao"></div>
-      ${faixaEixo(eixo,fr2)}
+      ${faixaEixo(resumo,fr2)}
     </div>
     <div class="card">
       ${tituloPainel("Drop",rotuloDrop)}
       ${miniIndicadores(resumo,campoDrop,"",["Média","Maior","Menor"])}
       ${faixaNumeros(resumo.map(d => num(d[campoDrop])),"suave",fr3)}
       <div class="grafico" id="gDrop"></div>
-      ${faixaEixo(eixo,fr3)}
+      ${faixaEixo(resumo,fr3)}
     </div>`;
 
   const meia = 0.485;
@@ -609,14 +754,14 @@ function desenharDia(registros, resumo){
       ${faixaNumeros(resumo.map(d => num(d.entregas)),"azul",meia)}
       ${faixaNumeros(resumo.map(d => num(d.mediaParadas)),"suave",meia)}
       <div class="grafico" id="gParadas"></div>
-      ${faixaEixo(eixo,meia)}
+      ${faixaEixo(resumo,meia)}
     </div>
     <div class="card">
       ${tituloPainel("Peso × capacidade por dia",null,[["Capacidade (t)",COR.azul],["Peso (t)",COR.escura]])}
       ${faixaNumeros(resumo.map(d => toneladas(d.capacidade)),"azul",meia)}
       ${faixaNumeros(resumo.map(d => toneladas(d.peso)),"suave",meia)}
       <div class="grafico" id="gPeso"></div>
-      ${faixaEixo(eixo,meia)}
+      ${faixaEixo(resumo,meia)}
     </div>`;
 
   graficoBarras(document.getElementById("gVeiculos"), resumo, "veiculos", alturaCima, fr1,
@@ -695,6 +840,130 @@ function desenharSemana(resumo){
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
+   MODO APRESENTAÇÃO — uma seção por indicador, no tamanho de um slide
+   ────────────────────────────────────────────────────────────────────────── */
+
+const SECOES = [
+  {id:"drop", menu:"Drop size", titulo:"Drop size", nota:"kg entregues por parada",
+   forma:"drop", campo:"dropParada", unidade:" kg"},
+  {id:"veiculos", menu:"Quantidade de veículos", titulo:"Quantidade de veículos",
+   nota:"veículos distintos por dia", forma:"barra", campo:"veiculos", unidade:""},
+  {id:"entregas", menu:"Quantidade de entrega", titulo:"Quantidade de entrega",
+   nota:"ordens entregues e média de paradas por rota", forma:"linhas",
+   campoA:"mediaParadas", campoB:"entregas", nomeA:"Média de paradas", nomeB:"Entregas",
+   campo:"entregas", unidade:""},
+  {id:"ocupacao", menu:"Ocupação da frota", titulo:"Ocupação da frota",
+   nota:"peso embarcado ÷ capacidade contratada", forma:"barra", campo:"ocupacao",
+   formato:"%{y:.0%}", percentual:true, unidade:"%"},
+  {id:"peso", menu:"Peso × capacidade", titulo:"Peso × capacidade",
+   nota:"toneladas embarcadas e capacidade disponível", forma:"linhas",
+   campoA:"peso", campoB:"capacidade", nomeA:"Peso (kg)", nomeB:"Capacidade (kg)",
+   campo:"peso", unidade:" kg"},
+];
+
+/** Valor conforme a unidade da seção: percentual vira 0-100. */
+function valorDaSecao(linha, secao){
+  const v = linha[secao.campo];
+  if(v === null || !isFinite(v)) return null;
+  return secao.percentual ? v*100 : v;
+}
+
+/**
+ * Texto de leitura do indicador, montado a partir dos próprios números.
+ *
+ * A ideia é a mesma da apresentação impressa: dizer a média do período, onde
+ * ficaram os extremos e o que explica os vales — que quase sempre são os dias
+ * sem operação normal.
+ */
+function narrativa(resumo, secao){
+  const validos = resumo.filter(d => valorDaSecao(d, secao) !== null);
+  if(validos.length < 2) return "";
+
+  const valores = validos.map(d => valorDaSecao(d, secao));
+  const media = valores.reduce((a,b) => a+b, 0)/valores.length;
+  const maior = validos.reduce((a,b) => valorDaSecao(b,secao) > valorDaSecao(a,secao) ? b : a);
+  const menor = validos.reduce((a,b) => valorDaSecao(b,secao) < valorDaSecao(a,secao) ? b : a);
+  const u = secao.unidade;
+
+  const uteis = validos.filter(d => d.tipo === "util");
+  const parados = validos.filter(d => d.tipo !== "util");
+  const mediaUtil = uteis.length
+    ? uteis.map(d => valorDaSecao(d,secao)).reduce((a,b)=>a+b,0)/uteis.length : null;
+
+  const partes = [];
+  partes.push(`A média do período ficou em <b>${num(media)}${u}</b>, `
+    + `com pico de <b>${num(valorDaSecao(maior,secao))}${u}</b> em ${maior.rotulo} `
+    + `e mínimo de <b>${num(valorDaSecao(menor,secao))}${u}</b> em ${menor.rotulo}.`);
+
+  if(parados.length && mediaUtil !== null){
+    const mediaParada = parados.map(d => valorDaSecao(d,secao)).reduce((a,b)=>a+b,0)/parados.length;
+    const diferenca = mediaUtil ? (mediaParada/mediaUtil - 1)*100 : 0;
+    const sentido = diferenca >= 0 ? "acima" : "abaixo";
+    partes.push(`Nos ${num(parados.length)} dias sem operação normal `
+      + `(fins de semana e feriados) o indicador ficou em <b>${num(mediaParada)}${u}</b>, `
+      + `${num(Math.abs(diferenca))}% ${sentido} da média dos dias úteis `
+      + `(<b>${num(mediaUtil)}${u}</b>) — é o que explica os vales do gráfico.`);
+  }
+
+  const acima = valores.filter(v => v >= media).length;
+  partes.push(`No total, ${num(acima)} de ${num(valores.length)} dias ficaram na média ou acima dela.`);
+
+  if(filtros.uf === "TODOS")
+    partes.push(`Os números são o consolidado dos estados; use o filtro para isolar um deles.`);
+
+  return partes.join(" ");
+}
+
+function desenharSlides(registros, resumo){
+  const secao = SECOES.find(s => s.id === filtros.secao) || SECOES[0];
+
+  document.getElementById("trilho").innerHTML =
+    `<div class="trilho-rot">Indicadores</div>`
+    + SECOES.map(s => `<button data-secao="${s.id}"
+        aria-current="${s.id === secao.id}">${s.menu}</button>`).join("");
+
+  document.querySelectorAll("#trilho button").forEach(botao => {
+    botao.onclick = () => { filtros.secao = botao.dataset.secao; render(); };
+  });
+
+  document.getElementById("palcoTitulo").textContent = secao.titulo;
+  document.getElementById("palcoNota").textContent = secao.nota;
+
+  const validos = resumo.filter(d => valorDaSecao(d, secao) !== null);
+  const valores = validos.map(d => valorDaSecao(d, secao));
+  const media = valores.length ? valores.reduce((a,b)=>a+b,0)/valores.length : null;
+  const chips = [
+    ["Média", media === null ? "—" : num(media) + secao.unidade],
+    ["Dias", num(resumo.length)],
+    ["Rotas", num(resumo.reduce((a,d) => a + d.rotas, 0))],
+  ];
+  document.getElementById("palcoKpis").innerHTML = chips.map(([rot,val],i) =>
+    `<div class="kpi-chip${i === 0 ? " destaque" : ""}">
+       <div class="kpi-rot">${rot}</div><div class="kpi-val">${val}</div></div>`).join("");
+
+  document.getElementById("palcoTexto").innerHTML = narrativa(resumo, secao);
+
+  const palco = document.getElementById("palcoGrafico");
+  const altura = Math.max(300, Math.round(window.innerHeight * 0.44));
+  const fracao = 0.72;
+
+  if(secao.forma === "linhas"){
+    graficoDuasLinhas(palco, resumo, secao.campoA, secao.campoB, secao.nomeA, secao.nomeB,
+      altura, origemPorDia(registros, resumo, secao.campoA),
+      origemPorDia(registros, resumo, secao.campoB));
+  }else if(secao.forma === "drop"){
+    graficoDrop(palco, resumo, secao.campo, altura, fracao,
+      origemPorDia(registros, resumo, secao.campo));
+  }else{
+    graficoBarras(palco, resumo, secao.campo, altura, fracao,
+      secao.formato || "%{y:,.0f}",
+      origemPorDia(registros, resumo, secao.campo, secao.unidade, !!secao.percentual));
+  }
+
+  document.getElementById("palcoEixo").innerHTML = faixaEixo(resumo, fracao);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
    CONTROLES: páginas e semanas
    ────────────────────────────────────────────────────────────────────────── */
 
@@ -710,6 +979,11 @@ function desenharControles(resumo, semanasDisponiveis){
     <div class="paginacao">${filtros.pagina} / ${total}</div>
     <button class="pilula" id="pgProxima" ${filtros.pagina === total ? "disabled" : ""}>›</button>` : "";
 
+  const legenda = `<span class="legenda-dias">
+      <span><i style="background:rgba(93,135,176,.20)"></i>Fim de semana</span>
+      <span><i style="background:rgba(192,138,74,.30)"></i>Feriado</span>
+    </span>`;
+
   const semanas = `<div class="semanas">
       <button class="pilula" data-semana="TODAS"
         aria-pressed="${filtros.semana === "TODAS"}" title="Volta ao período completo">Tudo</button>`
@@ -718,7 +992,7 @@ function desenharControles(resumo, semanasDisponiveis){
         title="${dataCurta(s.inicio)}–${dataCurta(s.fim)} · ${num(s.rotas)} rotas">${s.semana}</button>`).join("")
     + `</div>`;
 
-  alvo.innerHTML = paginacao + semanas;
+  alvo.innerHTML = paginacao + legenda + semanas;
 
   const anterior = document.getElementById("pgAnterior");
   const proxima  = document.getElementById("pgProxima");
@@ -784,13 +1058,9 @@ function desenharDetalheEstados(registros){
    ────────────────────────────────────────────────────────────────────────── */
 
 function atualizarCabecalho(resumo, porSemanaAtivo){
-  const nomeEstado = filtros.uf === "TODOS"
-    ? "Consolidado · Todos os estados"
-    : `${filtros.uf} · ${BASE.estados[filtros.uf] || "Estado não identificado"}`;
   document.getElementById("cabTitulo").textContent =
-    porSemanaAtivo ? "Indicadores por semana" : "Indicadores por dia";
-  document.getElementById("cabSub").innerHTML =
-    `${nomeEstado}<span class="cab-sep">·</span> Delly's Food Service`;
+    filtros.aba === "semana" ? "Indicadores por semana"
+    : filtros.aba === "slides" ? "Apresentação" : "Indicadores por dia";
   document.getElementById("kpiUnidadeRot").textContent = porSemanaAtivo ? "Semanas" : "Dias";
   document.getElementById("kpiUnidade").textContent = num(resumo.length);
   document.getElementById("kpiRotas").textContent =
@@ -799,12 +1069,12 @@ function atualizarCabecalho(resumo, porSemanaAtivo){
 
 function render(){
   const registros = registrosFiltrados();
-  const viewDia = document.getElementById("viewDia");
-  const viewSemana = document.getElementById("viewSemana");
   const controles = document.getElementById("controles");
   const porSemanaAtivo = filtros.aba === "semana";
-  viewDia.hidden = porSemanaAtivo;
-  viewSemana.hidden = !porSemanaAtivo;
+  const slidesAtivo = filtros.aba === "slides";
+  document.getElementById("viewDia").hidden = filtros.aba !== "dia";
+  document.getElementById("viewSemana").hidden = !porSemanaAtivo;
+  document.getElementById("viewSlides").hidden = !slidesAtivo;
   // na visão semanal cada barra já é uma semana: a faixa de pílulas não cabe ali
   controles.hidden = porSemanaAtivo;
   if(porSemanaAtivo) controles.innerHTML = "";
@@ -822,6 +1092,14 @@ function render(){
   if(porSemanaAtivo){
     atualizarCabecalho(semanasDisponiveis, true);
     desenharSemana(semanasDisponiveis);
+  }else if(slidesAtivo){
+    const doPeriodo = filtros.semana === "TODAS"
+      ? registros : registros.filter(r => r.semana === filtros.semana);
+    const base = doPeriodo.length ? doPeriodo : registros;
+    const resumo = porDia(base);
+    desenharControles(resumo, semanasDisponiveis);
+    atualizarCabecalho(resumo, false);
+    desenharSlides(base, resumo);
   }else{
     const doPeriodo = filtros.semana === "TODAS"
       ? registros : registros.filter(r => r.semana === filtros.semana);
@@ -880,16 +1158,15 @@ function ligarFiltros(datas){
   const colunas = document.getElementById("fColunas");
   colunas.onchange = () => { filtros.colunas = colunas.value; filtros.pagina = 1; render(); };
 
-  const abaDia = document.getElementById("abaDia");
-  const abaSemana = document.getElementById("abaSemana");
+  const abas = {dia:"abaDia", semana:"abaSemana", slides:"abaSlides"};
   const trocarAba = escolha => {
     filtros.aba = escolha;
-    abaDia.setAttribute("aria-selected", escolha === "dia");
-    abaSemana.setAttribute("aria-selected", escolha === "semana");
+    for(const [nome, id] of Object.entries(abas))
+      document.getElementById(id).setAttribute("aria-selected", nome === escolha);
     render();
   };
-  abaDia.onclick = () => trocarAba("dia");
-  abaSemana.onclick = () => trocarAba("semana");
+  for(const [nome, id] of Object.entries(abas))
+    document.getElementById(id).onclick = () => trocarAba(nome);
 }
 
 async function iniciar(){
@@ -922,6 +1199,7 @@ async function iniciar(){
     if(Math.abs(window.innerWidth - largura) < 2) return;
     largura = window.innerWidth;
     document.querySelectorAll(".js-plotly-plot").forEach(g => Plotly.Plots.resize(g));
+    if(filtros.aba === "slides") render();
   });
 }
 
