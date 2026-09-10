@@ -12,219 +12,295 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+/* ── Identidade DELLY'S ──────────────────────────────────────────────────────
+   Azul da marca como cor institucional, verde da folha como cor de destaque
+   positivo, e uma escala de cinzas fria para tudo o mais.                    */
 :root{
-  --texto:#14161A; --suave:#8B949E; --azul:#5D87B0; --azul-claro:#8FB3D4;
-  --escura:#2C3440; --grade:#E4E8EC; --borda:#EAEEF3; --fundo:#F2F5F9;
+  --marca:#123C7A;          /* azul institucional  */
+  --marca-clara:#2E6BB0;    /* azul dos gráficos   */
+  --azul-claro:#9CC0E4;
+  --verde:#4CA22F;          /* melhor resultado    */
+  --ambar:#C8873C;          /* feriado / atenção   */
+  --tinta:#0F1723;
+  --suave:#6B7684;
+  --tenue:#9AA5B1;
+  --linha:#E6EBF1;
+  --grade:#EDF1F6;
+  --papel:#FFFFFF;
+  --fundo:#F4F7FA;
+  --raio:16px;
+  --sombra:0 1px 2px rgba(15,23,35,.04),0 8px 24px rgba(15,23,35,.05);
+  --sombra-alta:0 2px 4px rgba(15,23,35,.05),0 14px 34px rgba(18,60,122,.10);
 }
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;overflow-x:hidden;background:var(--fundo)}
 body{
-  font-family:'Archivo',Arial,sans-serif;color:var(--texto);
-  padding:14px clamp(8px,.8vw,20px) 52px;
+  font-family:'Archivo',Arial,sans-serif;color:var(--tinta);
+  padding:16px clamp(10px,1.1vw,26px) 26px;
 }
 button{font-family:inherit}
+[hidden]{display:none !important}
+
+.condensada{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700}
+.rotulo{font-size:9.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--tenue)}
 
 /* ── Cabeçalho ───────────────────────────────────────────────────────────── */
 .cab{
-  display:flex;align-items:center;gap:14px 22px;flex-wrap:wrap;
-  background:#fff;border:1px solid var(--borda);border-radius:14px;
-  padding:clamp(8px,.7vw,14px) clamp(12px,1vw,20px);margin-bottom:10px;
-  box-shadow:0 1px 2px rgba(20,22,26,.03),0 6px 20px rgba(20,22,26,.04);
+  display:flex;align-items:center;gap:16px 26px;flex-wrap:wrap;
+  background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);
+  padding:14px clamp(14px,1.1vw,22px);margin-bottom:12px;box-shadow:var(--sombra);
 }
-.cab-id{display:flex;align-items:center;gap:14px;min-width:0}
-.cab-logo{height:clamp(34px,3.2vw,54px);width:auto;display:block;flex-shrink:0}
-.cab-divisor{width:1px;align-self:stretch;background:#E3E7EB;margin:2px 2px}
-.cab-titulo{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
-  letter-spacing:.01em;font-size:clamp(24px,2vw,38px);line-height:1;
-  text-transform:uppercase;margin:0}
+.cab-id{display:flex;align-items:center;gap:16px;min-width:0}
+.cab-logo{height:clamp(36px,3.4vw,56px);width:auto;display:block;flex-shrink:0}
+.cab-divisor{width:1px;align-self:stretch;background:var(--linha)}
+.cab-titulo{
+  font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:clamp(26px,2.1vw,40px);line-height:1;text-transform:uppercase;
+  letter-spacing:.005em;margin:0;color:var(--marca);
+}
+.cab-sub{font-size:10.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--tenue);margin-top:5px}
+
+/* Filtros compactos, encostados à direita */
+.cab-filtros{display:flex;align-items:flex-end;gap:8px 18px;flex-wrap:wrap;margin-left:auto}
+.campo{display:flex;flex-direction:column;gap:4px}
+.campo>label{font-size:9px;font-weight:600;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--tenue)}
+.campo select,.campo input{
+  font-family:'Archivo',Arial,sans-serif;font-size:12.5px;color:var(--tinta);
+  background:#FBFCFE;border:1px solid #DBE3EC;border-radius:10px;
+  padding:5px 9px;min-height:32px;transition:border-color .15s ease,box-shadow .15s ease;
+}
+.campo select:hover,.campo input:hover{border-color:#BFCEDE}
+.campo select:focus-visible,.campo input:focus-visible,button:focus-visible{
+  outline:2px solid var(--marca-clara);outline-offset:1px}
+.campo input[type="date"]{width:128px}
+.periodo{display:flex;align-items:center;gap:6px}
+.periodo span{color:var(--tenue);font-size:12px}
+
+/* Abas em segmento único */
+.abas{display:flex;gap:0;padding:3px;background:#EEF2F7;border-radius:11px}
+.aba{
+  border:0;background:transparent;color:var(--suave);border-radius:9px;
+  padding:7px 15px;font-size:10.5px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;cursor:pointer;transition:background .15s ease,color .15s ease;
+}
+.aba:hover{color:var(--tinta)}
+.aba[aria-selected="true"]{background:var(--papel);color:var(--marca);
+  box-shadow:0 1px 3px rgba(15,23,35,.10)}
+
+/* Cards de contagem do cabeçalho */
 .cab-meta{display:flex;gap:8px;align-items:stretch}
-.kpi-chip{background:#fff;border:1px solid #E7EBF0;border-radius:12px;padding:7px 16px;
-  min-width:92px;text-align:right;box-shadow:0 1px 2px rgba(20,22,26,.04)}
-.kpi-chip.destaque{background:#14161A;border-color:#14161A}
-.kpi-rot{font-size:9px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#98A2AE}
+.kpi-chip{
+  background:#FBFCFE;border:1px solid var(--linha);border-radius:12px;
+  padding:8px 16px;min-width:88px;text-align:right;
+}
+.kpi-chip.destaque{background:var(--marca);border-color:var(--marca)}
+.kpi-rot{font-size:9px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--tenue)}
 .kpi-val{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
-  font-size:clamp(18px,1.45vw,27px);line-height:1.15;white-space:nowrap}
+  font-size:clamp(19px,1.5vw,28px);line-height:1.15;white-space:nowrap;color:var(--tinta)}
 .kpi-chip.destaque .kpi-val{color:#fff}
 .kpi-chip.destaque .kpi-rot{color:var(--azul-claro)}
 
-/* ── Filtros, dentro do próprio cabeçalho ────────────────────────────────── */
-.cab-filtros{display:flex;align-items:flex-end;gap:8px 16px;flex-wrap:wrap;margin-left:auto}
-.campo{display:flex;flex-direction:column;gap:3px}
-.campo>label{font-size:9px;font-weight:600;letter-spacing:.14em;
-  text-transform:uppercase;color:#98A2AE}
-.campo select,.campo input{
-  font-family:'Archivo',Arial,sans-serif;font-size:12.5px;color:var(--texto);background:#fff;
-  border:1px solid #DCE2E9;border-radius:9px;padding:4px 8px;min-height:30px;
+/* Segunda linha: paginação, legenda de dias e pílulas de semana */
+.cab-controles{
+  flex-basis:100%;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  border-top:1px solid var(--grade);padding-top:11px;margin-top:1px;
 }
-.campo input[type="date"]{width:126px}
-.campo select:focus-visible,.campo input:focus-visible,button:focus-visible{
-  outline:2px solid var(--azul);outline-offset:1px}
-.periodo{display:flex;align-items:center;gap:6px}
-.periodo span{color:#98A2AE;font-size:12px}
-.abas{display:flex;gap:5px;padding-bottom:1px}
-.aba{border:1px solid #E7EBF0;background:#fff;color:#48525E;border-radius:10px;
-  padding:7px 14px;font-size:11px;font-weight:700;letter-spacing:.04em;
-  text-transform:uppercase;cursor:pointer}
-.aba[aria-selected="true"]{background:#2F5B87;border-color:#2F5B87;color:#fff}
+.paginacao{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:18px;min-width:54px;text-align:center;color:var(--suave)}
+.semanas{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
+.pilula{
+  border:1px solid var(--linha);background:#FBFCFE;color:var(--suave);border-radius:9px;
+  padding:5px 12px;font-size:10.5px;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;cursor:pointer;transition:all .15s ease;
+}
+.pilula:hover{border-color:var(--marca-clara);color:var(--marca);background:#fff}
+.pilula[aria-pressed="true"]{background:var(--marca);border-color:var(--marca);color:#fff}
+.pilula:disabled{opacity:.3;cursor:default}
+.legenda-dias{display:flex;gap:14px;align-items:center;font-size:9.5px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--tenue)}
+.legenda-dias i{width:11px;height:11px;border-radius:3px;display:inline-block;
+  margin-right:6px;vertical-align:-2px}
 
-/* ── Painéis ─────────────────────────────────────────────────────────────── */
-.linha{display:grid;gap:clamp(6px,.7vw,16px);margin-bottom:clamp(6px,.7vw,16px);align-items:stretch}
+/* ── Cartões de gráfico (abas Dia e Semana) ──────────────────────────────── */
+.linha{display:grid;gap:12px;margin-bottom:12px;align-items:stretch}
 .linha-1{grid-template-columns:.95fr .95fr 1.2fr}
 .linha-2{grid-template-columns:1fr 1fr}
 .linha-3{grid-template-columns:repeat(3,1fr)}
 .card{
-  background:#fff;border:1px solid var(--borda);border-radius:14px;
-  padding:clamp(8px,.7vw,14px) clamp(8px,.7vw,16px) clamp(4px,.4vw,8px);
-  box-shadow:0 1px 2px rgba(20,22,26,.03),0 6px 20px rgba(20,22,26,.045);
+  background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);
+  padding:14px 16px 8px;box-shadow:var(--sombra);
   transition:box-shadow .18s ease,transform .18s ease;display:flex;flex-direction:column;
 }
-.card:hover{box-shadow:0 2px 4px rgba(20,22,26,.05),0 10px 28px rgba(45,90,140,.10);
-  transform:translateY(-1px)}
-.painel-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:6px}
+.card:hover{box-shadow:var(--sombra-alta);transform:translateY(-1px)}
+.painel-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:8px}
 .painel-titulo{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
-  font-size:clamp(16px,1.15vw,23px);text-transform:uppercase;letter-spacing:.01em;line-height:1}
-.painel-nota{font-size:clamp(8px,.62vw,10px);font-weight:600;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--azul);background:#EFF4FA;border-radius:20px;
-  padding:3px 10px;white-space:nowrap}
-.painel-series{display:flex;gap:12px;align-items:center}
-.serie{display:inline-flex;align-items:center;gap:6px;font-size:clamp(8px,.62vw,10px);
-  font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#6B7684;white-space:nowrap}
+  font-size:clamp(17px,1.2vw,23px);text-transform:uppercase;letter-spacing:.01em;
+  line-height:1;color:var(--tinta)}
+.painel-nota{font-size:9px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--marca-clara);background:#EDF3FA;border-radius:20px;padding:4px 11px;white-space:nowrap}
+.painel-series{display:flex;gap:14px;align-items:center}
+.serie{display:inline-flex;align-items:center;gap:6px;font-size:9px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--suave);white-space:nowrap}
 .serie i{width:14px;height:3px;border-radius:2px;display:inline-block}
 
-/* ── Mini estatísticas ───────────────────────────────────────────────────── */
-.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#F7F9FC;
-  border:1px solid #EEF2F7;border-radius:10px;padding:8px 10px;margin:2px 0 6px}
+.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#F8FAFD;
+  border:1px solid var(--grade);border-radius:12px;padding:9px 10px;margin:0 0 8px}
 .mini-item{text-align:center}
-.mini-item+.mini-item{border-left:1px solid #E7ECF2}
-.mini-rot{font-size:8px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#98A2AE}
+.mini-item+.mini-item{border-left:1px solid var(--grade)}
+.mini-rot{font-size:8px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--tenue)}
 .mini-val{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
-  font-size:clamp(20px,1.5vw,28px);line-height:1.05}
-.mini-item:first-child .mini-val{color:#3F6E9C}
-.mini-dia{font-size:9px;color:#98A2AE;letter-spacing:.04em}
+  font-size:clamp(21px,1.5vw,29px);line-height:1.05;color:var(--tinta)}
+.mini-item:first-child .mini-val{color:var(--marca)}
+.mini-dia{font-size:9px;color:var(--tenue);letter-spacing:.04em}
 
-/* ── Faixas de números alinhadas às colunas do gráfico ───────────────────── */
-.faixa{display:grid;width:100%;margin:2px 0 4px;overflow:hidden}
+.faixa{display:grid;width:100%;margin:2px 0 5px;overflow:hidden}
 .faixa-cel{min-width:0;text-align:center;overflow:hidden;white-space:nowrap;line-height:1.15;
   font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700}
-.faixa-forte{color:var(--texto)}
-.faixa-azul{color:#3F6E9C}
-.faixa-suave{color:#7A8794}
-.faixa-eixo{display:grid;width:100%;margin-top:2px;overflow:hidden;font-weight:600;
-  color:#98A2AE;letter-spacing:.02em}
+.faixa-forte{color:var(--tinta)}
+.faixa-azul{color:var(--marca)}
+.faixa-suave{color:var(--suave)}
+.faixa-eixo{display:grid;width:100%;margin-top:4px;overflow:hidden;font-weight:600;
+  color:var(--tenue);letter-spacing:.02em}
 .eixo-cel{min-width:0;text-align:center;overflow:hidden;white-space:nowrap}
-.eixo-cel.eixo-fds{color:#5D87B0}
-.eixo-cel.eixo-feriado{color:#B5813F}
-.legenda-dias{display:flex;gap:12px;align-items:center;font-size:9.5px;font-weight:600;
-  letter-spacing:.1em;text-transform:uppercase;color:#98A2AE}
-.legenda-dias i{width:11px;height:11px;border-radius:3px;display:inline-block;
-  margin-right:5px;vertical-align:-2px}
+.eixo-cel.eixo-fds{color:var(--marca-clara)}
+.eixo-cel.eixo-feriado{color:var(--ambar)}
 .grafico{width:100%}
-
-/* ── Navegação de páginas e semanas, na base do cabeçalho ────────────────── */
-.cab-controles{
-  flex-basis:100%;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-  border-top:1px solid #EEF2F7;padding-top:9px;margin-top:-2px;
-}
-.paginacao{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
-  font-size:18px;min-width:54px;text-align:center}
-.semanas{margin-left:auto;display:flex;gap:5px;flex-wrap:wrap}
-.pilula{border:1px solid #E7EBF0;background:#fff;color:#48525E;border-radius:9px;
-  padding:5px 11px;font-size:10.5px;font-weight:700;letter-spacing:.04em;
-  text-transform:uppercase;cursor:pointer;box-shadow:0 1px 2px rgba(20,22,26,.04);
-  transition:transform .15s ease,box-shadow .15s ease}
-.pilula:hover{border-color:var(--azul);color:var(--texto);transform:translateY(-1px);
-  box-shadow:0 6px 16px rgba(45,90,140,.12)}
-.pilula[aria-pressed="true"]{background:#2F5B87;border-color:#2F5B87;color:#fff}
-.pilula:disabled{opacity:.35;cursor:default;transform:none;box-shadow:none}
 
 /* ── Visão por semana ────────────────────────────────────────────────────── */
 .legenda{display:flex;gap:8px 20px;justify-content:flex-end;flex-wrap:wrap;margin:0 0 10px}
-.leg-item{font-size:11px;letter-spacing:.08em;text-transform:uppercase;
-  display:inline-flex;align-items:center;gap:7px}
-.leg-cor{width:12px;height:12px;display:inline-block}
-.sem-faixa{display:grid;width:100%;border-top:1px solid #E3E7EB;padding-top:8px;margin-bottom:4px}
+.leg-item{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  display:inline-flex;align-items:center;gap:7px;color:var(--suave)}
+.leg-cor{width:11px;height:11px;display:inline-block;border-radius:3px}
+.sem-faixa{display:grid;width:100%;border-top:1px solid var(--grade);padding-top:9px;margin-bottom:4px}
 .sem-cel{text-align:center;min-width:0;overflow:hidden}
 .sem-val{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
-  font-size:27px;line-height:1.05;white-space:nowrap}
+  font-size:27px;line-height:1.05;white-space:nowrap;color:var(--tinta)}
 .sem-cel.compacta .sem-val{font-size:19px}
 .sem-cel.compacta .sem-rot{font-size:9px;letter-spacing:.04em}
-.sem-rot{font-family:'IBM Plex Mono',Consolas,monospace;font-size:10px;letter-spacing:.1em;
-  text-transform:uppercase;color:#7C858D}
+.sem-rot{font-family:'IBM Plex Mono',Consolas,monospace;font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--tenue)}
 
-/* ── Modo apresentação: trilho de seções e palco ─────────────────────────── */
-.palco{display:grid;grid-template-columns:236px 1fr;gap:clamp(6px,.7vw,16px);align-items:stretch}
+/* ── Modo apresentação ───────────────────────────────────────────────────── */
+.palco{display:grid;grid-template-columns:250px 1fr;gap:12px;align-items:stretch}
 .trilho{
-  background:#2C3440;border-radius:14px;padding:16px 12px;display:flex;flex-direction:column;gap:4px;
-  box-shadow:0 1px 2px rgba(20,22,26,.03),0 6px 20px rgba(20,22,26,.06);
+  background:linear-gradient(170deg,#153F7D 0%,#0E2C58 100%);
+  border-radius:var(--raio);padding:18px 12px;display:flex;flex-direction:column;gap:3px;
+  box-shadow:var(--sombra);
 }
-.trilho-rot{font-size:9px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
-  color:#8FB3D4;padding:2px 12px 10px}
+.trilho-rot{font-size:9px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--azul-claro);opacity:.85;padding:2px 13px 12px}
 .trilho button{
-  display:block;width:100%;text-align:left;background:transparent;border:0;cursor:pointer;
-  color:#C7D2DD;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:600;
-  font-size:19px;line-height:1.15;text-transform:uppercase;letter-spacing:.02em;
-  padding:9px 12px;border-radius:9px;border-left:3px solid transparent;
+  display:flex;align-items:center;gap:11px;width:100%;text-align:left;background:transparent;
+  border:0;cursor:pointer;color:#C6D6E8;font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;
+  font-weight:600;font-size:18px;line-height:1.15;text-transform:uppercase;letter-spacing:.02em;
+  padding:10px 13px;border-radius:11px;position:relative;
   transition:background .15s ease,color .15s ease;
 }
-.trilho button:hover{background:rgba(255,255,255,.06);color:#fff}
-.trilho button[aria-current="true"]{background:rgba(143,179,212,.16);color:#fff;
-  border-left-color:#8FB3D4}
+.trilho button svg{width:17px;height:17px;flex-shrink:0;opacity:.75}
+.trilho button:hover{background:rgba(255,255,255,.07);color:#fff}
+.trilho button:hover svg{opacity:1}
+.trilho button[aria-current="true"]{
+  background:rgba(255,255,255,.12);color:#fff;font-weight:700}
+.trilho button[aria-current="true"] svg{opacity:1;color:#7FD35C}
+.trilho button[aria-current="true"]::before{
+  content:"";position:absolute;left:0;top:11px;bottom:11px;width:3px;border-radius:0 3px 3px 0;
+  background:var(--verde)}
+
 .palco-corpo{
-  background:#fff;border:1px solid var(--borda);border-radius:14px;
-  padding:clamp(12px,1vw,20px) clamp(12px,1vw,22px) clamp(6px,.5vw,10px);
-  box-shadow:0 1px 2px rgba(20,22,26,.03),0 6px 20px rgba(20,22,26,.045);
+  background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);
+  padding:20px clamp(16px,1.3vw,26px) 12px;box-shadow:var(--sombra);
   display:flex;flex-direction:column;
 }
-.palco-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.palco-topo{display:flex;align-items:flex-start;justify-content:space-between;
+  gap:20px;flex-wrap:wrap;padding-bottom:16px;border-bottom:1px solid var(--grade)}
 .palco-titulo{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
-  font-size:clamp(24px,2vw,34px);text-transform:uppercase;letter-spacing:.01em;margin:0;line-height:1}
-.palco-nota{font-size:10px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
-  color:#98A2AE;margin-top:4px}
-.palco-kpis{display:flex;gap:8px}
-.palco-texto{
-  font-size:clamp(13px,1.05vw,16px);line-height:1.6;color:#3A424C;margin:14px 0 4px;
-  max-width:96ch;border-left:3px solid #E7EBF0;padding-left:14px;
+  font-size:clamp(28px,2.4vw,40px);text-transform:uppercase;letter-spacing:.01em;
+  margin:0;line-height:1;color:var(--marca)}
+.palco-nota{font-size:11px;font-weight:500;letter-spacing:.04em;color:var(--suave);margin-top:6px}
+
+/* KPIs executivos */
+.palco-kpis{display:flex;gap:10px}
+.kpi-card{
+  background:#FBFCFE;border:1px solid var(--linha);border-radius:13px;
+  padding:11px 20px;min-width:126px;border-top:3px solid var(--linha);
 }
-.palco-texto b{color:var(--texto);font-weight:600}
+.kpi-card.forte{background:var(--marca);border-color:var(--marca);border-top-color:var(--verde)}
+.kpi-card .rotulo{color:var(--tenue)}
+.kpi-card.forte .rotulo{color:var(--azul-claro)}
+.kpi-numero{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:clamp(30px,2.6vw,44px);line-height:1.05;color:var(--tinta);white-space:nowrap;margin-top:2px}
+.kpi-card.forte .kpi-numero{color:#fff}
+.kpi-unidade{font-size:.55em;font-weight:600;color:var(--tenue);margin-left:3px}
+.kpi-card.forte .kpi-unidade{color:var(--azul-claro)}
+
+/* Bloco de análise */
+.palco-texto{
+  font-size:clamp(13px,1.02vw,15.5px);line-height:1.65;color:#39424E;
+  margin:16px 0 6px;background:#F8FAFD;border:1px solid var(--grade);
+  border-left:3px solid var(--marca-clara);border-radius:0 12px 12px 0;
+  padding:14px 18px;max-width:none;
+}
+.palco-texto b{
+  color:var(--marca);font-weight:700;background:#E9F0F9;
+  padding:1px 6px;border-radius:6px;white-space:nowrap;
+}
+.palco-texto b.alta{color:#2E7D32;background:#EAF5E6}
+.palco-texto b.baixa{color:#9A5B22;background:#FAF0E4}
 
 /* ── Detalhe por estado e rodapé ─────────────────────────────────────────── */
-details.detalhe{background:#fff;border:1px solid var(--borda);border-radius:14px;
-  padding:10px 16px;margin-bottom:10px}
-details.detalhe summary{cursor:pointer;font-size:12px;font-weight:600;letter-spacing:.06em;
-  text-transform:uppercase;color:#48525E}
-.tabela-rolagem{overflow:auto;max-height:420px;margin-top:10px}
+details.detalhe{background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);
+  padding:12px 18px;margin-bottom:12px;box-shadow:var(--sombra)}
+details.detalhe summary{cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--suave)}
+details.detalhe summary:hover{color:var(--marca)}
+.tabela-rolagem{overflow:auto;max-height:420px;margin-top:12px}
 table{border-collapse:collapse;width:100%;font-size:12px}
-th,td{border-bottom:1px solid #EEF2F7;padding:6px 10px;text-align:right;white-space:nowrap}
-th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:#fff}
-thead th{position:sticky;top:0;background:#fff;font-size:10px;letter-spacing:.1em;
-  text-transform:uppercase;color:#7C858D}
-.fonte{font-family:'IBM Plex Mono',Consolas,monospace;font-size:10px;letter-spacing:.12em;
-  text-transform:uppercase;color:#7C858D;margin-top:22px;border-top:1px solid #DCDFE3;padding-top:10px}
-.aviso{background:#fff;border:1px solid var(--borda);border-radius:14px;padding:18px 20px;
-  font-size:13px;line-height:1.6}
-[hidden]{display:none !important}
+th,td{border-bottom:1px solid var(--grade);padding:7px 11px;text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--papel)}
+thead th{position:sticky;top:0;background:var(--papel);font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--tenue)}
 
-@media (max-width:900px){
+.fonte{
+  display:flex;gap:10px 28px;flex-wrap:wrap;align-items:center;
+  background:#F8FAFD;border:1px solid var(--grade);border-radius:12px;
+  padding:10px 16px;margin-top:14px;
+  font-family:'IBM Plex Mono',Consolas,monospace;font-size:9.5px;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--tenue);
+}
+.fonte b{color:var(--suave);font-weight:500}
+
+.aviso{background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);
+  padding:20px 22px;font-size:13.5px;line-height:1.65;box-shadow:var(--sombra)}
+.aviso code{background:#EEF2F7;padding:1px 6px;border-radius:5px;font-size:12px}
+
+/* ── Telas estreitas ─────────────────────────────────────────────────────── */
+@media (max-width:1000px){
   .linha-1,.linha-2,.linha-3{grid-template-columns:1fr}
   .palco{grid-template-columns:1fr}
-  .trilho{flex-direction:row;overflow-x:auto;gap:6px}
+  .trilho{flex-direction:row;overflow-x:auto;gap:6px;padding:10px}
   .trilho-rot{display:none}
-  .trilho button{width:auto;white-space:nowrap;font-size:15px;border-left:0;border-bottom:3px solid transparent}
-  .trilho button[aria-current="true"]{border-left:0;border-bottom-color:#8FB3D4}
-  .cab{gap:10px}
+  .trilho button{width:auto;white-space:nowrap;font-size:15px}
+  .trilho button[aria-current="true"]::before{display:none}
+  .cab{gap:12px}
   .cab-filtros{margin-left:0;width:100%}
   .cab-meta{width:100%}
   .kpi-chip{flex:1}
-  .cab-logo{height:34px}
+  .palco-kpis{width:100%}
+  .kpi-card{flex:1;min-width:0;padding:10px 12px}
 }
 @media (prefers-reduced-motion:reduce){
-  .card,.pilula{transition:none}
+  .card,.pilula,.trilho button{transition:none}
   .card:hover{transform:none}
 }
 @media print{
-  .cab-filtros,.cab-controles,details.detalhe{display:none !important}
-  body{padding:0}
-  .card{break-inside:avoid}
+  body{padding:0;background:#fff}
+  .cab-filtros,.cab-controles,details.detalhe,.trilho{display:none !important}
+  .palco{grid-template-columns:1fr}
+  .card,.palco-corpo,.cab{box-shadow:none;break-inside:avoid}
 }
 </style>
 </head>
@@ -236,7 +312,8 @@ thead th{position:sticky;top:0;background:#fff;font-size:10px;letter-spacing:.1e
          onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cab-divisor'}))">
     <span class="cab-divisor"></span>
     <div>
-      <p class="cab-titulo" id="cabTitulo">Indicadores por dia</p>
+      <p class="cab-titulo" id="cabTitulo">Apresentação</p>
+      <div class="cab-sub">Indicadores de Performance Operacional</div>
     </div>
   </div>
 
@@ -330,8 +407,8 @@ thead th{position:sticky;top:0;background:#fff;font-size:10px;letter-spacing:.1e
    ────────────────────────────────────────────────────────────────────────── */
 
 const COR = {
-  texto:"#14161A", suave:"#8B949E", azul:"#5D87B0", azulClaro:"#8FB3D4",
-  escura:"#2C3440", grade:"#E4E8EC"
+  texto:"#0F1723", suave:"#9AA5B1", azul:"#2E6BB0", azulClaro:"#9CC0E4",
+  escura:"#123C7A", grade:"#EDF1F6", verde:"#4CA22F", ambar:"#C8873C"
 };
 
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
@@ -581,7 +658,7 @@ function faixasEspeciais(dados){
 
 const CONFIG = {displayModeBar:false, responsive:true};
 
-function layoutBase(altura, quantidade, dados){
+function layoutBase(altura, quantidade, dados, comRotulos){
   return {
     shapes: dados ? faixasEspeciais(dados) : [],
     height:altura, autosize:true, margin:{l:0,r:0,t:4,b:2},
@@ -595,42 +672,77 @@ function layoutBase(altura, quantidade, dados){
            showspikes:true, spikemode:"toaxis", spikethickness:1, spikedash:"dot",
            spikecolor:"#C7D2DD", spikesnap:"cursor"},
     yaxis:{showgrid:true, gridcolor:COR.grade, zeroline:false, showline:false,
-           nticks:4, showticklabels:false, fixedrange:true}
+           nticks:4, showticklabels:false, fixedrange:true,
+           automargin:false, range:undefined}
   };
 }
 
 const posicoes = q => Array.from({length:q}, (_,i) => i);
 
-function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}", origem = null, cores = null){
-  const q = dados.length;
-  const extra = origem || dados.map(() => "");
-  Plotly.newPlot(div, [{
-    type:"bar", x:posicoes(q), y:dados.map(d => d[campo]),
-    customdata:dados.map((d,i) => [d.hover, extra[i]]),
-    marker:{color:cores || COR.azul, line:{width:0}, cornerradius:4},
-    width:larguraRelativa(q),
-    hovertemplate:"<b>%{customdata[0]}</b><br>" + formato + "%{customdata[1]}<extra></extra>"
-  }], layoutBase(altura, q, dados), CONFIG);
+/**
+ * Realce de leitura: melhor dia em verde, pior em âmbar, os demais em azul.
+ *
+ * Só faz sentido onde a barra tem espaço para ser lida uma a uma — por isso o
+ * modo apresentação usa, e os cartões pequenos da aba Dia não.
+ */
+function coresComExtremos(valores){
+  const validos = valores.filter(v => v !== null && isFinite(v));
+  if(validos.length < 3) return valores.map(() => COR.azul);
+  const alto = Math.max(...validos), baixo = Math.min(...validos);
+  return valores.map(v => v === alto ? COR.verde : v === baixo ? COR.ambar : COR.azul);
 }
 
-function graficoDrop(div, dados, campo, altura, fracao, origem = null){
-  const validos = dados.map(d => d[campo]).filter(v => v !== null && isFinite(v));
-  const media = validos.reduce((a,b) => a+b, 0)/Math.max(validos.length,1);
-  const cores = dados.map(d => (d[campo] !== null && d[campo] >= media) ? COR.azul : COR.azulClaro);
+/** Rótulo sobre cada barra, só quando há largura suficiente para caber. */
+function rotulosDeBarra(dados, campo, quantidade, percentual){
+  if(quantidade > 24) return {};
+  const texto = dados.map(d => {
+    const v = d[campo];
+    if(v === null || !isFinite(v)) return "";
+    return num(percentual ? v*100 : v);
+  });
+  return {
+    text:texto, textposition:"outside", cliponaxis:false,
+    textfont:{family:"Barlow Condensed, sans-serif",
+              size:Math.round(escala(quantidade, 19, 12)), color:COR.texto}
+  };
+}
+
+function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
+                       origem = null, cores = null, opcoes = {}){
   const q = dados.length;
   const extra = origem || dados.map(() => "");
-  const layout = layoutBase(altura, q, dados);
+  const valores = dados.map(d => d[campo]);
+  const marcador = cores || (opcoes.extremos ? coresComExtremos(valores) : COR.azul);
+  Plotly.newPlot(div, [Object.assign({
+    type:"bar", x:posicoes(q), y:valores,
+    customdata:dados.map((d,i) => [d.hover, extra[i]]),
+    marker:{color:marcador, line:{width:0}, cornerradius:5},
+    width:larguraRelativa(q),
+    hovertemplate:"<b>%{customdata[0]}</b><br>" + formato + "%{customdata[1]}<extra></extra>"
+  }, opcoes.rotulos ? rotulosDeBarra(dados, campo, q, opcoes.percentual) : {})],
+  layoutBase(altura, q, dados, opcoes.rotulos), CONFIG);
+}
+
+function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = {}){
+  const validos = dados.map(d => d[campo]).filter(v => v !== null && isFinite(v));
+  const media = validos.reduce((a,b) => a+b, 0)/Math.max(validos.length,1);
+  const cores = opcoes.extremos
+    ? coresComExtremos(dados.map(d => d[campo]))
+    : dados.map(d => (d[campo] !== null && d[campo] >= media) ? COR.azul : COR.azulClaro);
+  const q = dados.length;
+  const extra = origem || dados.map(() => "");
+  const layout = layoutBase(altura, q, dados, opcoes.rotulos);
   layout.shapes = layout.shapes.concat([{type:"line", xref:"paper", x0:0, x1:1, yref:"y",
                     y0:media, y1:media, line:{width:1, dash:"dot", color:COR.escura}}]);
-  layout.annotations = [{xref:"paper", x:0, y:media, yref:"y", text:`média ${num(media)}`,
-                         showarrow:false, xanchor:"left", yanchor:"bottom",
-                         font:{family:"IBM Plex Mono, monospace", size:9, color:COR.suave}}];
-  Plotly.newPlot(div, [{
+  layout.annotations = [{xref:"paper", x:1, y:media, yref:"y", text:`média ${num(media)}`,
+                         showarrow:false, xanchor:"right", yanchor:"bottom",
+                         font:{family:"IBM Plex Mono, monospace", size:9.5, color:COR.suave}}];
+  Plotly.newPlot(div, [Object.assign({
     type:"bar", x:posicoes(q), y:dados.map(d => d[campo]),
     customdata:dados.map((d,i) => [d.hover, extra[i]]),
-    marker:{color:cores, line:{width:0}, cornerradius:4}, width:larguraRelativa(q),
+    marker:{color:cores, line:{width:0}, cornerradius:5}, width:larguraRelativa(q),
     hovertemplate:"<b>%{customdata[0]}</b><br>%{y:,.0f} kg%{customdata[1]}<extra></extra>"
-  }], layout, CONFIG);
+  }, opcoes.rotulos ? rotulosDeBarra(dados, campo, q, false) : {})], layout, CONFIG);
 }
 
 function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura, origemA, origemB){
@@ -784,6 +896,7 @@ function desenharDia(registros, resumo){
 
 const corDaSemana = i => i % 2 === 0 ? COR.azul : COR.azulClaro;
 
+
 function painelSemanal(id, titulo, nota){
   return `<div class="card">${tituloPainel(titulo, nota)}
     <div class="grafico" id="${id}"></div><div id="${id}Valores"></div></div>`;
@@ -843,6 +956,24 @@ function desenharSemana(resumo){
    MODO APRESENTAÇÃO — uma seção por indicador, no tamanho de um slide
    ────────────────────────────────────────────────────────────────────────── */
 
+/* Ícones do trilho: traço simples, herdam a cor do botão. */
+const ICONES = {
+  drop:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+      +'stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.7 6.8 9.9a6.4 6.4 0 1 0 10.4 0Z"/></svg>',
+  veiculos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+      +'stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5h11v9H2zM13 10h4.4l3.6 3.4v3.1h-8z"/>'
+      +'<circle cx="6" cy="18.4" r="1.8"/><circle cx="17" cy="18.4" r="1.8"/></svg>',
+  entregas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+      +'stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 3.4 7v10L12 21.2 20.6 17V7Z"/>'
+      +'<path d="M3.4 7 12 11.4 20.6 7M12 11.4v9.8"/></svg>',
+  ocupacao:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+      +'stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 17.4a9 9 0 1 1 16.8 0"/>'
+      +'<path d="M12 17.4 16 10"/></svg>',
+  peso:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
+      +'stroke-linecap="round" stroke-linejoin="round"><path d="M6.4 8.4h11.2l2 12H4.4Z"/>'
+      +'<path d="M9.4 8.4a2.6 2.6 0 1 1 5.2 0"/></svg>',
+};
+
 const SECOES = [
   {id:"drop", menu:"Drop size", titulo:"Drop size", nota:"kg entregues por parada",
    forma:"drop", campo:"dropParada", unidade:" kg"},
@@ -892,21 +1023,26 @@ function narrativa(resumo, secao){
 
   const partes = [];
   partes.push(`A média do período ficou em <b>${num(media)}${u}</b>, `
-    + `com pico de <b>${num(valorDaSecao(maior,secao))}${u}</b> em ${maior.rotulo} `
-    + `e mínimo de <b>${num(valorDaSecao(menor,secao))}${u}</b> em ${menor.rotulo}.`);
+    + `com pico de <b class="alta">${num(valorDaSecao(maior,secao))}${u}</b> em ${maior.rotulo} `
+    + `e mínimo de <b class="baixa">${num(valorDaSecao(menor,secao))}${u}</b> em ${menor.rotulo}.`);
 
   if(parados.length && mediaUtil !== null){
     const mediaParada = parados.map(d => valorDaSecao(d,secao)).reduce((a,b)=>a+b,0)/parados.length;
     const diferenca = mediaUtil ? (mediaParada/mediaUtil - 1)*100 : 0;
     const sentido = diferenca >= 0 ? "acima" : "abaixo";
+    const classe = diferenca >= 0 ? "alta" : "baixa";
+    const leitura = diferenca >= 0
+      ? "com menos rotas rodando, cada uma carrega mais"
+      : "é o que explica os vales do gráfico";
     partes.push(`Nos ${num(parados.length)} dias sem operação normal `
       + `(fins de semana e feriados) o indicador ficou em <b>${num(mediaParada)}${u}</b>, `
-      + `${num(Math.abs(diferenca))}% ${sentido} da média dos dias úteis `
-      + `(<b>${num(mediaUtil)}${u}</b>) — é o que explica os vales do gráfico.`);
+      + `<b class="${classe}">${num(Math.abs(diferenca))}% ${sentido}</b> da média dos dias úteis `
+      + `(<b>${num(mediaUtil)}${u}</b>) — ${leitura}.`);
   }
 
   const acima = valores.filter(v => v >= media).length;
-  partes.push(`No total, ${num(acima)} de ${num(valores.length)} dias ficaram na média ou acima dela.`);
+  partes.push(`No total, <b>${num(acima)} de ${num(valores.length)}</b> dias `
+    + `ficaram na média ou acima dela.`);
 
   if(filtros.uf === "TODOS")
     partes.push(`Os números são o consolidado dos estados; use o filtro para isolar um deles.`);
@@ -919,8 +1055,8 @@ function desenharSlides(registros, resumo){
 
   document.getElementById("trilho").innerHTML =
     `<div class="trilho-rot">Indicadores</div>`
-    + SECOES.map(s => `<button data-secao="${s.id}"
-        aria-current="${s.id === secao.id}">${s.menu}</button>`).join("");
+    + SECOES.map(s => `<button data-secao="${s.id}" aria-current="${s.id === secao.id}">
+        ${ICONES[s.id] || ""}<span>${s.menu}</span></button>`).join("");
 
   document.querySelectorAll("#trilho button").forEach(botao => {
     botao.onclick = () => { filtros.secao = botao.dataset.secao; render(); };
@@ -932,14 +1068,16 @@ function desenharSlides(registros, resumo){
   const validos = resumo.filter(d => valorDaSecao(d, secao) !== null);
   const valores = validos.map(d => valorDaSecao(d, secao));
   const media = valores.length ? valores.reduce((a,b)=>a+b,0)/valores.length : null;
-  const chips = [
-    ["Média", media === null ? "—" : num(media) + secao.unidade],
-    ["Dias", num(resumo.length)],
-    ["Rotas", num(resumo.reduce((a,d) => a + d.rotas, 0))],
+  const cartoes = [
+    ["Média", media === null ? "—" : num(media), secao.unidade.trim()],
+    ["Dias", num(resumo.length), ""],
+    ["Rotas", num(resumo.reduce((a,d) => a + d.rotas, 0)), ""],
   ];
-  document.getElementById("palcoKpis").innerHTML = chips.map(([rot,val],i) =>
-    `<div class="kpi-chip${i === 0 ? " destaque" : ""}">
-       <div class="kpi-rot">${rot}</div><div class="kpi-val">${val}</div></div>`).join("");
+  document.getElementById("palcoKpis").innerHTML = cartoes.map(([rot,val,uni],i) =>
+    `<div class="kpi-card${i === 0 ? " forte" : ""}">
+       <div class="rotulo">${rot}</div>
+       <div class="kpi-numero">${val}${uni ? `<span class="kpi-unidade">${uni}</span>` : ""}</div>
+     </div>`).join("");
 
   document.getElementById("palcoTexto").innerHTML = narrativa(resumo, secao);
 
@@ -953,11 +1091,12 @@ function desenharSlides(registros, resumo){
       origemPorDia(registros, resumo, secao.campoB));
   }else if(secao.forma === "drop"){
     graficoDrop(palco, resumo, secao.campo, altura, fracao,
-      origemPorDia(registros, resumo, secao.campo));
+      origemPorDia(registros, resumo, secao.campo), {rotulos:true, extremos:true});
   }else{
     graficoBarras(palco, resumo, secao.campo, altura, fracao,
       secao.formato || "%{y:,.0f}",
-      origemPorDia(registros, resumo, secao.campo, secao.unidade, !!secao.percentual));
+      origemPorDia(registros, resumo, secao.campo, secao.unidade, !!secao.percentual),
+      null, {rotulos:true, extremos:true, percentual:!!secao.percentual});
   }
 
   document.getElementById("palcoEixo").innerHTML = faixaEixo(resumo, fracao);
@@ -1112,9 +1251,11 @@ function render(){
     desenharDetalheEstados(doPeriodo.length ? doPeriodo : registros);
   }
 
-  document.getElementById("rodape").textContent =
-    `Fonte: relatório de rotas RoadNet · ${num(BASE.rotas_processadas)} rotas processadas · `
-    + `base gerada em ${BASE.gerado_em} · arquivos: ${BASE.arquivos.join(", ")}`;
+  document.getElementById("rodape").innerHTML =
+    `<span>Fonte <b>relatório de rotas RoadNet</b></span>`
+    + `<span>Processado <b>${num(BASE.rotas_processadas)} rotas</b></span>`
+    + `<span>Base gerada em <b>${BASE.gerado_em}</b></span>`
+    + `<span>Arquivos <b>${BASE.arquivos.length}</b> · ${BASE.arquivos.join(" · ")}</span>`;
 }
 
 function mostrarAviso(texto){
