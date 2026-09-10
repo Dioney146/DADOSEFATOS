@@ -302,6 +302,120 @@ thead th{position:sticky;top:0;background:var(--papel);font-size:9.5px;letter-sp
   .palco{grid-template-columns:1fr}
   .card,.palco-corpo,.cab{box-shadow:none;break-inside:avoid}
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   TEMA INDUSTRIAL — vale apenas enquanto a aba APRESENTAÇÃO está aberta.
+   A classe entra e sai do <body> pelo render; as abas Dia e Semana seguem
+   com o tema claro, sem nenhuma regra daqui.
+   ══════════════════════════════════════════════════════════════════════════ */
+body.industrial{
+  --papel:#101C30;
+  --linha:#22314B;
+  --grade:#1B2942;
+  --tinta:#E9EFF7;
+  --suave:#8095AF;
+  --tenue:#6E819C;
+  --sombra:0 1px 2px rgba(0,0,0,.30),0 10px 30px rgba(0,0,0,.32);
+  background:#0A1322;
+  /* trama diagonal discreta, de chão de galpão */
+  background-image:repeating-linear-gradient(135deg,
+    rgba(255,255,255,.014) 0 2px, transparent 2px 9px);
+  color:var(--tinta);
+}
+body.industrial .cab{
+  background:linear-gradient(180deg,#132340 0%,#0F1B2E 100%);
+  border-color:#22314B;border-top:2px solid var(--verde);
+}
+body.industrial .cab-titulo{color:#fff}
+body.industrial .cab-sub{color:#7FA9D8}
+body.industrial .cab-divisor{background:#2A3B58}
+body.industrial .cab-logo{
+  background:#fff;border-radius:9px;padding:4px 7px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+
+body.industrial .campo>label{color:#6E819C}
+body.industrial .campo select,body.industrial .campo input{
+  background:#16243C;border-color:#2A3B58;color:#E9EFF7}
+body.industrial .campo select:hover,body.industrial .campo input:hover{border-color:#3E5A82}
+body.industrial .campo input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.7)}
+
+body.industrial .abas{background:#0C1729;box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
+body.industrial .aba{color:#8095AF}
+body.industrial .aba:hover{color:#E9EFF7}
+body.industrial .aba[aria-selected="true"]{
+  background:#22385C;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+
+body.industrial .kpi-chip{background:#16243C;border-color:#2A3B58}
+body.industrial .kpi-chip .kpi-val{color:#E9EFF7}
+body.industrial .kpi-chip.destaque{
+  background:linear-gradient(160deg,#1E4E86 0%,#16365E 100%);border-color:#2A5A94}
+body.industrial .cab-controles{border-top-color:#22314B}
+body.industrial .paginacao{color:#8095AF}
+body.industrial .pilula{background:#16243C;border-color:#2A3B58;color:#93A6BF}
+body.industrial .pilula:hover{background:#1C2E4C;border-color:#3E6698;color:#fff}
+body.industrial .pilula[aria-pressed="true"]{
+  background:var(--verde);border-color:var(--verde);color:#0A1322}
+body.industrial .legenda-dias{color:#6E819C}
+
+/* Trilho: mais compacto e com a barra de seleção em verde */
+body.industrial .trilho{
+  background:linear-gradient(180deg,#132340 0%,#0D1729 100%);
+  border:1px solid #22314B;padding:14px 10px;
+}
+body.industrial .trilho button{color:#93A6BF;font-size:17px;padding:9px 12px}
+body.industrial .trilho button:hover{background:rgba(255,255,255,.05)}
+body.industrial .trilho button[aria-current="true"]{
+  background:linear-gradient(90deg,rgba(76,162,47,.18) 0%,rgba(76,162,47,0) 100%);color:#fff}
+
+/* Palco: painel de sala de controle */
+body.industrial .palco{grid-template-columns:210px 1fr}
+body.industrial .palco-corpo{
+  background:linear-gradient(180deg,#132340 0%,#0F1B2E 100%);
+  border:1px solid #22314B;position:relative;overflow:hidden;
+}
+/* silhueta de caminhão, quase imperceptível, no canto do palco */
+body.industrial .palco-corpo::after{
+  content:"";position:absolute;right:-26px;bottom:-30px;width:290px;height:190px;opacity:.045;
+  background:no-repeat right bottom/contain url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 60' fill='none' stroke='%23FFFFFF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='M4 12h58v30H4zM62 22h20l14 12v8H62z'/><circle cx='24' cy='47' r='6'/><circle cx='82' cy='47' r='6'/><path d='M4 42h8M96 42h8'/></svg>");
+  pointer-events:none;
+}
+body.industrial .palco-topo{border-bottom-color:#22314B}
+body.industrial .palco-titulo{color:#fff}
+body.industrial .palco-nota{color:#7FA9D8}
+
+/* KPIs industriais: filete verde no topo e número grande em branco */
+body.industrial .kpi-card{
+  background:#16243C;border-color:#2A3B58;border-top:3px solid #2A3B58;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+body.industrial .kpi-card .kpi-numero{color:#fff}
+body.industrial .kpi-card .rotulo{color:#6E819C}
+body.industrial .kpi-card.forte{
+  background:linear-gradient(160deg,#1E4E86 0%,#16365E 100%);
+  border-color:#2A5A94;border-top-color:var(--verde);
+}
+body.industrial .kpi-card.forte .rotulo{color:#9CC0E4}
+body.industrial .kpi-unidade{color:#7FA9D8}
+
+body.industrial .palco-texto{
+  background:rgba(255,255,255,.03);border-color:#22314B;border-left-color:var(--verde);
+  color:#C3D2E4;
+}
+body.industrial .palco-texto b{background:rgba(156,192,228,.14);color:#CFE0F3}
+body.industrial .palco-texto b.alta{background:rgba(76,162,47,.18);color:#8FDA6E}
+body.industrial .palco-texto b.baixa{background:rgba(255,255,255,.08);color:#AEC0D6}
+
+body.industrial .faixa-eixo{color:#6E819C}
+body.industrial .eixo-cel.eixo-fds{color:#7FA9D8}
+body.industrial .eixo-cel.eixo-feriado{color:#93A6BF}
+
+body.industrial .fonte{background:rgba(255,255,255,.025);border-color:#22314B;color:#6E819C}
+body.industrial .fonte b{color:#93A6BF}
+body.industrial .aviso{background:#132340;border-color:#22314B;color:#C3D2E4}
+body.industrial .aviso code{background:#0C1729;color:#9CC0E4}
+
+@media (max-width:1000px){
+  body.industrial .palco{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -410,6 +524,27 @@ const COR = {
   texto:"#0F1723", suave:"#9AA5B1", azul:"#2E6BB0", azulClaro:"#9CC0E4",
   escura:"#123C7A", grade:"#EDF1F6", verde:"#4CA22F", ambar:"#C8873C"
 };
+
+/*
+ * Paleta dos gráficos. O tema claro vale nas abas Dia e Semana; o escuro, no
+ * modo apresentação. Em ambos a regra é a mesma: uma cor de barra só, cinza
+ * para o que não é operação normal e verde apenas no melhor resultado.
+ */
+const TEMA_CLARO = {
+  texto:"#0F1723", suave:"#9AA5B1", grade:"#EDF1F6",
+  barra:"#2E6BB0", barraFraca:"#9CC0E4", linhaA:"#123C7A", linhaB:"#2E6BB0",
+  melhor:"#4CA22F", pior:"#C8873C", media:"#123C7A",
+  fds:"rgba(93,135,176,.07)", feriado:"rgba(200,135,60,.10)",
+  hoverFundo:"#FFFFFF", hoverBorda:"#E7EBF0", hoverTexto:"#0F1723",
+};
+const TEMA_ESCURO = {
+  texto:"#E9EFF7", suave:"#8095AF", grade:"rgba(255,255,255,.06)",
+  barra:"#4A81C2", barraFraca:"#2B4A72", linhaA:"#9CC0E4", linhaB:"#4A81C2",
+  melhor:"#63C13F", pior:"#8FA3BC", media:"#9CC0E4",
+  fds:"rgba(255,255,255,.045)", feriado:"rgba(255,255,255,.085)",
+  hoverFundo:"#14223A", hoverBorda:"#2B3D5C", hoverTexto:"#E9EFF7",
+};
+let TEMA = TEMA_CLARO;
 
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
@@ -644,8 +779,7 @@ function faixaEixo(dados, fracao = 0.30){
 
 /** Faixas de fundo nos dias sem operação normal: sábado, domingo e feriado. */
 function faixasEspeciais(dados){
-  const cor = {sabado:"rgba(93,135,176,.07)", domingo:"rgba(93,135,176,.07)",
-               feriado:"rgba(192,138,74,.11)"};
+  const cor = {sabado:TEMA.fds, domingo:TEMA.fds, feriado:TEMA.feriado};
   return dados.map((d,i) => cor[d.tipo] ? {
     type:"rect", xref:"x", yref:"paper", x0:i-0.5, x1:i+0.5, y0:0, y1:1,
     fillcolor:cor[d.tipo], line:{width:0}, layer:"below"
@@ -663,15 +797,15 @@ function layoutBase(altura, quantidade, dados, comRotulos){
     shapes: dados ? faixasEspeciais(dados) : [],
     height:altura, autosize:true, margin:{l:0,r:0,t:4,b:2},
     paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
-    font:{family:"Archivo, sans-serif", size:11, color:COR.texto},
+    font:{family:"Archivo, sans-serif", size:11, color:TEMA.texto},
     showlegend:false, hovermode:"x unified", bargap:0, bargroupgap:0,
-    hoverlabel:{font:{size:12, family:"Archivo, sans-serif", color:COR.texto},
-                bgcolor:"#FFFFFF", bordercolor:"#E7EBF0"},
+    hoverlabel:{font:{size:12, family:"Archivo, sans-serif", color:TEMA.hoverTexto},
+                bgcolor:TEMA.hoverFundo, bordercolor:TEMA.hoverBorda},
     xaxis:{showgrid:false, zeroline:false, showline:false, ticks:"", type:"linear",
            showticklabels:false, fixedrange:true, range:[-0.5, quantidade-0.5],
            showspikes:true, spikemode:"toaxis", spikethickness:1, spikedash:"dot",
-           spikecolor:"#C7D2DD", spikesnap:"cursor"},
-    yaxis:{showgrid:true, gridcolor:COR.grade, zeroline:false, showline:false,
+           spikecolor:TEMA.suave, spikesnap:"cursor"},
+    yaxis:{showgrid:true, gridcolor:TEMA.grade, zeroline:false, showline:false,
            nticks:4, showticklabels:false, fixedrange:true,
            automargin:false, range:undefined}
   };
@@ -687,9 +821,9 @@ const posicoes = q => Array.from({length:q}, (_,i) => i);
  */
 function coresComExtremos(valores){
   const validos = valores.filter(v => v !== null && isFinite(v));
-  if(validos.length < 3) return valores.map(() => COR.azul);
+  if(validos.length < 3) return valores.map(() => TEMA.barra);
   const alto = Math.max(...validos), baixo = Math.min(...validos);
-  return valores.map(v => v === alto ? COR.verde : v === baixo ? COR.ambar : COR.azul);
+  return valores.map(v => v === alto ? TEMA.melhor : v === baixo ? TEMA.pior : TEMA.barra);
 }
 
 /** Rótulo sobre cada barra, só quando há largura suficiente para caber. */
@@ -703,7 +837,7 @@ function rotulosDeBarra(dados, campo, quantidade, percentual){
   return {
     text:texto, textposition:"outside", cliponaxis:false,
     textfont:{family:"Barlow Condensed, sans-serif",
-              size:Math.round(escala(quantidade, 19, 12)), color:COR.texto}
+              size:Math.round(escala(quantidade, 19, 12)), color:TEMA.texto}
   };
 }
 
@@ -712,7 +846,7 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
   const q = dados.length;
   const extra = origem || dados.map(() => "");
   const valores = dados.map(d => d[campo]);
-  const marcador = cores || (opcoes.extremos ? coresComExtremos(valores) : COR.azul);
+  const marcador = cores || (opcoes.extremos ? coresComExtremos(valores) : TEMA.barra);
   Plotly.newPlot(div, [Object.assign({
     type:"bar", x:posicoes(q), y:valores,
     customdata:dados.map((d,i) => [d.hover, extra[i]]),
@@ -728,15 +862,15 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
   const media = validos.reduce((a,b) => a+b, 0)/Math.max(validos.length,1);
   const cores = opcoes.extremos
     ? coresComExtremos(dados.map(d => d[campo]))
-    : dados.map(d => (d[campo] !== null && d[campo] >= media) ? COR.azul : COR.azulClaro);
+    : dados.map(d => (d[campo] !== null && d[campo] >= media) ? TEMA.barra : TEMA.barraFraca);
   const q = dados.length;
   const extra = origem || dados.map(() => "");
   const layout = layoutBase(altura, q, dados, opcoes.rotulos);
   layout.shapes = layout.shapes.concat([{type:"line", xref:"paper", x0:0, x1:1, yref:"y",
-                    y0:media, y1:media, line:{width:1, dash:"dot", color:COR.escura}}]);
+                    y0:media, y1:media, line:{width:1, dash:"dot", color:TEMA.media}}]);
   layout.annotations = [{xref:"paper", x:1, y:media, yref:"y", text:`média ${num(media)}`,
                          showarrow:false, xanchor:"right", yanchor:"bottom",
-                         font:{family:"IBM Plex Mono, monospace", size:9.5, color:COR.suave}}];
+                         font:{family:"IBM Plex Mono, monospace", size:9.5, color:TEMA.suave}}];
   Plotly.newPlot(div, [Object.assign({
     type:"bar", x:posicoes(q), y:dados.map(d => d[campo]),
     customdata:dados.map((d,i) => [d.hover, extra[i]]),
@@ -754,12 +888,12 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura, ori
   Plotly.newPlot(div, [
     {type:"scatter", mode:"lines+markers", x:posicoes(q), y:dados.map(d => d[campoA]),
      customdata:origemA || dados.map(() => ""),
-     line:{color:COR.escura, width:traco, shape:"spline", smoothing:0.9, dash:"dot"},
+     line:{color:TEMA.linhaA, width:traco, shape:"spline", smoothing:0.9, dash:"dot"},
      marker:{size:marcador}, yaxis:"y",
      hovertemplate:`${nomeA}: %{y:,.0f}%{customdata}<extra></extra>`},
     {type:"scatter", mode:"lines+markers", x:posicoes(q), y:dados.map(d => d[campoB]),
      customdata:origemB || dados.map(() => ""),
-     line:{color:COR.azul, width:traco+0.6, shape:"spline", smoothing:0.9},
+     line:{color:TEMA.linhaB, width:traco+0.6, shape:"spline", smoothing:0.9},
      marker:{size:marcador}, yaxis:"y2",
      hovertemplate:`${nomeB}: %{y:,.0f}%{customdata}<extra></extra>`}
   ], layout, CONFIG);
@@ -1063,7 +1197,11 @@ function desenharSlides(registros, resumo){
   });
 
   document.getElementById("palcoTitulo").textContent = secao.titulo;
-  document.getElementById("palcoNota").textContent = secao.nota;
+  document.getElementById("palcoNota").innerHTML = secao.forma === "linhas"
+    ? `${secao.nota} <span class="painel-series" style="margin-left:10px">`
+      + `<span class="serie"><i style="background:${TEMA.linhaB}"></i>${secao.nomeB}</span>`
+      + `<span class="serie"><i style="background:${TEMA.linhaA}"></i>${secao.nomeA}</span></span>`
+    : secao.nota;
 
   const validos = resumo.filter(d => valorDaSecao(d, secao) !== null);
   const valores = validos.map(d => valorDaSecao(d, secao));
@@ -1214,6 +1352,9 @@ function render(){
   document.getElementById("viewDia").hidden = filtros.aba !== "dia";
   document.getElementById("viewSemana").hidden = !porSemanaAtivo;
   document.getElementById("viewSlides").hidden = !slidesAtivo;
+  // o tema industrial vale só na apresentação; Dia e Semana seguem claros
+  document.body.classList.toggle("industrial", slidesAtivo);
+  TEMA = slidesAtivo ? TEMA_ESCURO : TEMA_CLARO;
   // na visão semanal cada barra já é uma semana: a faixa de pílulas não cabe ali
   controles.hidden = porSemanaAtivo;
   if(porSemanaAtivo) controles.innerHTML = "";
