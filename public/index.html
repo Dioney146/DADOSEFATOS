@@ -236,6 +236,48 @@ button{font-family:inherit}
 .kpi-unidade{font-size:.55em;font-weight:600;color:var(--tenue);margin-left:3px}
 .kpi-card.forte .kpi-unidade{color:var(--azul-claro)}
 
+/* ── Detalhe do dia (clique na barra ou no ponto) ────────────────────────── */
+.modal{
+  position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;
+  background:rgba(6,12,22,.62);backdrop-filter:blur(2px);padding:20px;
+  animation:modalFundo .18s ease both;
+}
+@keyframes modalFundo{from{opacity:0}to{opacity:1}}
+@keyframes modalCaixa{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:none}}
+.modal-caixa{
+  background:var(--papel);border:1px solid var(--linha);border-radius:16px;
+  padding:18px 22px 20px;width:min(760px,100%);max-height:86vh;overflow:auto;
+  box-shadow:0 24px 60px rgba(0,0,0,.42);animation:modalCaixa .22s cubic-bezier(.22,.7,.3,1) both;
+}
+.modal-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+  padding-bottom:14px;border-bottom:1px solid var(--grade);margin-bottom:14px}
+.modal-titulo{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:26px;text-transform:uppercase;margin:0;line-height:1;color:var(--tinta)}
+.modal-nota{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--tenue);margin-top:6px}
+.modal-fechar{background:transparent;border:1px solid var(--linha);color:var(--suave);
+  width:32px;height:32px;border-radius:9px;font-size:19px;line-height:1;cursor:pointer}
+.modal-fechar:hover{border-color:var(--marca-clara);color:var(--tinta)}
+.modal-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(116px,1fr));gap:8px;
+  margin-bottom:16px}
+.modal-item{background:#F8FAFD;border:1px solid var(--grade);border-radius:11px;padding:9px 13px}
+.modal-item .rotulo{color:var(--tenue)}
+.modal-valor{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:25px;line-height:1.1;color:var(--tinta);margin-top:2px}
+.modal-sub{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue);
+  margin:0 0 8px}
+
+body.industrial .modal-caixa{background:#0E1A2D;border-color:#22314B}
+body.industrial .modal-topo{border-bottom-color:#1B2942}
+body.industrial .modal-titulo{color:#fff}
+body.industrial .modal-item{background:#16243C;border-color:#2A3B58}
+body.industrial .modal-valor{color:#fff}
+body.industrial .modal-fechar{border-color:#2A3B58;color:#93A6BF}
+body.industrial .modal-caixa th,body.industrial .modal-caixa td{border-bottom-color:#1B2942}
+body.industrial .modal-caixa th:first-child,
+body.industrial .modal-caixa td:first-child,
+body.industrial .modal-caixa thead th{background:#0E1A2D}
+
 /* ── Detalhe por estado e rodapé ─────────────────────────────────────────── */
 details.detalhe{background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);
   padding:12px 18px;margin-bottom:12px;box-shadow:var(--sombra)}
@@ -539,6 +581,19 @@ body.industrial .aviso code{background:#0C1729;color:#9CC0E4}
   </section>
 
   <div class="fonte" id="rodape"></div>
+
+  <div class="modal" id="detalheDia" hidden>
+    <div class="modal-caixa" role="dialog" aria-modal="true" aria-labelledby="detalheTitulo">
+      <div class="modal-topo">
+        <div>
+          <h3 class="modal-titulo" id="detalheTitulo"></h3>
+          <div class="modal-nota" id="detalheNota"></div>
+        </div>
+        <button class="modal-fechar" id="detalheFechar" aria-label="Fechar">×</button>
+      </div>
+      <div id="detalheCorpo"></div>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -1261,6 +1316,83 @@ function valorDaSecao(linha, secao){
   return secao.percentual ? v*100 : v;
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   DETALHE DO DIA — abre ao clicar numa barra ou num ponto do gráfico
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Indicadores de uma linha já agregada, no formato dos cartões da janela. */
+function itensDoDia(linha){
+  return [
+    ["Rotas", num(linha.rotas)],
+    ["Veículos", num(linha.veiculos)],
+    ["Paradas", num(linha.paradas)],
+    ["Entregas", num(linha.entregas)],
+    ["Peso", num(linha.peso) + " kg"],
+    ["Capacidade", num(linha.capacidade) + " kg"],
+    ["Ocupação", linha.ocupacao === null ? "—" : num(linha.ocupacao*100) + "%"],
+    ["Drop", num(linha.dropParada) + " kg/parada"],
+  ];
+}
+
+function abrirDetalheDoDia(registros, dataIso){
+  const doDia = registros.filter(r => r.data === dataIso);
+  if(!doDia.length) return;
+
+  const total = porDia(doDia)[0];
+  const marca = tipoDoDia(dataIso);
+  const [ano,mes,dia] = dataIso.split("-");
+
+  document.getElementById("detalheTitulo").textContent = `${dia}/${mes}/${ano}`;
+  document.getElementById("detalheNota").textContent =
+    marca.tipo === "feriado" ? `Feriado · ${marca.nome}`
+    : marca.tipo === "util" ? marca.semana
+    : marca.nome;
+
+  let html = `<div class="modal-grade">`
+    + itensDoDia(total).map(([rot,val]) =>
+        `<div class="modal-item"><div class="rotulo">${rot}</div>
+         <div class="modal-valor">${val}</div></div>`).join("")
+    + `</div>`;
+
+  // no consolidado, a mesma leitura estado a estado
+  const ufs = [...new Set(doDia.map(r => r.uf))].sort();
+  if(ufs.length > 1){
+    html += `<p class="modal-sub">Por estado</p><table><thead><tr>`
+      + ["Estado","Rotas","Veículos","Paradas","Entregas","Peso (kg)","Ocupação","Drop"]
+          .map(c => `<th>${c}</th>`).join("")
+      + `</tr></thead><tbody>`
+      + ufs.map(uf => {
+          const linha = porDia(doDia.filter(r => r.uf === uf))[0];
+          return `<tr><td>${uf}</td><td>${num(linha.rotas)}</td>`
+            + `<td>${num(linha.veiculos)}</td><td>${num(linha.paradas)}</td>`
+            + `<td>${num(linha.entregas)}</td><td>${num(linha.peso)}</td>`
+            + `<td>${linha.ocupacao === null ? "—" : num(linha.ocupacao*100) + "%"}</td>`
+            + `<td>${num(linha.dropParada)}</td></tr>`;
+        }).join("")
+      + `</tbody></table>`;
+  }
+
+  document.getElementById("detalheCorpo").innerHTML = html;
+  document.getElementById("detalheDia").hidden = false;
+}
+
+function fecharDetalhe(){
+  document.getElementById("detalheDia").hidden = true;
+}
+
+/** Liga o clique do gráfico à janela; `resumo` dá a data de cada posição. */
+function ligarCliqueNoGrafico(div, registros, resumo){
+  if(!div.on) return;
+  div.removeAllListeners && div.removeAllListeners("plotly_click");
+  div.on("plotly_click", evento => {
+    const ponto = evento.points && evento.points[0];
+    if(!ponto) return;
+    const linha = resumo[ponto.pointIndex !== undefined ? ponto.pointIndex : ponto.x];
+    if(linha) abrirDetalheDoDia(registros, linha.data);
+  });
+  div.style.cursor = "pointer";
+}
+
 let ultimaSecao = null;
 
 function desenharSlides(registros, resumo){
@@ -1327,6 +1459,7 @@ function desenharSlides(registros, resumo){
   }
 
   document.getElementById("palcoEixo").innerHTML = faixaEixo(resumo, fracao);
+  ligarCliqueNoGrafico(palco, registros, resumo);
 
   if(trocou){
     // remover, forçar o recálculo e repor: é o que faz a animação rodar de novo
@@ -1544,6 +1677,15 @@ function ligarFiltros(datas){
     document.getElementById(id).onclick = () => trocarAba(nome);
 }
 
+function ligarDetalhe(){
+  const janela = document.getElementById("detalheDia");
+  document.getElementById("detalheFechar").onclick = fecharDetalhe;
+  janela.onclick = evento => { if(evento.target === janela) fecharDetalhe(); };
+  document.addEventListener("keydown", evento => {
+    if(evento.key === "Escape") fecharDetalhe();
+  });
+}
+
 async function iniciar(){
   try{
     const resposta = await fetch("dados.json", {cache:"no-cache"});
@@ -1565,6 +1707,7 @@ async function iniciar(){
 
   const datas = [...new Set(BASE.registros.map(r => r.data))].sort();
   ligarFiltros(datas);
+  ligarDetalhe();
   document.getElementById("barra").hidden = false;
   document.getElementById("conteudo").hidden = false;
   render();
