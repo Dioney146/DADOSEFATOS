@@ -1324,20 +1324,6 @@ function valorDaSecao(linha, secao){
    DETALHE DO DIA — abre ao clicar numa barra ou num ponto do gráfico
    ────────────────────────────────────────────────────────────────────────── */
 
-/** Indicadores de uma linha já agregada, no formato dos cartões da janela. */
-function itensDoDia(linha){
-  return [
-    ["Rotas", num(linha.rotas)],
-    ["Veículos", num(linha.veiculos)],
-    ["Paradas", num(linha.paradas)],
-    ["Entregas", num(linha.entregas)],
-    ["Peso", num(linha.peso) + " kg"],
-    ["Capacidade", num(linha.capacidade) + " kg"],
-    ["Ocupação", linha.ocupacao === null ? "—" : num(linha.ocupacao*100) + "%"],
-    ["Drop", num(linha.dropParada) + " kg/parada"],
-  ];
-}
-
 /* Colunas da tabela de cargas. A coluna que dá nome ao indicador aberto vem
    destacada e ordena a lista — clicar em Drop Size abre ordenado por kg/parada,
    em Quantidade de veículos por placa, e assim por diante. */
@@ -1356,10 +1342,55 @@ const COLUNAS_CARGA = [
   {chave:"porEntrega", titulo:"kg/entrega", texto:c => c.entregas ? num(c.peso/c.entregas) : "—"},
 ];
 
-/** Coluna que cada indicador coloca em evidência. */
-const COLUNA_DA_SECAO = {
-  drop:"porParada", veiculos:"placa", entregas:"entregas",
-  ocupacao:"ocupacao", peso:"peso",
+/**
+ * O que cada indicador mostra na janela do dia.
+ *
+ * `colunas` são as colunas da tabela de cargas e `destaque` é a que ordena a
+ * lista e aparece realçada. `cartoes` são os números do dia no topo. A ideia é
+ * que a janela responda à pergunta do gráfico aberto, sem a tabela inteira:
+ * em Drop Size só peso, paradas e kg/parada; em Quantidade de veículos só a
+ * identificação da carga, e assim por diante.
+ */
+const DETALHE_DA_SECAO = {
+  drop: {
+    colunas:["rota","placa","paradas","peso","porParada"],
+    destaque:"porParada",
+    cartoes:["rotas","paradas","peso","dropParada"],
+  },
+  veiculos: {
+    colunas:["rota","placa","tipo"],
+    destaque:"placa",
+    cartoes:["veiculos","rotas"],
+  },
+  entregas: {
+    colunas:["rota","placa","paradas","entregas"],
+    destaque:"entregas",
+    cartoes:["entregas","paradas","mediaParadas","rotas"],
+  },
+  ocupacao: {
+    colunas:["rota","placa","peso","capacidade","ocupacao"],
+    destaque:"ocupacao",
+    cartoes:["ocupacao","peso","capacidade","rotas"],
+  },
+  peso: {
+    colunas:["rota","placa","peso","capacidade"],
+    destaque:"peso",
+    cartoes:["peso","capacidade","ocupacao","rotas"],
+  },
+};
+
+/** Cartões do topo, montados a partir da linha já agregada do dia. */
+const CARTOES = {
+  rotas:        linha => ["Rotas", num(linha.rotas)],
+  veiculos:     linha => ["Veículos", num(linha.veiculos)],
+  paradas:      linha => ["Paradas", num(linha.paradas)],
+  entregas:     linha => ["Entregas", num(linha.entregas)],
+  mediaParadas: linha => ["Paradas por rota", num(linha.mediaParadas)],
+  peso:         linha => ["Peso", num(linha.peso) + " kg"],
+  capacidade:   linha => ["Capacidade", num(linha.capacidade) + " kg"],
+  ocupacao:     linha => ["Ocupação",
+                  linha.ocupacao === null ? "—" : num(linha.ocupacao*100) + "%"],
+  dropParada:   linha => ["Drop", num(linha.dropParada) + " kg/parada"],
 };
 
 function valorDaColuna(carga, chave){
@@ -1371,15 +1402,16 @@ function valorDaColuna(carga, chave){
   }
 }
 
-function tabelaDeCargas(cargas, destaque){
+function tabelaDeCargas(cargas, destaque, chaves){
+  const colunas = COLUNAS_CARGA.filter(c => chaves.includes(c.chave));
   const ordenadas = [...cargas].sort((a,b) => {
     const va = valorDaColuna(a, destaque), vb = valorDaColuna(b, destaque);
     return typeof va === "string" ? String(va).localeCompare(String(vb)) : vb - va;
   });
-  const cabecalho = COLUNAS_CARGA.map(c =>
+  const cabecalho = colunas.map(c =>
     `<th class="${c.chave === destaque ? "coluna-forte" : ""}">${c.titulo}</th>`).join("");
   const corpo = ordenadas.map(carga =>
-    `<tr>` + COLUNAS_CARGA.map(c =>
+    `<tr>` + colunas.map(c =>
       `<td class="${c.chave === destaque ? "coluna-forte" : ""}">${c.texto(carga)}</td>`
     ).join("") + `</tr>`).join("");
   return `<table><thead><tr>${cabecalho}</tr></thead><tbody>${corpo}</tbody></table>`;
@@ -1411,31 +1443,34 @@ function abrirDetalheDoDia(registros, dataIso){
     : marca.tipo === "util" ? marca.semana
     : marca.nome;
 
+  const config = DETALHE_DA_SECAO[filtros.secao] || DETALHE_DA_SECAO.peso;
+
   let html = `<div class="modal-grade">`
-    + itensDoDia(total).map(([rot,val]) =>
-        `<div class="modal-item"><div class="rotulo">${rot}</div>
-         <div class="modal-valor">${val}</div></div>`).join("")
+    + config.cartoes.map(chave => {
+        const [rot,val] = CARTOES[chave](total);
+        return `<div class="modal-item"><div class="rotulo">${rot}</div>
+                <div class="modal-valor">${val}</div></div>`;
+      }).join("")
     + `</div>`;
 
   // no consolidado, a mesma leitura estado a estado
   const ufs = [...new Set(doDia.map(r => r.uf))].sort();
   if(ufs.length > 1){
+    const rotulos = config.cartoes.map(chave => CARTOES[chave](total)[0]);
     html += `<p class="modal-sub">Por estado</p><table><thead><tr>`
-      + ["Estado","Rotas","Veículos","Paradas","Entregas","Peso (kg)","Ocupação","Drop"]
-          .map(c => `<th>${c}</th>`).join("")
+      + ["Estado", ...rotulos].map(c => `<th>${c}</th>`).join("")
       + `</tr></thead><tbody>`
       + ufs.map(uf => {
           const linha = porDia(doDia.filter(r => r.uf === uf))[0];
-          return `<tr><td>${uf}</td><td>${num(linha.rotas)}</td>`
-            + `<td>${num(linha.veiculos)}</td><td>${num(linha.paradas)}</td>`
-            + `<td>${num(linha.entregas)}</td><td>${num(linha.peso)}</td>`
-            + `<td>${linha.ocupacao === null ? "—" : num(linha.ocupacao*100) + "%"}</td>`
-            + `<td>${num(linha.dropParada)}</td></tr>`;
+          return `<tr><td>${uf}</td>`
+            + config.cartoes.map(chave => `<td>${CARTOES[chave](linha)[1]}</td>`).join("")
+            + `</tr>`;
         }).join("")
       + `</tbody></table>`;
   }
 
-  const destaque = COLUNA_DA_SECAO[filtros.secao] || "peso";
+  const chaves = filtros.uf === "TODOS"
+    ? ["uf", ...config.colunas] : config.colunas;
   html += `<p class="modal-sub">Cargas do dia</p>`
         + `<div id="detalheCargas" class="tabela-rolagem">`
         + `<p class="modal-carregando">Carregando as cargas…</p></div>`;
@@ -1449,7 +1484,7 @@ function abrirDetalheDoDia(registros, dataIso){
     const visiveis = ufSelecionado === "TODOS"
       ? cargas : cargas.filter(c => c.uf === ufSelecionado);
     alvo.innerHTML = visiveis.length
-      ? tabelaDeCargas(visiveis, destaque)
+      ? tabelaDeCargas(visiveis, config.destaque, chaves)
       : `<p class="modal-carregando">Nenhuma carga nesse recorte.</p>`;
   }).catch(erro => {
     alvo.innerHTML = `<p class="modal-carregando">As cargas do dia não foram `
