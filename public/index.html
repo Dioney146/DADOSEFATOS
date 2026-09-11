@@ -265,7 +265,11 @@ button{font-family:inherit}
 .modal-valor{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
   font-size:25px;line-height:1.1;color:var(--tinta);margin-top:2px}
 .modal-sub{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--tenue);
-  margin:0 0 8px}
+  margin:14px 0 8px}
+.modal-carregando{font-size:12px;color:var(--tenue);margin:6px 0}
+.coluna-forte{color:var(--marca);font-weight:700}
+body.industrial .coluna-forte{color:#9CC0E4}
+body.industrial .modal-carregando{color:#7C90AB}
 
 body.industrial .modal-caixa{background:#0E1A2D;border-color:#22314B}
 body.industrial .modal-topo{border-bottom-color:#1B2942}
@@ -1334,6 +1338,65 @@ function itensDoDia(linha){
   ];
 }
 
+/* Colunas da tabela de cargas. A coluna que dá nome ao indicador aberto vem
+   destacada e ordena a lista — clicar em Drop Size abre ordenado por kg/parada,
+   em Quantidade de veículos por placa, e assim por diante. */
+const COLUNAS_CARGA = [
+  {chave:"rota",       titulo:"Rota",       texto:c => c.rota},
+  {chave:"placa",      titulo:"Placa",      texto:c => c.placa},
+  {chave:"uf",         titulo:"Estado",     texto:c => c.uf},
+  {chave:"tipo",       titulo:"Veículo",    texto:c => c.tipo},
+  {chave:"paradas",    titulo:"Paradas",    texto:c => num(c.paradas)},
+  {chave:"entregas",   titulo:"Entregas",   texto:c => num(c.entregas)},
+  {chave:"peso",       titulo:"Peso (kg)",  texto:c => num(c.peso)},
+  {chave:"capacidade", titulo:"Cap. (kg)",  texto:c => num(c.capacidade)},
+  {chave:"ocupacao",   titulo:"Ocupação",   texto:c => c.capacidade
+      ? num(c.peso/c.capacidade*100) + "%" : "—"},
+  {chave:"porParada",  titulo:"kg/parada",  texto:c => c.paradas ? num(c.peso/c.paradas) : "—"},
+  {chave:"porEntrega", titulo:"kg/entrega", texto:c => c.entregas ? num(c.peso/c.entregas) : "—"},
+];
+
+/** Coluna que cada indicador coloca em evidência. */
+const COLUNA_DA_SECAO = {
+  drop:"porParada", veiculos:"placa", entregas:"entregas",
+  ocupacao:"ocupacao", peso:"peso",
+};
+
+function valorDaColuna(carga, chave){
+  switch(chave){
+    case "ocupacao":   return carga.capacidade ? carga.peso/carga.capacidade : -1;
+    case "porParada":  return carga.paradas ? carga.peso/carga.paradas : -1;
+    case "porEntrega": return carga.entregas ? carga.peso/carga.entregas : -1;
+    default:           return carga[chave];
+  }
+}
+
+function tabelaDeCargas(cargas, destaque){
+  const ordenadas = [...cargas].sort((a,b) => {
+    const va = valorDaColuna(a, destaque), vb = valorDaColuna(b, destaque);
+    return typeof va === "string" ? String(va).localeCompare(String(vb)) : vb - va;
+  });
+  const cabecalho = COLUNAS_CARGA.map(c =>
+    `<th class="${c.chave === destaque ? "coluna-forte" : ""}">${c.titulo}</th>`).join("");
+  const corpo = ordenadas.map(carga =>
+    `<tr>` + COLUNAS_CARGA.map(c =>
+      `<td class="${c.chave === destaque ? "coluna-forte" : ""}">${c.texto(carga)}</td>`
+    ).join("") + `</tr>`).join("");
+  return `<table><thead><tr>${cabecalho}</tr></thead><tbody>${corpo}</tbody></table>`;
+}
+
+/** Busca as cargas do dia; o arquivo só é lido no primeiro clique de cada dia. */
+const cacheCargas = new Map();
+
+async function cargasDoDia(dataIso){
+  if(cacheCargas.has(dataIso)) return cacheCargas.get(dataIso);
+  const resposta = await fetch(`detalhe/${dataIso}.json`, {cache:"no-cache"});
+  if(!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+  const conteudo = await resposta.json();
+  cacheCargas.set(dataIso, conteudo.cargas || []);
+  return cacheCargas.get(dataIso);
+}
+
 function abrirDetalheDoDia(registros, dataIso){
   const doDia = registros.filter(r => r.data === dataIso);
   if(!doDia.length) return;
@@ -1372,8 +1435,27 @@ function abrirDetalheDoDia(registros, dataIso){
       + `</tbody></table>`;
   }
 
+  const destaque = COLUNA_DA_SECAO[filtros.secao] || "peso";
+  html += `<p class="modal-sub">Cargas do dia</p>`
+        + `<div id="detalheCargas" class="tabela-rolagem">`
+        + `<p class="modal-carregando">Carregando as cargas…</p></div>`;
+
   document.getElementById("detalheCorpo").innerHTML = html;
   document.getElementById("detalheDia").hidden = false;
+
+  const alvo = document.getElementById("detalheCargas");
+  const ufSelecionado = filtros.uf;
+  cargasDoDia(dataIso).then(cargas => {
+    const visiveis = ufSelecionado === "TODOS"
+      ? cargas : cargas.filter(c => c.uf === ufSelecionado);
+    alvo.innerHTML = visiveis.length
+      ? tabelaDeCargas(visiveis, destaque)
+      : `<p class="modal-carregando">Nenhuma carga nesse recorte.</p>`;
+  }).catch(erro => {
+    alvo.innerHTML = `<p class="modal-carregando">As cargas do dia não foram `
+      + `encontradas. Rode o workflow para gerar a pasta <code>public/detalhe/</code>.`
+      + `<br>${erro.message}</p>`;
+  });
 }
 
 function fecharDetalhe(){
