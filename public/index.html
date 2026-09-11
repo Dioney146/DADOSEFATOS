@@ -387,6 +387,33 @@ body.industrial .palco-corpo{
   background:#0E1A2D;border:1px solid #22314B;
 }
 body.industrial .palco-topo{border-bottom-color:#1B2942;padding-bottom:18px}
+
+/* ── Transição ao trocar de indicador ────────────────────────────────────
+   O conteúdo do palco entra em três tempos — título e KPIs, depois o
+   gráfico, depois a faixa de datas. A animação é curta e só na entrada:
+   nada pisca ao mexer em filtro, porque a classe é reposta a cada troca. */
+@keyframes palcoEntra{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:none}
+}
+@keyframes palcoEntraLeve{
+  from{opacity:0}
+  to{opacity:1}
+}
+.palco-corpo.entrando .palco-topo{animation:palcoEntra .34s cubic-bezier(.22,.7,.3,1) both}
+.palco-corpo.entrando .grafico{animation:palcoEntra .40s cubic-bezier(.22,.7,.3,1) .07s both}
+.palco-corpo.entrando #palcoEixo{animation:palcoEntraLeve .40s ease .16s both}
+
+/* o item do menu desliza o realce em vez de piscar */
+.trilho button{transition:background .22s ease,color .22s ease,padding-left .22s ease}
+.trilho button[aria-current="true"]{padding-left:18px}
+
+@media (prefers-reduced-motion:reduce){
+  .palco-corpo.entrando .palco-topo,
+  .palco-corpo.entrando .grafico,
+  .palco-corpo.entrando #palcoEixo{animation:none}
+  .trilho button{transition:none}
+}
 body.industrial .palco-titulo{color:#fff;font-size:clamp(28px,2.4vw,40px);letter-spacing:.015em}
 body.industrial .palco-nota{color:#7C90AB;font-size:12px;letter-spacing:.03em;margin-top:7px}
 body.industrial .palco-nota .serie{color:#C3D2E4;font-size:12px}
@@ -1234,8 +1261,12 @@ function valorDaSecao(linha, secao){
   return secao.percentual ? v*100 : v;
 }
 
+let ultimaSecao = null;
+
 function desenharSlides(registros, resumo){
   const secao = SECOES.find(s => s.id === filtros.secao) || SECOES[0];
+  const trocou = ultimaSecao !== secao.id;   // também na primeira abertura
+  ultimaSecao = secao.id;
 
   document.getElementById("trilho").innerHTML =
     `<div class="trilho-marca"><img src="assets/logo.png" alt="Delly's Food Service"
@@ -1296,6 +1327,13 @@ function desenharSlides(registros, resumo){
   }
 
   document.getElementById("palcoEixo").innerHTML = faixaEixo(resumo, fracao);
+
+  if(trocou){
+    // remover, forçar o recálculo e repor: é o que faz a animação rodar de novo
+    corpo.classList.remove("entrando");
+    void corpo.offsetWidth;
+    corpo.classList.add("entrando");
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
