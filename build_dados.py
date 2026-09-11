@@ -34,6 +34,7 @@ RAIZ = Path(__file__).parent
 PASTA_DADOS = RAIZ / "dados"
 PASTA_ASSETS = RAIZ / "assets"
 PASTA_PUBLICA = RAIZ / "public"
+PASTA_DETALHE = PASTA_PUBLICA / "detalhe"
 ARQUIVO_SAIDA = PASTA_PUBLICA / "dados.json"
 
 # Estados atendidos. A chave é o código usado no nome do arquivo.
@@ -211,6 +212,11 @@ def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
     df["DATA"] = df["Sessão de roteirização"].map(extrair_data)
     df["ROTA"] = df["ID"].astype(str) if "ID" in df.columns else ""
     df["PLACA"] = df["Equipamento"].astype(str).str.strip() if "Equipamento" in df.columns else ""
+    df["TIPO_VEICULO"] = (
+        df["Tipos de equipamento"].astype(str).str.strip()
+          .replace({"": "—", "nan": "—"})
+        if "Tipos de equipamento" in df.columns else "—"
+    )
     df["UF"] = detectar_estado(nome_arquivo, df)
     # A mesma placa em estados diferentes é outra frota: o estado entra na
     # chave para a contagem não juntar veículos distintos.
@@ -295,6 +301,53 @@ def agregar(df: pd.DataFrame) -> list[dict]:
     return registros
 
 
+def gravar_detalhe(df: pd.DataFrame) -> tuple[int, float]:
+    """
+    Um arquivo por dia com as cargas daquele dia, em public/detalhe/.
+
+    O site carrega esses arquivos só quando alguém clica num dia do gráfico —
+    por isso eles ficam separados do dados.json, que é lido na abertura. Cada
+    linha é uma rota do RoadNet: placa, tipo de veículo, paradas, entregas,
+    peso e capacidade.
+    """
+    if PASTA_DETALHE.exists():
+        for antigo in PASTA_DETALHE.glob("*.json"):
+            antigo.unlink()
+    PASTA_DETALHE.mkdir(parents=True, exist_ok=True)
+
+    def numero(valor, casas=2):
+        if pd.isna(valor):
+            return None
+        return round(float(valor), casas)
+
+    total_bytes = 0
+    for data, parte in df.groupby("DATA"):
+        cargas = []
+        for _, linha in parte.iterrows():
+            cargas.append({
+                "uf": linha["UF"],
+                "rota": str(linha["ROTA"]),
+                "placa": linha["PLACA"] or "—",
+                "tipo": str(linha.get("TIPO_VEICULO") or "—"),
+                "paradas": numero(linha["PARADAS"], 0),
+                "entregas": numero(linha["ENTREGAS"], 0),
+                "peso": numero(linha["PESO"]),
+                "capacidade": numero(linha["CAPACIDADE"]),
+                "distancia": numero(linha["DISTANCIA"]),
+            })
+        cargas.sort(key=lambda c: (c["uf"], c["rota"]))
+        arquivo = PASTA_DETALHE / f"{data.strftime('%Y-%m-%d')}.json"
+        arquivo.write_text(
+            json.dumps({"data": data.strftime("%Y-%m-%d"), "cargas": cargas},
+                       ensure_ascii=False, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        total_bytes += arquivo.stat().st_size
+
+    quantidade = len(list(PASTA_DETALHE.glob("*.json")))
+    return quantidade, total_bytes / 1024
+
+
 def copiar_assets() -> None:
     """Leva logo e favicon para dentro de public/, que é o que a Vercel publica."""
     if not PASTA_ASSETS.exists():
@@ -348,10 +401,12 @@ def main() -> int:
         json.dumps(conteudo, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
     )
     copiar_assets()
+    dias, kb_detalhe = gravar_detalhe(df)
 
     tamanho = ARQUIVO_SAIDA.stat().st_size / 1024
     print(f"\n{ARQUIVO_SAIDA.relative_to(RAIZ)} gravado — "
           f"{len(registros)} linhas (estado × dia), {tamanho:.0f} KB")
+    print(f"public/detalhe/ — {dias} arquivos de cargas, {kb_detalhe:.0f} KB no total")
     print(f"Estados: {', '.join(sorted(df['UF'].unique()))}")
     return 0
 
