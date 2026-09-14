@@ -1005,6 +1005,7 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
   const valores = dados.map(d => d[campo]);
   const marcador = cores || (opcoes.extremos ? coresComExtremos(valores) : TEMA.barra);
   const layout = layoutBase(altura, q, dados, opcoes.rotulos);
+  const series = [];
   const teto = tetoDoEixo(valores);
   if(teto) layout.yaxis = Object.assign({}, layout.yaxis, {range:[0, teto]});
   if(opcoes.media !== undefined && opcoes.media !== null)
@@ -1014,7 +1015,7 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
   const reais = valores.map(v => v === null || !isFinite(v) ? "—"
     : num(opcoes.percentual ? v*100 : v, opcoes.casas || 0)
       + (opcoes.percentual ? "%" : ""));
-  Plotly.newPlot(div, [Object.assign({
+  series.push(Object.assign({
     type:"bar", x:posicoes(q), y:desenhados,
     customdata:dados.map((d,i) => [d.hover, extra[i], reais[i]]),
     marker:{color:marcador, line:{width:0}, cornerradius:5},
@@ -1023,7 +1024,34 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
       + (teto ? "%{customdata[2]}" : formato) + "%{customdata[1]}<extra></extra>"
   }, opcoes.rotulos
        ? rotulosDeBarra(dados, campo, q, opcoes.percentual, fracao, teto, opcoes.casas)
-       : {})], layout, CONFIG);
+       : {}));
+
+  /* Série de apoio: as barras mostram a média por rota e esta linha mostra o
+     total gerado no dia. Ela usa um segundo eixo, invisível, porque as duas
+     grandezas têm escalas bem diferentes — o desenho da curva é o que importa,
+     e o número exato aparece no rótulo e no tooltip. */
+  if(opcoes.total){
+    layout.yaxis2 = {overlaying:"y", side:"right", visible:false, rangemode:"tozero"};
+    const totais = dados.map(d => d[opcoes.total.campo]);
+    series.push(Object.assign({
+      type:"scatter", mode:"lines+markers", x:posicoes(q), y:totais, yaxis:"y2",
+      customdata:dados.map((d,i) => [d.hover, totais[i] === null || !isFinite(totais[i])
+        ? "—" : num(totais[i], opcoes.total.casas || 0)]),
+      line:{color:TEMA.linhaA, width:Math.max(1.4, escala(q, 2.6, 1.6)),
+            shape:"spline", smoothing:0.55},
+      marker:{size:Math.max(2.5, escala(q, 6.5, 3))},
+      hovertemplate:`${opcoes.total.nome}: %{customdata[1]}<extra></extra>`
+    }, opcoes.rotulos && q <= LIMITE_FAIXA ? {
+      mode:"lines+markers+text",
+      text:totais.map(v => v === null || !isFinite(v) ? "" : num(v, opcoes.total.casas || 0)),
+      textposition:"top center", cliponaxis:false,
+      textfont:{family:"Barlow Condensed, sans-serif",
+                size:corpoDoRotulo(totais.map(v => num(v, opcoes.total.casas || 0)), q, fracao),
+                color:TEMA.linhaA}
+    } : {}));
+  }
+
+  Plotly.newPlot(div, series, layout, CONFIG);
 }
 
 function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = {}){
@@ -1334,7 +1362,8 @@ const SECOES = [
   {id:"tempo", menu:"Tempo de operação", titulo:"Tempo de operação",
    nota:"horas em rota, média por rota do dia", forma:"barra", campo:"horasPorRota",
    unidade:" h", rotulos:true, mediaPonderada:true, casas:1,
-   formato:"%{y:.1f} h"},
+   formato:"%{y:.1f} h",
+   total:{campo:"horas", nome:"Total de horas no dia", casas:0}},
   {id:"ocupacao", menu:"Ocupação da frota", titulo:"Ocupação da frota",
    nota:"peso embarcado ÷ capacidade contratada", forma:"barra", campo:"ocupacao",
    formato:"%{y:.0%}", percentual:true, unidade:"%"},
@@ -1574,6 +1603,10 @@ function desenharSlides(registros, resumo){
     ? `${secao.nota}<span class="painel-series" style="display:flex;margin-top:7px">`
       + `<span class="serie"><i style="background:${TEMA.linhaB}"></i>${secao.nomeB}</span>`
       + `<span class="serie"><i style="background:${TEMA.linhaA}"></i>${secao.nomeA}</span></span>`
+    : secao.total
+    ? `${secao.nota}<span class="painel-series" style="display:flex;margin-top:7px">`
+      + `<span class="serie"><i style="background:${TEMA.barra}"></i>${secao.titulo}</span>`
+      + `<span class="serie"><i style="background:${TEMA.linhaA}"></i>${secao.total.nome}</span></span>`
     : secao.nota;
 
   const validos = resumo.filter(d => valorDaSecao(d, secao) !== null);
@@ -1620,7 +1653,7 @@ function desenharSlides(registros, resumo){
       `média ${num(media, casas)}${secao.percentual ? "%" : " " + secao.unidade.trim()}`.trim();
     const comuns = {rotulos:true, extremos:true, casas,
                     media:secao.percentual && media !== null ? media/100 : media,
-                    rotuloMedia};
+                    rotuloMedia, total:secao.total};
 
     if(secao.forma === "drop"){
       graficoDrop(palco, resumo, secao.campo, altura, fracao,
