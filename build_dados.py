@@ -57,7 +57,8 @@ MESES_CURTOS = {1: "JAN", 2: "FEV", 3: "MAR", 4: "ABR", 5: "MAI", 6: "JUN",
 # Nomes que o RoadNet costuma dar à duração da rota. O primeiro que existir na
 # planilha é usado; a comparação ignora acento, caixa e espaços.
 COLUNAS_TEMPO = [
-    "Tempo total de operação",   # nome usado no relatório do RoadNet da Delly's
+    "Tempo Total de Operação Planejado",   # nome exato no relatório da Delly's
+    "Tempo total de operação",
     "Tempo total de operacao",
     "Tempo total",
     "Tempo Total",
@@ -142,6 +143,15 @@ def horas(valor) -> float:
     if not texto or texto in {"-", "--", "nan", "NaT"}:
         return float("nan")
 
+    # rotas que viram o dia saem como "1 day, 9:15:00" ou "2 days, 3:00:00"
+    dias = 0.0
+    if "day" in texto:
+        parte_dias, _, resto = texto.partition(",")
+        numero_dias = re.search(r"(\d+)", parte_dias)
+        if numero_dias:
+            dias = float(numero_dias.group(1)) * 24
+        texto = resto.strip() or "0:00"
+
     if ":" in texto:
         partes = texto.split(":")
         try:
@@ -151,13 +161,14 @@ def horas(valor) -> float:
         while len(numeros) < 3:
             numeros.append(0.0)
         h, m, s = numeros[0], numeros[1], numeros[2]
-        # dias em formato "1 day, 02:30:00" entram como texto no primeiro campo
-        return h + m / 60 + s / 3600
+        # a planilha mistura "00:54" (hora:minuto) e "00:58:00" (com segundos);
+        # os dois caem aqui certos, porque o campo que falta entra como zero
+        return dias + h + m / 60 + s / 3600
 
     numero = br_para_float(texto)
     if pd.isna(numero):
         return float("nan")
-    return numero / 60 if numero > 24 else numero
+    return dias + (numero / 60 if numero > 24 else numero)
 
 
 def coluna_de_tempo(df: pd.DataFrame) -> str | None:
