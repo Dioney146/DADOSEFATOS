@@ -128,9 +128,7 @@ button{font-family:inherit}
 /* ── Cartões de gráfico (abas Dia e Semana) ──────────────────────────────── */
 .linha{display:grid;gap:12px;margin-bottom:12px;align-items:stretch}
 .linha-1{grid-template-columns:.95fr .95fr 1.2fr}
-/* Paradas × entregas e Peso × capacidade: em tela larga as curvas ficavam
-   esticadas demais na horizontal, então a linha inteira é limitada e centrada. */
-.linha-2{grid-template-columns:1fr 1fr;max-width:1460px;margin-left:auto;margin-right:auto}
+.linha-2{grid-template-columns:1fr 1fr}
 .linha-3{grid-template-columns:repeat(3,1fr)}
 .card{
   background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);
@@ -1213,7 +1211,7 @@ function desenharDia(registros, resumo){
   const pesos = [0.95, 0.95, 1.20];
   const soma = pesos.reduce((a,b) => a+b, 0);
   const [fr1, fr2, fr3] = pesos.map(p => 0.97*p/soma);
-  const alturaCima = 215, alturaBaixo = 300;
+  const alturaCima = 215, alturaBaixo = 260;
 
   document.getElementById("diaLinha1").innerHTML = `
     <div class="card">
@@ -1238,8 +1236,7 @@ function desenharDia(registros, resumo){
       ${faixaEixo(resumo,fr3)}
     </div>`;
 
-  // metade da linha, já considerando o limite de largura aplicado no CSS
-  const meia = Math.min(0.485, 730 / Math.max(window.innerWidth, 1));
+  const meia = 0.485;
   document.getElementById("diaLinha2").innerHTML = `
     <div class="card">
       ${tituloPainel("Paradas × entregas",null,[["Entregas",COR.azul],["Média de paradas",COR.escura]])}
