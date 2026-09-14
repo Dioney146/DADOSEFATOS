@@ -429,7 +429,7 @@ body.industrial .trilho button[aria-current="true"]{background:#152B45;color:#ff
 
 /* Palco: painel de sala de controle */
 body.industrial .palco{grid-template-columns:210px 1fr;
-  transition:grid-template-columns .28s cubic-bezier(.22,.7,.3,1)}
+  transition:grid-template-columns .32s cubic-bezier(.33,.9,.35,1)}
 
 /* Clicar na área vazia do menu recolhe o trilho e alarga o gráfico; clicar na
    faixa fina que sobra devolve o menu. O alvo é a própria coluna, então não há
@@ -465,6 +465,7 @@ body.industrial .palco-topo{border-bottom-color:#1B2942;padding-bottom:18px}
 }
 .palco-corpo.entrando .palco-topo{animation:palcoEntra .34s cubic-bezier(.22,.7,.3,1) both}
 .palco-corpo.entrando .grafico{animation:palcoEntra .40s cubic-bezier(.22,.7,.3,1) .07s both}
+.palco-corpo .grafico,.palco-corpo #palcoEixo{transition:opacity .2s ease}
 .palco-corpo.entrando #palcoEixo{animation:palcoEntraLeve .40s ease .16s both}
 
 /* o item do menu desliza o realce em vez de piscar */
@@ -1603,6 +1604,28 @@ function ligarCliqueNoGrafico(div, registros, resumo){
   div.style.cursor = "pointer";
 }
 
+/**
+ * Redimensiona o gráfico quadro a quadro enquanto a coluna do menu se move.
+ *
+ * Um único resize ao fim da animação faz o gráfico saltar para a largura nova
+ * de uma vez, no meio de uma transição suave. Aqui o Plotly é avisado a cada
+ * quadro, mas só quando a largura realmente mudou — assim ele cresce junto com
+ * o espaço, sem trabalho desnecessário.
+ */
+function acompanharLargura(div, duracao){
+  const inicio = performance.now();
+  let ultima = div.clientWidth;
+  function quadro(agora){
+    const largura = div.clientWidth;
+    if(Math.abs(largura - ultima) >= 1){
+      ultima = largura;
+      try { Plotly.Plots.resize(div); } catch(e) {}
+    }
+    if(agora - inicio < duracao) requestAnimationFrame(quadro);
+  }
+  requestAnimationFrame(quadro);
+}
+
 let ultimaSecao = null;
 
 function desenharSlides(registros, resumo){
@@ -1704,8 +1727,7 @@ function desenharSlides(registros, resumo){
 
   document.getElementById("palcoEixo").innerHTML = faixaEixo(resumo, fracao);
   ligarCliqueNoGrafico(palco, registros, resumo);
-  // a coluna leva 280ms para encolher; ao fim disso o gráfico é redimensionado
-  setTimeout(() => { try { Plotly.Plots.resize(palco); } catch(e) {} }, 320);
+  acompanharLargura(palco, 340);
 
   if(trocou){
     // remover, forçar o recálculo e repor: é o que faz a animação rodar de novo
