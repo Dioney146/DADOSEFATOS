@@ -939,6 +939,27 @@ function tetoDoEixo(valores){
  * modo apresentação usa, e os cartões pequenos da aba Dia não.
  */
 /** Uma cor para todas as barras; verde apenas no melhor resultado do período. */
+/**
+ * Linha tracejada com o valor de referência do período, e o número à direita.
+ *
+ * É o mesmo recurso que o Drop Size já usava; aqui vira função para os demais
+ * indicadores mostrarem a média que aparece no cartão do topo — assim dá para
+ * ver de relance quais dias ficaram acima e quais abaixo dela.
+ */
+function linhaDeReferencia(layout, valor, rotulo){
+  if(valor === null || !isFinite(valor)) return layout;
+  layout.shapes = (layout.shapes || []).concat([{
+    type:"line", xref:"paper", x0:0, x1:1, yref:"y", y0:valor, y1:valor,
+    line:{width:1, dash:"dot", color:TEMA.media}
+  }]);
+  layout.annotations = (layout.annotations || []).concat([{
+    xref:"paper", x:1, y:valor, yref:"y", text:rotulo, showarrow:false,
+    xanchor:"right", yanchor:"bottom",
+    font:{family:"IBM Plex Mono, monospace", size:9.5, color:TEMA.suave}
+  }]);
+  return layout;
+}
+
 function coresComExtremos(valores){
   const validos = valores.filter(v => v !== null && isFinite(v));
   if(validos.length < 3) return valores.map(() => TEMA.barra);
@@ -986,6 +1007,8 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
   const layout = layoutBase(altura, q, dados, opcoes.rotulos);
   const teto = tetoDoEixo(valores);
   if(teto) layout.yaxis = Object.assign({}, layout.yaxis, {range:[0, teto]});
+  if(opcoes.media !== undefined && opcoes.media !== null)
+    linhaDeReferencia(layout, opcoes.media, opcoes.rotuloMedia);
   // a barra que passa do teto é desenhada até ele; o valor real vai no texto
   const desenhados = valores.map(v => (teto && v > teto) ? teto : v);
   const reais = valores.map(v => v === null || !isFinite(v) ? "—"
@@ -1014,11 +1037,8 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
   const layout = layoutBase(altura, q, dados, opcoes.rotulos);
   const teto = tetoDoEixo(dados.map(d => d[campo]));
   if(teto) layout.yaxis = Object.assign({}, layout.yaxis, {range:[0, teto]});
-  layout.shapes = layout.shapes.concat([{type:"line", xref:"paper", x0:0, x1:1, yref:"y",
-                    y0:media, y1:media, line:{width:1, dash:"dot", color:TEMA.media}}]);
-  layout.annotations = [{xref:"paper", x:1, y:media, yref:"y", text:`média ${num(media)}`,
-                         showarrow:false, xanchor:"right", yanchor:"bottom",
-                         font:{family:"IBM Plex Mono, monospace", size:9.5, color:TEMA.suave}}];
+  linhaDeReferencia(layout, media,
+    opcoes.rotuloMedia || `média ${num(media)}`);
   const desenhados = dados.map(d => (teto && d[campo] > teto) ? teto : d[campo]);
   Plotly.newPlot(div, [Object.assign({
     type:"bar", x:posicoes(q), y:desenhados,
@@ -1593,15 +1613,24 @@ function desenharSlides(registros, resumo){
     graficoDuasLinhas(palco, resumo, secao.campoA, secao.campoB, secao.nomeA, secao.nomeB,
       altura, origemPorDia(registros, resumo, secao.campoA),
       origemPorDia(registros, resumo, secao.campoB), !!secao.bandas, !!secao.rotulos, fracao);
-  }else if(secao.forma === "drop"){
-    graficoDrop(palco, resumo, secao.campo, altura, fracao,
-      origemPorDia(registros, resumo, secao.campo), {rotulos:true, extremos:true});
   }else{
-    graficoBarras(palco, resumo, secao.campo, altura, fracao,
-      secao.formato || "%{y:,.0f}",
-      origemPorDia(registros, resumo, secao.campo, secao.unidade, !!secao.percentual),
-      null, {rotulos:true, extremos:true, percentual:!!secao.percentual,
-             casas:secao.casas || 0});
+    // a linha de referência mostra a mesma média que aparece no cartão do topo
+    const casas = secao.casas || 0;
+    const rotuloMedia = media === null ? "" :
+      `média ${num(media, casas)}${secao.percentual ? "%" : " " + secao.unidade.trim()}`.trim();
+    const comuns = {rotulos:true, extremos:true, casas,
+                    media:secao.percentual && media !== null ? media/100 : media,
+                    rotuloMedia};
+
+    if(secao.forma === "drop"){
+      graficoDrop(palco, resumo, secao.campo, altura, fracao,
+        origemPorDia(registros, resumo, secao.campo), comuns);
+    }else{
+      graficoBarras(palco, resumo, secao.campo, altura, fracao,
+        secao.formato || "%{y:,.0f}",
+        origemPorDia(registros, resumo, secao.campo, secao.unidade, !!secao.percentual),
+        null, Object.assign({percentual:!!secao.percentual}, comuns));
+    }
   }
 
   document.getElementById("palcoEixo").innerHTML = faixaEixo(resumo, fracao);
