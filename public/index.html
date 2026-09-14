@@ -1008,7 +1008,8 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
   const series = [];
   const teto = tetoDoEixo(valores);
   if(teto) layout.yaxis = Object.assign({}, layout.yaxis, {range:[0, teto]});
-  if(opcoes.media !== undefined && opcoes.media !== null)
+  // com a linha de total no gráfico, a tracejada da média vira ruído
+  if(opcoes.media !== undefined && opcoes.media !== null && !opcoes.total)
     linhaDeReferencia(layout, opcoes.media, opcoes.rotuloMedia);
   // a barra que passa do teto é desenhada até ele; o valor real vai no texto
   const desenhados = valores.map(v => (teto && v > teto) ? teto : v);
@@ -1031,8 +1032,13 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
      grandezas têm escalas bem diferentes — o desenho da curva é o que importa,
      e o número exato aparece no rótulo e no tooltip. */
   if(opcoes.total){
-    layout.yaxis2 = {overlaying:"y", side:"right", visible:false, rangemode:"tozero"};
     const totais = dados.map(d => d[opcoes.total.campo]);
+    /* O eixo da linha é esticado de propósito: o maior total ocupa só a parte
+       de baixo da área do gráfico, então a curva corre por baixo das colunas
+       em vez de atravessá-las. */
+    const maiorTotal = Math.max(...totais.filter(v => v !== null && isFinite(v)), 0);
+    layout.yaxis2 = {overlaying:"y", side:"right", visible:false,
+                     range:[0, maiorTotal > 0 ? maiorTotal / 0.38 : 1]};
     series.push(Object.assign({
       type:"scatter", mode:"lines+markers", x:posicoes(q), y:totais, yaxis:"y2",
       customdata:dados.map((d,i) => [d.hover, totais[i] === null || !isFinite(totais[i])
