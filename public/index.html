@@ -428,7 +428,24 @@ body.industrial .trilho button:hover{background:rgba(255,255,255,.05)}
 body.industrial .trilho button[aria-current="true"]{background:#152B45;color:#fff}
 
 /* Palco: painel de sala de controle */
-body.industrial .palco{grid-template-columns:210px 1fr}
+body.industrial .palco{grid-template-columns:210px 1fr;
+  transition:grid-template-columns .28s cubic-bezier(.22,.7,.3,1)}
+
+/* Clicar na área vazia do menu recolhe o trilho e alarga o gráfico; clicar na
+   faixa fina que sobra devolve o menu. O alvo é a própria coluna, então não há
+   botão desenhado competindo com os itens. */
+body.industrial .trilho{cursor:w-resize}
+body.industrial .palco.recolhido{grid-template-columns:14px 1fr}
+body.industrial .palco.recolhido .trilho{
+  padding:0;cursor:e-resize;background:#0E1A2D;
+}
+body.industrial .palco.recolhido .trilho > *{display:none}
+body.industrial .palco.recolhido .trilho::after{
+  content:"";position:absolute;top:50%;left:5px;width:4px;height:36px;
+  border-radius:3px;background:#2A3B58;transform:translateY(-50%);
+}
+body.industrial .palco.recolhido .trilho:hover::after{background:var(--verde)}
+body.industrial .trilho{position:relative}
 body.industrial .palco-corpo{
   background:#0E1A2D;border:1px solid #22314B;
 }
@@ -645,7 +662,7 @@ let BASE = null;
 const filtros = {
   uf:"TODOS", inicio:null, fim:null, drop:"Parada",
   colunas:"31", semana:"TODAS", pagina:1, aba:"dia", indicador:"Drop (kg/parada)",
-  secao:"drop"
+  secao:"drop", trilhoRecolhido:false
 };
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -1604,6 +1621,18 @@ function desenharSlides(registros, resumo){
     botao.onclick = () => { filtros.secao = botao.dataset.secao; render(); };
   });
 
+  // o clique só vale quando cai na coluna em si, não sobre um item do menu
+  const trilho = document.getElementById("trilho");
+  trilho.title = filtros.trilhoRecolhido
+    ? "Clique para mostrar o menu" : "Clique no espaço vazio para recolher o menu";
+  trilho.onclick = evento => {
+    if(evento.target !== trilho) return;
+    filtros.trilhoRecolhido = !filtros.trilhoRecolhido;
+    render();
+  };
+  document.querySelector(".palco").classList
+    .toggle("recolhido", filtros.trilhoRecolhido);
+
   document.getElementById("palcoTitulo").textContent = secao.titulo;
   document.getElementById("palcoNota").innerHTML = secao.forma === "linhas"
     ? `${secao.nota}<span class="painel-series" style="display:flex;margin-top:7px">`
@@ -1637,7 +1666,8 @@ function desenharSlides(registros, resumo){
      </div>`).join("");
 
   const palco = document.getElementById("palcoGrafico");
-  const fracao = 0.72;
+  // com o menu recolhido o gráfico ganha a largura dele; os rótulos acompanham
+  const fracao = filtros.trilhoRecolhido ? 0.86 : 0.72;
 
   /* O gráfico ocupa tudo o que sobra dentro do palco: mede-se a altura real do
      cartão e desconta-se o cabeçalho da seção mais a faixa de datas. Assim a
@@ -1674,6 +1704,8 @@ function desenharSlides(registros, resumo){
 
   document.getElementById("palcoEixo").innerHTML = faixaEixo(resumo, fracao);
   ligarCliqueNoGrafico(palco, registros, resumo);
+  // a coluna leva 280ms para encolher; ao fim disso o gráfico é redimensionado
+  setTimeout(() => { try { Plotly.Plots.resize(palco); } catch(e) {} }, 320);
 
   if(trocou){
     // remover, forçar o recálculo e repor: é o que faz a animação rodar de novo
