@@ -340,10 +340,25 @@ thead th{position:sticky;top:0;background:var(--papel);font-size:9.5px;letter-sp
    com o tema claro, sem nenhuma regra daqui.
    ══════════════════════════════════════════════════════════════════════════ */
 html.industrial{background:#0A1322}
+
+/* A foto ocupa uma faixa no alto da página inteira — passa por trás do
+   cabeçalho e ainda alcança o topo do menu e do palco. O véu por cima escurece
+   de leve em cima e fecha na cor do fundo embaixo, para a imagem terminar sem
+   linha de corte. */
+body.industrial::before{
+  content:"";position:absolute;inset:0 0 auto 0;height:330px;z-index:-2;
+  background:url("assets/hero.jpg") no-repeat center 34%/cover;
+}
+body.industrial::after{
+  content:"";position:absolute;inset:0 0 auto 0;height:330px;z-index:-1;
+  background:linear-gradient(180deg,
+    rgba(10,19,34,.42) 0%, rgba(10,19,34,.55) 46%,
+    rgba(10,19,34,.86) 82%, #0A1322 100%);
+}
 /* A apresentação é uma tela cheia: cabeçalho e rodapé no tamanho natural, e o
    palco esticando para ocupar todo o resto da altura da janela. */
 body.industrial{
-  min-height:100vh;display:flex;flex-direction:column;
+  min-height:100vh;display:flex;flex-direction:column;position:relative;
   padding-bottom:14px;
   --papel:#101C30;
   --linha:#22314B;
@@ -352,7 +367,7 @@ body.industrial{
   --suave:#8095AF;
   --tenue:#6E819C;
   --sombra:0 1px 2px rgba(0,0,0,.30),0 10px 30px rgba(0,0,0,.32);
-  background:#0A1322;color:var(--tinta);
+  background:transparent;color:var(--tinta);
 }
 body.industrial #conteudo{display:flex;flex-direction:column;flex:1;min-height:0}
 body.industrial #viewSlides{display:flex;flex-direction:column;flex:1;min-height:0}
@@ -364,12 +379,11 @@ body.industrial .fonte{margin-top:12px;flex-shrink:0}
    onde ficam logo e título, e vai abrindo para a direita — a imagem aparece
    atrás dos filtros sem tirar a legibilidade de nada. */
 body.industrial .cab{
-  background:
-    linear-gradient(95deg,
-      rgba(11,20,36,.95) 0%, rgba(13,24,42,.88) 32%,
-      rgba(13,24,42,.72) 58%, rgba(13,24,42,.52) 100%),
-    url("assets/hero.jpg") no-repeat center 38%/cover, #0F1B2E;
-  border-color:#22314B;border-top:3px solid var(--verde);
+  background:linear-gradient(95deg,
+    rgba(10,19,34,.82) 0%, rgba(11,21,37,.66) 34%,
+    rgba(11,21,37,.44) 62%, rgba(11,21,37,.26) 100%);
+  border-color:rgba(120,160,210,.22);border-top:3px solid var(--verde);
+  backdrop-filter:blur(1.5px);
   min-height:100px;
 }
 body.industrial .cab-titulo{color:#fff}
@@ -411,14 +425,16 @@ body.industrial .legenda-dias{color:#6E819C}
 
 /* Trilho: mais compacto e com a barra de seleção em verde */
 body.industrial .trilho{
-  background:#0E1A2D;border:1px solid #22314B;padding:0 0 12px;
+  background:rgba(14,26,45,.80);border:1px solid rgba(120,160,210,.16);padding:0 0 12px;
+  backdrop-filter:blur(3px);
   border-radius:14px;overflow:hidden;
 }
 /* A marca também no topo do menu, sobre uma placa branca — a logo original,
    sem recorte nem redesenho. */
 body.industrial .trilho-marca{
   display:flex;align-items:center;justify-content:center;
-  padding:16px 14px;border-bottom:1px solid #1B2942;background:#0B1524;
+  padding:16px 14px;border-bottom:1px solid rgba(120,160,210,.14);
+  background:rgba(11,21,36,.45);
 }
 body.industrial .trilho-marca img{height:38px;width:auto;display:block;
   background:#fff;border-radius:8px;padding:5px 9px}
@@ -447,7 +463,8 @@ body.industrial .palco.recolhido .trilho::after{
 body.industrial .palco.recolhido .trilho:hover::after{background:var(--verde)}
 body.industrial .trilho{position:relative}
 body.industrial .palco-corpo{
-  background:#0E1A2D;border:1px solid #22314B;
+  background:rgba(14,26,45,.80);border:1px solid rgba(120,160,210,.16);
+  backdrop-filter:blur(3px);
 }
 body.industrial .palco-topo{border-bottom-color:#1B2942;padding-bottom:18px}
 
