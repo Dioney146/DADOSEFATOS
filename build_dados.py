@@ -54,6 +54,20 @@ ESTADOS = {
 MESES_CURTOS = {1: "JAN", 2: "FEV", 3: "MAR", 4: "ABR", 5: "MAI", 6: "JUN",
                 7: "JUL", 8: "AGO", 9: "SET", 10: "OUT", 11: "NOV", 12: "DEZ"}
 
+# Nomes que o RoadNet costuma dar à duração da rota. O primeiro que existir na
+# planilha é usado; a comparação ignora acento, caixa e espaços.
+COLUNAS_TEMPO = [
+    "Tempo total",
+    "Tempo Total",
+    "Tempo total da rota",
+    "Tempo de rota",
+    "Tempo planejado",
+    "Duração total",
+    "Duração",
+    "Tempo total de viagem",
+    "Tempo total planejado",
+]
+
 COLUNAS_ESPERADAS = [
     "ID",
     "Descrição",
@@ -68,7 +82,7 @@ COLUNAS_ESPERADAS = [
     "Sessão de roteirização",
     "Estado",
     "SEMANA",
-]
+] + COLUNAS_TEMPO
 
 EXTENSOES = {".xlsx", ".xlsm", ".xls", ".csv"}
 
@@ -106,6 +120,52 @@ def br_para_float(valor) -> float:
         return float(txt)
     except ValueError:
         return float("nan")
+
+
+def horas(valor) -> float:
+    """
+    Duração da rota em horas, aceitando os formatos que o RoadNet exporta.
+
+    "8:30:00" e "8:30" viram 8,5. Número puro é interpretado como horas quando
+    é pequeno e como minutos quando passa de 24 — um valor como 510 só pode ser
+    minutos, já que nenhuma rota dura 510 horas.
+    """
+    if valor is None or (isinstance(valor, float) and pd.isna(valor)):
+        return float("nan")
+
+    if isinstance(valor, pd.Timedelta):
+        return valor.total_seconds() / 3600
+
+    texto = str(valor).strip()
+    if not texto or texto in {"-", "--", "nan", "NaT"}:
+        return float("nan")
+
+    if ":" in texto:
+        partes = texto.split(":")
+        try:
+            numeros = [float(parte.replace(",", ".")) for parte in partes]
+        except ValueError:
+            return float("nan")
+        while len(numeros) < 3:
+            numeros.append(0.0)
+        h, m, s = numeros[0], numeros[1], numeros[2]
+        # dias em formato "1 day, 02:30:00" entram como texto no primeiro campo
+        return h + m / 60 + s / 3600
+
+    numero = br_para_float(texto)
+    if pd.isna(numero):
+        return float("nan")
+    return numero / 60 if numero > 24 else numero
+
+
+def coluna_de_tempo(df: pd.DataFrame) -> str | None:
+    """Primeira coluna de duração encontrada, comparando sem acento nem caixa."""
+    mapa = {normalizar(c): c for c in df.columns}
+    for alvo in COLUNAS_TEMPO:
+        achado = mapa.get(normalizar(alvo))
+        if achado is not None:
+            return achado
+    return None
 
 
 def ler_arquivo(nome: str, conteudo: bytes) -> pd.DataFrame:
@@ -209,6 +269,10 @@ def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
     for origem, destino in numericas.items():
         df[destino] = df[origem].map(br_para_float) if origem in df.columns else float("nan")
 
+    coluna_tempo = coluna_de_tempo(df)
+    df["HORAS"] = df[coluna_tempo].map(horas) if coluna_tempo else float("nan")
+    df.attrs["coluna_tempo"] = coluna_tempo
+
     df["DATA"] = df["Sessão de roteirização"].map(extrair_data)
     df["ROTA"] = df["ID"].astype(str) if "ID" in df.columns else ""
     df["PLACA"] = df["Equipamento"].astype(str).str.strip() if "Equipamento" in df.columns else ""
@@ -280,6 +344,8 @@ def agregar(df: pd.DataFrame) -> list[dict]:
         CAPACIDADE=("CAPACIDADE", "sum"),
         VALOR=("VALOR", "sum"),
         DISTANCIA=("DISTANCIA", "sum"),
+        HORAS=("HORAS", "sum"),
+        ROTAS_COM_HORA=("HORAS", "count"),
         SEMANA=("SEMANA", "first"),
     )
 
@@ -297,6 +363,9 @@ def agregar(df: pd.DataFrame) -> list[dict]:
             "capacidade": round(float(linha["CAPACIDADE"] or 0), 2),
             "valor": round(float(linha["VALOR"] or 0), 2),
             "distancia": round(float(linha["DISTANCIA"] or 0), 2),
+            # horas só entram quando a planilha traz a coluna de duração
+            "horas": round(float(linha["HORAS"]), 3) if linha["ROTAS_COM_HORA"] else None,
+            "rotasComHora": int(linha["ROTAS_COM_HORA"]),
         })
     return registros
 
@@ -334,6 +403,7 @@ def gravar_detalhe(df: pd.DataFrame) -> tuple[int, float]:
                 "peso": numero(linha["PESO"]),
                 "capacidade": numero(linha["CAPACIDADE"]),
                 "distancia": numero(linha["DISTANCIA"]),
+                "horas": numero(linha["HORAS"], 3),
             })
         cargas.sort(key=lambda c: (c["uf"], c["rota"]))
         arquivo = PASTA_DETALHE / f"{data.strftime('%Y-%m-%d')}.json"
@@ -374,7 +444,10 @@ def main() -> int:
                 problemas.append(f"{nome}: nenhuma rota válida")
                 continue
             bases.append(base)
-            print(f"  lido  {nome:<28} {len(base):>6} rotas   estado {base['UF'].iloc[0]}")
+            coluna_tempo = base.attrs.get("coluna_tempo")
+            tempo = f"tempo: {coluna_tempo}" if coluna_tempo else "SEM coluna de tempo"
+            print(f"  lido  {nome:<28} {len(base):>6} rotas   "
+                  f"estado {base['UF'].iloc[0]:<7} {tempo}")
         except Exception as exc:  # noqa: BLE001
             problemas.append(f"{nome}: {exc}")
 
@@ -386,6 +459,16 @@ def main() -> int:
         return 1
 
     df = pd.concat(bases, ignore_index=True)
+
+    if not df["HORAS"].notna().any():
+        print("\n  AVISO: nenhuma planilha trouxe coluna de duração da rota.")
+        print("  O indicador de tempo de operação vai ficar vazio.")
+        print("  Colunas encontradas no primeiro arquivo:")
+        for coluna in bases[0].columns:
+            if not str(coluna).isupper():
+                print(f"    - {coluna}")
+        print("  Acrescente o nome certo à lista COLUNAS_TEMPO, no topo deste arquivo.")
+
     registros = agregar(df)
 
     conteudo = {
