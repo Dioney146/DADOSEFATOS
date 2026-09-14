@@ -57,6 +57,8 @@ MESES_CURTOS = {1: "JAN", 2: "FEV", 3: "MAR", 4: "ABR", 5: "MAI", 6: "JUN",
 # Nomes que o RoadNet costuma dar à duração da rota. O primeiro que existir na
 # planilha é usado; a comparação ignora acento, caixa e espaços.
 COLUNAS_TEMPO = [
+    "Tempo total de operação",   # nome usado no relatório do RoadNet da Delly's
+    "Tempo total de operacao",
     "Tempo total",
     "Tempo Total",
     "Tempo total da rota",
