@@ -23,7 +23,6 @@ from __future__ import annotations
 import io
 import json
 import re
-import shutil
 import sys
 import unicodedata
 from pathlib import Path
@@ -32,7 +31,6 @@ import pandas as pd
 
 RAIZ = Path(__file__).parent
 PASTA_DADOS = RAIZ / "dados"
-PASTA_ASSETS = RAIZ / "assets"
 PASTA_PUBLICA = RAIZ / "public"
 PASTA_DETALHE = PASTA_PUBLICA / "detalhe"
 ARQUIVO_SAIDA = PASTA_PUBLICA / "dados.json"
@@ -431,17 +429,6 @@ def gravar_detalhe(df: pd.DataFrame) -> tuple[int, float]:
     return quantidade, total_bytes / 1024
 
 
-def copiar_assets() -> None:
-    """Leva logo e favicon para dentro de public/, que é o que a Vercel publica."""
-    if not PASTA_ASSETS.exists():
-        return
-    destino = PASTA_PUBLICA / "assets"
-    destino.mkdir(parents=True, exist_ok=True)
-    for caminho in PASTA_ASSETS.iterdir():
-        if caminho.is_file():
-            shutil.copy2(caminho, destino / caminho.name)
-
-
 def main() -> int:
     arquivos = arquivos_da_pasta()
     if not arquivos:
@@ -496,7 +483,6 @@ def main() -> int:
     ARQUIVO_SAIDA.write_text(
         json.dumps(conteudo, ensure_ascii=False, separators=(",", ":")), encoding="utf-8"
     )
-    copiar_assets()
     dias, kb_detalhe = gravar_detalhe(df)
 
     tamanho = ARQUIVO_SAIDA.stat().st_size / 1024
