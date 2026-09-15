@@ -345,15 +345,17 @@ html.industrial{background:#0A1322}
    cabeçalho e ainda alcança o topo do menu e do palco. O véu por cima escurece
    de leve em cima e fecha na cor do fundo embaixo, para a imagem terminar sem
    linha de corte. */
+/* A faixa tem a mesma proporção da foto (1981 × 794), então a imagem aparece
+   inteira, sem corte: a largura preenche a tela e a altura acompanha. */
 body.industrial::before{
-  content:"";position:absolute;inset:0 0 auto 0;height:330px;z-index:-2;
-  background:url("assets/hero-galpao.jpg") no-repeat center 52%/cover;
+  content:"";position:absolute;inset:0 0 auto 0;height:40.1vw;z-index:-2;
+  background:url("assets/hero-galpao.jpg") no-repeat center top/100% auto;
 }
 body.industrial::after{
-  content:"";position:absolute;inset:0 0 auto 0;height:330px;z-index:-1;
+  content:"";position:absolute;inset:0 0 auto 0;height:40.1vw;z-index:-1;
   background:linear-gradient(180deg,
-    rgba(10,19,34,.42) 0%, rgba(10,19,34,.55) 46%,
-    rgba(10,19,34,.86) 82%, #0A1322 100%);
+    rgba(10,19,34,.38) 0%, rgba(10,19,34,.52) 30%,
+    rgba(10,19,34,.74) 58%, rgba(10,19,34,.92) 84%, #0A1322 100%);
 }
 /* A apresentação é uma tela cheia: cabeçalho e rodapé no tamanho natural, e o
    palco esticando para ocupar todo o resto da altura da janela. */
