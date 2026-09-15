@@ -339,21 +339,7 @@ thead th{position:sticky;top:0;background:var(--papel);font-size:9.5px;letter-sp
    A classe entra e sai do <body> pelo render; as abas Dia e Semana seguem
    com o tema claro, sem nenhuma regra daqui.
    ══════════════════════════════════════════════════════════════════════════ */
-/* A foto vai no fundo do próprio documento: a largura preenche a tela e a
-   altura acompanha a proporção da imagem (1981 × 794), então ela aparece
-   inteira. O degradê por cima fecha na cor do fundo, sem linha de corte. */
-html.industrial{
-  background-color:#0A1322;
-  background-image:
-    linear-gradient(180deg,
-      rgba(10,19,34,.38) 0%, rgba(10,19,34,.52) 30%,
-      rgba(10,19,34,.74) 58%, rgba(10,19,34,.94) 84%, #0A1322 100%),
-    url("assets/hero-galpao.jpg");
-  background-repeat:no-repeat, no-repeat;
-  background-size:100% 40.1vw, 100% auto;
-  background-position:center top, center top;
-  background-attachment:scroll, scroll;
-}
+html.industrial{background:#0A1322}
 
 body.industrial{
   min-height:100vh;display:flex;flex-direction:column;position:relative;
@@ -365,7 +351,19 @@ body.industrial{
   --suave:#8095AF;
   --tenue:#6E819C;
   --sombra:0 1px 2px rgba(0,0,0,.30),0 10px 30px rgba(0,0,0,.32);
-  background:transparent;color:var(--tinta);
+  color:var(--tinta);
+  /* A foto fica no fundo do body: a largura preenche a tela e a altura
+     acompanha a proporção da imagem (1981 × 794), então ela aparece inteira.
+     O degradê é a primeira camada, por cima da foto, e fecha na cor do fundo. */
+  background-color:#0A1322;
+  background-image:
+    linear-gradient(180deg,
+      rgba(10,19,34,.38) 0%, rgba(10,19,34,.52) 30%,
+      rgba(10,19,34,.74) 58%, rgba(10,19,34,.94) 84%, #0A1322 100%),
+    url("assets/hero-galpao.jpg");
+  background-repeat:no-repeat, no-repeat;
+  background-size:100% 40.1vw, 100% auto;
+  background-position:left top, left top;
 }
 body.industrial #conteudo{display:flex;flex-direction:column;flex:1;min-height:0}
 body.industrial #viewSlides{display:flex;flex-direction:column;flex:1;min-height:0}
