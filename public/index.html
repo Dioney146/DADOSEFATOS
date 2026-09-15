@@ -373,10 +373,15 @@ body.industrial .cab{
       rgba(11,21,37,.55) 62%, rgba(11,21,37,.10) 78%, rgba(11,21,37,0) 100%),
     url("assets/hero-galpao.jpg");
   background-repeat:no-repeat, no-repeat;
-  background-size:100% 100%, contain;
-  background-position:left top, right center;
+  /* auto 100% = a altura da foto é a do cabeçalho e a largura acompanha a
+     proporção; com origin/clip em border-box ela usa a caixa inteira, sem o
+     recorte que o padding provocava. */
+  background-size:100% 100%, auto 100%;
+  background-position:left center, right center;
+  background-origin:border-box, border-box;
+  background-clip:border-box, border-box;
   border-color:rgba(120,160,210,.22);border-top:3px solid var(--verde);
-  min-height:118px;
+  min-height:118px;overflow:hidden;
 }
 body.industrial .cab-titulo{color:#fff}
 body.industrial .cab-sub{color:#7FA9D8}
