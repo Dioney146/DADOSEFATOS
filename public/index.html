@@ -351,19 +351,7 @@ body.industrial{
   --suave:#8095AF;
   --tenue:#6E819C;
   --sombra:0 1px 2px rgba(0,0,0,.30),0 10px 30px rgba(0,0,0,.32);
-  color:var(--tinta);
-  /* A foto fica no fundo do body: a largura preenche a tela e a altura
-     acompanha a proporção da imagem (1981 × 794), então ela aparece inteira.
-     O degradê é a primeira camada, por cima da foto, e fecha na cor do fundo. */
-  background-color:#0A1322;
-  background-image:
-    linear-gradient(180deg,
-      rgba(10,19,34,.38) 0%, rgba(10,19,34,.52) 30%,
-      rgba(10,19,34,.74) 58%, rgba(10,19,34,.94) 84%, #0A1322 100%),
-    url("assets/hero-galpao.jpg");
-  background-repeat:no-repeat, no-repeat;
-  background-size:100% 40.1vw, 100% auto;
-  background-position:left top, left top;
+  background:#0A1322;color:var(--tinta);
 }
 body.industrial #conteudo{display:flex;flex-direction:column;flex:1;min-height:0}
 body.industrial #viewSlides{display:flex;flex-direction:column;flex:1;min-height:0}
@@ -375,12 +363,20 @@ body.industrial .fonte{margin-top:12px;flex-shrink:0}
    onde ficam logo e título, e vai abrindo para a direita — a imagem aparece
    atrás dos filtros sem tirar a legibilidade de nada. */
 body.industrial .cab{
-  background:linear-gradient(95deg,
-    rgba(10,19,34,.82) 0%, rgba(11,21,37,.66) 34%,
-    rgba(11,21,37,.44) 62%, rgba(11,21,37,.26) 100%);
+  /* A foto aparece inteira dentro do cabeçalho: `contain` encaixa a altura e
+     mantém a proporção, e ela fica encostada à direita, onde sobra espaço.
+     O degradê cobre a esquerda, onde ficam logo, título e filtros. */
+  background-color:#0D1729;
+  background-image:
+    linear-gradient(95deg,
+      rgba(11,21,37,.98) 0%, rgba(11,21,37,.96) 40%,
+      rgba(11,21,37,.55) 62%, rgba(11,21,37,.10) 78%, rgba(11,21,37,0) 100%),
+    url("assets/hero-galpao.jpg");
+  background-repeat:no-repeat, no-repeat;
+  background-size:100% 100%, contain;
+  background-position:left top, right center;
   border-color:rgba(120,160,210,.22);border-top:3px solid var(--verde);
-  backdrop-filter:blur(1.5px);
-  min-height:100px;
+  min-height:118px;
 }
 body.industrial .cab-titulo{color:#fff}
 body.industrial .cab-sub{color:#7FA9D8}
@@ -421,16 +417,14 @@ body.industrial .legenda-dias{color:#6E819C}
 
 /* Trilho: mais compacto e com a barra de seleção em verde */
 body.industrial .trilho{
-  background:rgba(14,26,45,.80);border:1px solid rgba(120,160,210,.16);padding:0 0 12px;
-  backdrop-filter:blur(3px);
+  background:#0E1A2D;border:1px solid #22314B;padding:0 0 12px;
   border-radius:14px;overflow:hidden;
 }
 /* A marca também no topo do menu, sobre uma placa branca — a logo original,
    sem recorte nem redesenho. */
 body.industrial .trilho-marca{
   display:flex;align-items:center;justify-content:center;
-  padding:16px 14px;border-bottom:1px solid rgba(120,160,210,.14);
-  background:rgba(11,21,36,.45);
+  padding:16px 14px;border-bottom:1px solid #1B2942;background:#0B1524;
 }
 body.industrial .trilho-marca img{height:38px;width:auto;display:block;
   background:#fff;border-radius:8px;padding:5px 9px}
@@ -459,8 +453,7 @@ body.industrial .palco.recolhido .trilho::after{
 body.industrial .palco.recolhido .trilho:hover::after{background:var(--verde)}
 body.industrial .trilho{position:relative}
 body.industrial .palco-corpo{
-  background:rgba(14,26,45,.80);border:1px solid rgba(120,160,210,.16);
-  backdrop-filter:blur(3px);
+  background:#0E1A2D;border:1px solid #22314B;
 }
 body.industrial .palco-topo{border-bottom-color:#1B2942;padding-bottom:18px}
 
