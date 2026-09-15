@@ -363,21 +363,18 @@ body.industrial .fonte{margin-top:12px;flex-shrink:0}
    onde ficam logo e título, e vai abrindo para a direita — a imagem aparece
    atrás dos filtros sem tirar a legibilidade de nada. */
 body.industrial .cab{
-  /* A foto aparece inteira dentro do cabeçalho: `contain` encaixa a altura e
-     mantém a proporção, e ela fica encostada à direita, onde sobra espaço.
-     O degradê cobre a esquerda, onde ficam logo, título e filtros. */
+  /* A foto preenche o retângulo inteiro do cabeçalho (`cover`), e o degradê
+     por cima escurece a esquerda, onde ficam logo, título e filtros, abrindo
+     para a direita, onde a imagem aparece. */
   background-color:#0D1729;
   background-image:
     linear-gradient(95deg,
-      rgba(11,21,37,.98) 0%, rgba(11,21,37,.96) 40%,
-      rgba(11,21,37,.55) 62%, rgba(11,21,37,.10) 78%, rgba(11,21,37,0) 100%),
+      rgba(11,21,37,.93) 0%, rgba(11,21,37,.86) 34%,
+      rgba(11,21,37,.66) 58%, rgba(11,21,37,.42) 80%, rgba(11,21,37,.30) 100%),
     url("assets/hero-galpao.jpg");
   background-repeat:no-repeat, no-repeat;
-  /* auto 100% = a altura da foto é a do cabeçalho e a largura acompanha a
-     proporção; com origin/clip em border-box ela usa a caixa inteira, sem o
-     recorte que o padding provocava. */
-  background-size:100% 100%, auto 100%;
-  background-position:left center, right center;
+  background-size:100% 100%, cover;
+  background-position:left center, center 58%;
   background-origin:border-box, border-box;
   background-clip:border-box, border-box;
   border-color:rgba(120,160,210,.22);border-top:3px solid var(--verde);
