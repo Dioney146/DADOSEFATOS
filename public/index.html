@@ -689,6 +689,20 @@ function toneladas(valor){
   if(valor === null || valor === undefined || !isFinite(valor)) return "—";
   return num(valor/1000) + "t";
 }
+/**
+ * Duração em HH:MM a partir de horas decimais.
+ *
+ * 12,4 h vira "12:24". Os minutos são arredondados, e 59,6 minutos viram a
+ * hora seguinte em vez de "12:60".
+ */
+function horaHHMM(horas){
+  if(horas === null || horas === undefined || !isFinite(horas)) return "—";
+  let total = Math.round(horas * 60);
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return `${h}:${String(m).padStart(2, "0")}`;
+}
+
 function dataCurta(iso){ const [a,m,d] = iso.split("-"); return `${d}/${m}`; }
 function dataLonga(iso){ const [a,m,d] = iso.split("-"); return `${d}/${m}/${a}`; }
 
@@ -770,6 +784,7 @@ function derivar(linha){
   linha.ocupacao     = linha.capacidade ? linha.peso/linha.capacidade : null;
   linha.ocupacaoPct  = linha.ocupacao === null ? null : linha.ocupacao*100;
   linha.mediaParadas = linha.rotas ? linha.paradas/linha.rotas : null;
+  linha.mediaEntregas = linha.rotas ? linha.entregas/linha.rotas : null;
   linha.dropParada   = linha.paradas ? linha.peso/linha.paradas : null;
   linha.dropVeiculo  = linha.veiculos ? linha.peso/linha.veiculos : null;
   linha.dropRota     = linha.rotas ? linha.peso/linha.rotas : null;
@@ -1011,11 +1026,13 @@ function corpoDoRotulo(textos, quantidade, fracao){
 }
 
 /** Rótulo sobre cada barra; a que ultrapassa o teto do eixo ganha uma seta. */
-function rotulosDeBarra(dados, campo, quantidade, percentual, fracao, teto, casas = 0){
+function rotulosDeBarra(dados, campo, quantidade, percentual, fracao, teto,
+                        casas = 0, formatar = null){
   if(quantidade > LIMITE_FAIXA) return {};
   const texto = dados.map(d => {
     const v = d[campo];
     if(v === null || !isFinite(v)) return "";
+    if(formatar) return (teto && v > teto ? "▲ " : "") + formatar(v);
     const mostrado = percentual ? v*100 : v;
     return (teto && v > teto ? "▲ " : "") + num(mostrado, casas);
   });
@@ -1041,18 +1058,23 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
     linhaDeReferencia(layout, opcoes.media, opcoes.rotuloMedia);
   // a barra que passa do teto é desenhada até ele; o valor real vai no texto
   const desenhados = valores.map(v => (teto && v > teto) ? teto : v);
-  const reais = valores.map(v => v === null || !isFinite(v) ? "—"
-    : num(opcoes.percentual ? v*100 : v, opcoes.casas || 0)
-      + (opcoes.percentual ? "%" : ""));
+  const reais = valores.map(v => {
+    if(v === null || !isFinite(v)) return "—";
+    if(opcoes.formatar) return opcoes.formatar(v);
+    return num(opcoes.percentual ? v*100 : v, opcoes.casas || 0)
+      + (opcoes.percentual ? "%" : "");
+  });
   series.push(Object.assign({
     type:"bar", x:posicoes(q), y:desenhados,
     customdata:dados.map((d,i) => [d.hover, extra[i], reais[i]]),
     marker:{color:marcador, line:{width:0}, cornerradius:5},
     width:larguraRelativa(q),
     hovertemplate:"<b>%{customdata[0]}</b><br>"
-      + (teto ? "%{customdata[2]}" : formato) + "%{customdata[1]}<extra></extra>"
+      + (teto || opcoes.formatar ? "%{customdata[2]}" : formato)
+      + "%{customdata[1]}<extra></extra>"
   }, opcoes.rotulos
-       ? rotulosDeBarra(dados, campo, q, opcoes.percentual, fracao, teto, opcoes.casas)
+       ? rotulosDeBarra(dados, campo, q, opcoes.percentual, fracao, teto,
+                        opcoes.casas, opcoes.formatar)
        : {}));
 
   /* Série de apoio: as barras mostram a média por rota e esta linha mostra o
@@ -1395,9 +1417,8 @@ const SECOES = [
    campo:"entregas", unidade:"", bandas:true, rotulos:true},
   {id:"tempo", menu:"Tempo de operação", titulo:"Tempo de operação",
    nota:"horas em rota, média por rota do dia", forma:"barra", campo:"horasPorRota",
-   unidade:" h", rotulos:true, mediaPonderada:true, casas:1,
-   formato:"%{y:.1f} h",
-   total:{campo:"horas", nome:"Total de horas no dia", casas:0}},
+   unidade:"", rotulos:true, mediaPonderada:true, casas:1, formatarHora:true,
+   total:{campo:"mediaEntregas", nome:"Média de entregas por rota", casas:1}},
   {id:"ocupacao", menu:"Ocupação da frota", titulo:"Ocupação da frota",
    nota:"peso embarcado ÷ capacidade contratada", forma:"barra", campo:"ocupacao",
    formato:"%{y:.0%}", percentual:true, unidade:"%"},
@@ -1434,8 +1455,7 @@ const COLUNAS_CARGA = [
       ? num(c.peso/c.capacidade*100) + "%" : "—"},
   {chave:"porParada",  titulo:"kg/parada",  texto:c => c.paradas ? num(c.peso/c.paradas) : "—"},
   {chave:"porEntrega", titulo:"kg/entrega", texto:c => c.entregas ? num(c.peso/c.entregas) : "—"},
-  {chave:"horas",      titulo:"Tempo",      texto:c => c.horas === null || c.horas === undefined
-      ? "—" : num(c.horas, 1) + " h"},
+  {chave:"horas",      titulo:"Tempo",      texto:c => horaHHMM(c.horas)},
 ];
 
 /**
@@ -1492,9 +1512,8 @@ const CARTOES = {
   ocupacao:     linha => ["Ocupação",
                   linha.ocupacao === null ? "—" : num(linha.ocupacao*100) + "%"],
   dropParada:   linha => ["Drop", num(linha.dropParada) + " kg/parada"],
-  horasPorRota: linha => ["Tempo por rota",
-                  linha.horasPorRota === null ? "—" : num(linha.horasPorRota, 1) + " h"],
-  horasTotais:  linha => ["Horas em rota", num(linha.horas, 1) + " h"],
+  horasPorRota: linha => ["Tempo por rota", horaHHMM(linha.horasPorRota)],
+  horasTotais:  linha => ["Horas em rota", horaHHMM(linha.horas)],
 };
 
 function valorDaColuna(carga, chave){
@@ -1687,8 +1706,11 @@ function desenharSlides(registros, resumo){
     const totalRotas = resumo.reduce((a,d) => a + (d.rotasComHora || 0), 0);
     media = totalRotas ? totalHoras/totalRotas : null;
   }
+  const formatar = secao.formatarHora ? horaHHMM : null;
   const cartoes = [
-    ["Média", media === null ? "—" : num(media, secao.casas || 0), secao.unidade.trim()],
+    ["Média", media === null ? "—"
+      : (formatar ? formatar(media) : num(media, secao.casas || 0)),
+     secao.unidade.trim()],
     ["Dias", num(resumo.length), ""],
     ["Rotas", num(resumo.reduce((a,d) => a + d.rotas, 0)), ""],
   ];
@@ -1718,9 +1740,10 @@ function desenharSlides(registros, resumo){
   }else{
     // a linha de referência mostra a mesma média que aparece no cartão do topo
     const casas = secao.casas || 0;
-    const rotuloMedia = media === null ? "" :
-      `média ${num(media, casas)}${secao.percentual ? "%" : " " + secao.unidade.trim()}`.trim();
-    const comuns = {rotulos:true, extremos:true, casas,
+    const rotuloMedia = media === null ? "" : formatar
+      ? `média ${formatar(media)}`
+      : `média ${num(media, casas)}${secao.percentual ? "%" : " " + secao.unidade.trim()}`.trim();
+    const comuns = {rotulos:true, extremos:true, casas, formatar,
                     media:secao.percentual && media !== null ? media/100 : media,
                     rotuloMedia, total:secao.total};
 
