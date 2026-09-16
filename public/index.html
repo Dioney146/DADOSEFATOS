@@ -540,6 +540,10 @@ body.industrial .aviso code{background:#0C1729;color:#9CC0E4}
       <label for="fEstado">Estado</label>
       <select id="fEstado"></select>
     </div>
+    <div class="campo" id="campoBase" hidden>
+      <label for="fBase">Base</label>
+      <select id="fBase"></select>
+    </div>
     <div class="campo">
       <label for="fInicio">Período</label>
       <div class="periodo">
@@ -674,7 +678,7 @@ let BASE = null;
 const filtros = {
   uf:"TODOS", inicio:null, fim:null, drop:"Parada",
   colunas:"31", semana:"TODAS", pagina:1, aba:"dia", indicador:"Drop (kg/parada)",
-  secao:"drop", trilhoRecolhido:false
+  secao:"drop", trilhoRecolhido:false, base:"TODAS"
 };
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -794,8 +798,28 @@ function derivar(linha){
   return linha;
 }
 
+/** Bases disponíveis no estado selecionado (hoje, só São Paulo tem). */
+function basesDoEstado(){
+  if(!BASE.unidades || filtros.uf === "TODOS") return [];
+  return [...new Set(BASE.unidades
+    .filter(r => r.uf === filtros.uf)
+    .map(r => r.unidade))].sort();
+}
+
+/**
+ * Registros do recorte atual.
+ *
+ * Com uma base selecionada a origem passa a ser a lista `unidades`, que é
+ * agregada por estado, base e dia. Sem base selecionada continua valendo a
+ * lista principal — e não a soma das bases, porque somar subgrupos contaria
+ * duas vezes a placa que rodou em duas bases no mesmo dia.
+ */
 function registrosFiltrados(){
-  return BASE.registros.filter(r =>
+  const daBase = filtros.base !== "TODAS" && BASE.unidades;
+  const origem = daBase
+    ? BASE.unidades.filter(r => r.unidade === filtros.base)
+    : BASE.registros;
+  return origem.filter(r =>
     (filtros.uf === "TODOS" || r.uf === filtros.uf) &&
     (!filtros.inicio || r.data >= filtros.inicio) &&
     (!filtros.fim    || r.data <= filtros.fim));
@@ -1963,7 +1987,30 @@ function ligarFiltros(datas){
   const ufs = [...new Set(BASE.registros.map(r => r.uf))].sort();
   estado.innerHTML = `<option value="TODOS">Todos os estados</option>`
     + ufs.map(uf => `<option value="${uf}">${uf} — ${BASE.estados[uf] || "Não identificado"}</option>`).join("");
-  estado.onchange = () => { filtros.uf = estado.value; filtros.pagina = 1; render(); };
+  const base = document.getElementById("fBase");
+  const campoBase = document.getElementById("campoBase");
+
+  function atualizarBases(){
+    const disponiveis = basesDoEstado();
+    campoBase.hidden = disponiveis.length < 2;
+    if(campoBase.hidden){ filtros.base = "TODAS"; return; }
+    if(!disponiveis.includes(filtros.base)) filtros.base = "TODAS";
+    const nomes = BASE.nomes_unidades || {};
+    base.innerHTML = `<option value="TODAS">Todas as bases</option>`
+      + disponiveis.map(u => `<option value="${u}"${u === filtros.base ? " selected" : ""}>`
+          + `${nomes[u] || u}</option>`).join("");
+  }
+
+  base.onchange = () => { filtros.base = base.value; filtros.pagina = 1; render(); };
+
+  estado.onchange = () => {
+    filtros.uf = estado.value;
+    filtros.base = "TODAS";
+    filtros.pagina = 1;
+    atualizarBases();
+    render();
+  };
+  atualizarBases();
 
   const inicio = document.getElementById("fInicio");
   const fim = document.getElementById("fFim");
