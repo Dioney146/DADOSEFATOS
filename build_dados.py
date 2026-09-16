@@ -287,6 +287,14 @@ def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
     df["DATA"] = df["Sessão de roteirização"].map(extrair_data)
     df["ROTA"] = df["ID"].astype(str) if "ID" in df.columns else ""
     df["PLACA"] = df["Equipamento"].astype(str).str.strip() if "Equipamento" in df.columns else ""
+    # O destino da rota vem no nome dela ("AM-ZLESTE 01/07", "MG-ARAXA"); a data
+    # no fim é redundante com a coluna DATA e sai para o texto não ficar longo.
+    df["DESTINO"] = (
+        df["Descrição"].astype(str).str.strip()
+          .str.replace(r"\s+\d{2}/\d{2}(/\d{2,4})?$", "", regex=True)
+          .replace({"": "—", "nan": "—"})
+        if "Descrição" in df.columns else "—"
+    )
     df["TIPO_VEICULO"] = (
         df["Tipos de equipamento"].astype(str).str.strip()
           .replace({"": "—", "nan": "—"})
@@ -408,6 +416,7 @@ def gravar_detalhe(df: pd.DataFrame) -> tuple[int, float]:
                 "uf": linha["UF"],
                 "rota": str(linha["ROTA"]),
                 "placa": linha["PLACA"] or "—",
+                "destino": linha.get("DESTINO") or "—",
                 "tipo": str(linha.get("TIPO_VEICULO") or "—"),
                 "paradas": numero(linha["PARADAS"], 0),
                 "entregas": numero(linha["ENTREGAS"], 0),
