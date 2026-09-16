@@ -291,6 +291,7 @@ details.detalhe summary:hover{color:var(--marca)}
 .tabela-rolagem{overflow:auto;max-height:420px;margin-top:12px}
 table{border-collapse:collapse;width:100%;font-size:12px}
 th,td{border-bottom:1px solid var(--grade);padding:7px 11px;text-align:right;white-space:nowrap}
+.modal-caixa td:nth-child(-n+4),.modal-caixa th:nth-child(-n+4){text-align:left}
 th:first-child,td:first-child{text-align:left;position:sticky;left:0;background:var(--papel)}
 thead th{position:sticky;top:0;background:var(--papel);font-size:9.5px;letter-spacing:.12em;
   text-transform:uppercase;color:var(--tenue)}
@@ -1445,6 +1446,7 @@ function valorDaSecao(linha, secao){
 const COLUNAS_CARGA = [
   {chave:"rota",       titulo:"Rota",       texto:c => c.rota},
   {chave:"placa",      titulo:"Placa",      texto:c => c.placa},
+  {chave:"destino",    titulo:"Destino",    texto:c => c.destino || "—"},
   {chave:"uf",         titulo:"Estado",     texto:c => c.uf},
   {chave:"tipo",       titulo:"Veículo",    texto:c => c.tipo},
   {chave:"paradas",    titulo:"Paradas",    texto:c => num(c.paradas)},
@@ -1469,32 +1471,32 @@ const COLUNAS_CARGA = [
  */
 const DETALHE_DA_SECAO = {
   drop: {
-    colunas:["rota","placa","paradas","peso","porParada"],
+    colunas:["rota","placa","destino","paradas","peso","porParada"],
     destaque:"porParada",
     cartoes:["rotas","paradas","peso","dropParada"],
   },
   veiculos: {
-    colunas:["rota","placa","tipo"],
+    colunas:["rota","placa","destino","tipo"],
     destaque:"placa",
     cartoes:["veiculos","rotas"],
   },
   entregas: {
-    colunas:["rota","placa","paradas","entregas"],
+    colunas:["rota","placa","destino","paradas","entregas"],
     destaque:"entregas",
     cartoes:["entregas","paradas","mediaParadas","rotas"],
   },
   tempo: {
-    colunas:["rota","placa","tipo","horas"],
+    colunas:["rota","placa","destino","tipo","horas"],
     destaque:"horas",
     cartoes:["horasPorRota","horasTotais","rotas"],
   },
   ocupacao: {
-    colunas:["rota","placa","peso","capacidade","ocupacao"],
+    colunas:["rota","placa","destino","peso","capacidade","ocupacao"],
     destaque:"ocupacao",
     cartoes:["ocupacao","peso","capacidade","rotas"],
   },
   peso: {
-    colunas:["rota","placa","peso","capacidade"],
+    colunas:["rota","placa","destino","peso","capacidade"],
     destaque:"peso",
     cartoes:["peso","capacidade","ocupacao","rotas"],
   },
