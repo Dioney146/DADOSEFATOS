@@ -1146,9 +1146,9 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
  * entre as linhas é a informação.
  */
 /** Valor de cada ponto, na unidade da própria base. */
-function rotulosDeLinha(dados, campo, quantidade, cor, posicao, fracao){
+function rotulosDeLinha(dados, campo, quantidade, cor, posicao, fracao, formatar){
   if(quantidade > LIMITE_FAIXA) return {mode:"lines+markers"};
-  const texto = dados.map(d => num(d[campo]));
+  const texto = dados.map(d => formatar ? formatar(d[campo]) : num(d[campo]));
   return {
     mode:"lines+markers+text",
     text:texto,
@@ -1161,7 +1161,7 @@ function rotulosDeLinha(dados, campo, quantidade, cor, posicao, fracao){
 
 function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
                            origemA, origemB, bandas = false, comRotulos = false,
-                           fracao = 0.72){
+                           fracao = 0.72, formatarA = null, formatarB = null){
   const q = dados.length;
   const marcador = Math.max(2.5, escala(q,7,3));
   const traco = Math.max(1.1, escala(q,2.4,1.4));
@@ -1176,20 +1176,26 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
   Plotly.newPlot(div, [
     Object.assign({
       type:"scatter", x:posicoes(q), y:dados.map(d => d[campoA]),
-      customdata:origemA || dados.map(() => ""),
+      customdata:dados.map((d,i) => [(origemA || [])[i] || "",
+        formatarA ? formatarA(d[campoA]) : num(d[campoA])]),
       // série A: tracejada, no tom mais claro do azul
       line:{color:TEMA.linhaA, width:traco, shape:"spline", smoothing:0.9, dash:"dot"},
       marker:{size:marcador}, yaxis:"y", mode:"lines+markers",
-      hovertemplate:`${nomeA}: %{y:,.0f}%{customdata}<extra></extra>`
-    }, comRotulos ? rotulosDeLinha(dados, campoA, q, TEMA.linhaA, "top center", fracao) : {}),
+      hovertemplate:`${nomeA}: %{customdata[1]}%{customdata[0]}<extra></extra>`
+    }, comRotulos
+         ? rotulosDeLinha(dados, campoA, q, TEMA.linhaA, "top center", fracao, formatarA)
+         : {}),
     Object.assign({
       type:"scatter", x:posicoes(q), y:dados.map(d => d[campoB]),
-      customdata:origemB || dados.map(() => ""),
+      customdata:dados.map((d,i) => [(origemB || [])[i] || "",
+        formatarB ? formatarB(d[campoB]) : num(d[campoB])]),
       // série B: sólida, no azul cheio
       line:{color:TEMA.linhaB, width:traco+0.6, shape:"spline", smoothing:0.9},
       marker:{size:marcador}, yaxis:"y2", mode:"lines+markers",
-      hovertemplate:`${nomeB}: %{y:,.0f}%{customdata}<extra></extra>`
-    }, comRotulos ? rotulosDeLinha(dados, campoB, q, TEMA.linhaB, "bottom center", fracao) : {})
+      hovertemplate:`${nomeB}: %{customdata[1]}%{customdata[0]}<extra></extra>`
+    }, comRotulos
+         ? rotulosDeLinha(dados, campoB, q, TEMA.linhaB, "bottom center", fracao, formatarB)
+         : {})
   ], layout, CONFIG);
 }
 
@@ -1413,8 +1419,10 @@ const SECOES = [
   {id:"veiculos", menu:"Quantidade de veículos", titulo:"Quantidade de veículos",
    nota:"veículos distintos por dia", forma:"barra", campo:"veiculos", unidade:""},
   {id:"entregas", menu:"Quantidade de entrega", titulo:"Quantidade de entrega",
-   nota:"ordens entregues e média de paradas por rota", forma:"linhas",
-   campoA:"mediaParadas", campoB:"entregas", nomeA:"Média de paradas", nomeB:"Entregas",
+   nota:"média de paradas por rota e ocupação da frota", forma:"linhas",
+   campoA:"mediaParadas", campoB:"ocupacaoPct",
+   nomeA:"Média de paradas", nomeB:"Ocupação",
+   formatarB:v => num(v) + "%",
    campo:"entregas", unidade:"", bandas:true, rotulos:true},
   {id:"tempo", menu:"Tempo de operação", titulo:"Tempo de operação",
    nota:"horas em rota, média por rota do dia", forma:"barra", campo:"horasPorRota",
@@ -1738,7 +1746,8 @@ function desenharSlides(registros, resumo){
   if(secao.forma === "linhas"){
     graficoDuasLinhas(palco, resumo, secao.campoA, secao.campoB, secao.nomeA, secao.nomeB,
       altura, origemPorDia(registros, resumo, secao.campoA),
-      origemPorDia(registros, resumo, secao.campoB), !!secao.bandas, !!secao.rotulos, fracao);
+      origemPorDia(registros, resumo, secao.campoB), !!secao.bandas, !!secao.rotulos,
+      fracao, secao.formatarA || null, secao.formatarB || null);
   }else{
     // a linha de referência mostra a mesma média que aparece no cartão do topo
     const casas = secao.casas || 0;
