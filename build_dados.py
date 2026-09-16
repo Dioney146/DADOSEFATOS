@@ -87,6 +87,18 @@ COLUNAS_ESPERADAS = [
 
 EXTENSOES = {".xlsx", ".xlsm", ".xls", ".csv"}
 
+# São Paulo opera em bases distintas, identificadas pelo começo do ID da rota.
+# A ordem importa: "3P" antes de "SP" evita que um ID como "3P12" caia no lugar
+# errado, e a lista é percorrida do prefixo mais longo para o mais curto.
+UNIDADES_SP = {
+    "3P": "3P — Três Passos",
+    "BX": "BX — Baixada",
+    "HT": "HT — Hortolândia",
+    "IT": "IT — Itapeva",
+    "JC": "JC — Jacareí",
+    "SP": "SP — Capital",
+}
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # LEITURA E TRATAMENTO
@@ -259,6 +271,23 @@ def detectar_estado(nome_arquivo: str, df: pd.DataFrame) -> str:
     return "N/D"
 
 
+def unidade_da_rota(uf: str, rota: str) -> str:
+    """
+    Base de São Paulo a partir do prefixo do ID da rota.
+
+    Só vale para SP; nos demais estados devolve vazio, e o site continua
+    trabalhando com o estado inteiro. IDs que não começam por nenhum dos
+    prefixos conhecidos entram como OUTROS, para nenhum número se perder.
+    """
+    if uf != "SP":
+        return ""
+    texto = re.sub(r"[^A-Z0-9]", "", str(rota).upper())
+    for prefixo in sorted(UNIDADES_SP, key=len, reverse=True):
+        if texto.startswith(prefixo):
+            return prefixo
+    return "OUTROS"
+
+
 def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
     """Deixa a base pronta para análise: colunas numéricas, data e estado."""
     df = df.loc[:, ~df.columns.duplicated()].copy()
@@ -305,6 +334,8 @@ def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
     # chave para a contagem não juntar veículos distintos.
     df["VEICULO"] = df["UF"] + "·" + df["PLACA"].astype(str)
     df["ARQUIVO"] = Path(nome_arquivo).name
+    df["UNIDADE"] = [unidade_da_rota(uf, rota)
+                     for uf, rota in zip(df["UF"], df["ROTA"])]
 
     if "SEMANA" in df.columns:
         df["SEMANA_ARQUIVO"] = df["SEMANA"].astype(str).str.strip()
@@ -337,6 +368,46 @@ def arquivos_da_pasta() -> list[tuple[str, bytes]]:
 # AGREGAÇÃO
 # ──────────────────────────────────────────────────────────────────────────────
 
+def linhas_agregadas(df: pd.DataFrame, chaves: list[str]) -> list[dict]:
+    """Uma linha por combinação das chaves, com os mesmos campos de sempre."""
+    agrupado = df.groupby(chaves, as_index=False).agg(
+        ROTAS=("ROTA", "count"),
+        VEICULOS=("VEICULO", pd.Series.nunique),
+        PARADAS=("PARADAS", "sum"),
+        ENTREGAS=("ENTREGAS", "sum"),
+        PESO=("PESO", "sum"),
+        CAPACIDADE=("CAPACIDADE", "sum"),
+        VALOR=("VALOR", "sum"),
+        DISTANCIA=("DISTANCIA", "sum"),
+        HORAS=("HORAS", "sum"),
+        ROTAS_COM_HORA=("HORAS", "count"),
+        SEMANA=("SEMANA", "first"),
+    )
+
+    registros = []
+    for _, linha in agrupado.sort_values(["DATA", "UF"]).iterrows():
+        registro = {
+            "uf": linha["UF"],
+            "data": linha["DATA"].strftime("%Y-%m-%d"),
+            "semana": linha["SEMANA"],
+            "rotas": int(linha["ROTAS"]),
+            "veiculos": int(linha["VEICULOS"]),
+            "paradas": round(float(linha["PARADAS"] or 0), 2),
+            "entregas": round(float(linha["ENTREGAS"] or 0), 2),
+            "peso": round(float(linha["PESO"] or 0), 2),
+            "capacidade": round(float(linha["CAPACIDADE"] or 0), 2),
+            "valor": round(float(linha["VALOR"] or 0), 2),
+            "distancia": round(float(linha["DISTANCIA"] or 0), 2),
+            # horas só entram quando a planilha traz a coluna de duração
+            "horas": round(float(linha["HORAS"]), 3) if linha["ROTAS_COM_HORA"] else None,
+            "rotasComHora": int(linha["ROTAS_COM_HORA"]),
+        }
+        if "UNIDADE" in chaves:
+            registro["unidade"] = linha["UNIDADE"]
+        registros.append(registro)
+    return registros
+
+
 def agregar(df: pd.DataFrame) -> list[dict]:
     """
     Uma linha por estado e por dia.
@@ -354,39 +425,22 @@ def agregar(df: pd.DataFrame) -> list[dict]:
         df["SEMANA_ARQUIVO"].astype(bool) & (df["SEMANA_ARQUIVO"] != "nan"), calculada
     )
 
-    agrupado = df.groupby(["UF", "DATA"], as_index=False).agg(
-        ROTAS=("ROTA", "count"),
-        VEICULOS=("VEICULO", pd.Series.nunique),
-        PARADAS=("PARADAS", "sum"),
-        ENTREGAS=("ENTREGAS", "sum"),
-        PESO=("PESO", "sum"),
-        CAPACIDADE=("CAPACIDADE", "sum"),
-        VALOR=("VALOR", "sum"),
-        DISTANCIA=("DISTANCIA", "sum"),
-        HORAS=("HORAS", "sum"),
-        ROTAS_COM_HORA=("HORAS", "count"),
-        SEMANA=("SEMANA", "first"),
-    )
+    return linhas_agregadas(df, ["UF", "DATA"])
 
-    registros = []
-    for _, linha in agrupado.sort_values(["DATA", "UF"]).iterrows():
-        registros.append({
-            "uf": linha["UF"],
-            "data": linha["DATA"].strftime("%Y-%m-%d"),
-            "semana": linha["SEMANA"],
-            "rotas": int(linha["ROTAS"]),
-            "veiculos": int(linha["VEICULOS"]),
-            "paradas": round(float(linha["PARADAS"] or 0), 2),
-            "entregas": round(float(linha["ENTREGAS"] or 0), 2),
-            "peso": round(float(linha["PESO"] or 0), 2),
-            "capacidade": round(float(linha["CAPACIDADE"] or 0), 2),
-            "valor": round(float(linha["VALOR"] or 0), 2),
-            "distancia": round(float(linha["DISTANCIA"] or 0), 2),
-            # horas só entram quando a planilha traz a coluna de duração
-            "horas": round(float(linha["HORAS"]), 3) if linha["ROTAS_COM_HORA"] else None,
-            "rotasComHora": int(linha["ROTAS_COM_HORA"]),
-        })
-    return registros
+
+def agregar_unidades(df: pd.DataFrame) -> list[dict]:
+    """
+    Segunda camada, só para os estados que têm base identificada (hoje, SP).
+
+    Ela convive com a lista principal em vez de substituí-la: assim o número do
+    estado inteiro continua saindo de uma agregação única — importante para a
+    contagem de veículos, onde somar subgrupos contaria duas vezes a placa que
+    rodou em duas bases no mesmo dia.
+    """
+    com_unidade = df[df["UNIDADE"].astype(bool)]
+    if com_unidade.empty:
+        return []
+    return linhas_agregadas(com_unidade, ["UF", "UNIDADE", "DATA"])
 
 
 def gravar_detalhe(df: pd.DataFrame) -> tuple[int, float]:
@@ -479,6 +533,7 @@ def main() -> int:
         print("  Acrescente o nome certo à lista COLUNAS_TEMPO, no topo deste arquivo.")
 
     registros = agregar(df)
+    unidades = agregar_unidades(df)
 
     conteudo = {
         "gerado_em": pd.Timestamp.now().strftime("%d/%m/%Y %H:%M"),
@@ -486,6 +541,9 @@ def main() -> int:
         "arquivos": sorted(df["ARQUIVO"].unique().tolist()),
         "rotas_processadas": int(len(df)),
         "registros": registros,
+        # bases de SP: lista paralela, usada só quando o filtro de base é aberto
+        "unidades": unidades,
+        "nomes_unidades": {**UNIDADES_SP, "OUTROS": "Outros"},
     }
 
     PASTA_PUBLICA.mkdir(parents=True, exist_ok=True)
@@ -498,6 +556,9 @@ def main() -> int:
     print(f"\n{ARQUIVO_SAIDA.relative_to(RAIZ)} gravado — "
           f"{len(registros)} linhas (estado × dia), {tamanho:.0f} KB")
     print(f"public/detalhe/ — {dias} arquivos de cargas, {kb_detalhe:.0f} KB no total")
+    if unidades:
+        bases = sorted({r["unidade"] for r in unidades})
+        print(f"Bases de SP: {', '.join(bases)} ({len(unidades)} linhas)")
     print(f"Estados: {', '.join(sorted(df['UF'].unique()))}")
     return 0
 
