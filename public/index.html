@@ -1481,14 +1481,15 @@ const SECOES = [
    formato:"%{y:.0%}", percentual:true, unidade:"%"},
   {id:"peso", menu:"Peso × capacidade", titulo:"Peso × capacidade",
    nota:"toneladas embarcadas e capacidade disponível", forma:"linhas",
-   campoA:"capacidade", campoB:"peso", nomeA:"Capacidade (kg)", nomeB:"Peso (kg)",
+   campoA:"capacidade", campoB:"peso", nomeA:"Capacidade (t)", nomeB:"Peso (t)",
    campo:"peso", unidade:" kg", bandas:true, rotulos:true,
-   // acabamento visual desta seção: área sob o peso, traços mais finos,
+   // os valores aparecem em toneladas, que é como a operação fala do volume
+   formatarA:toneladas, formatarB:toneladas,
+   // acabamento visual desta seção: área sob as duas séries, traços finos,
    // marcador discreto, grade quase invisível e números um pouco maiores
    estilo:{area:"rgba(74,129,194,.20)", areaA:"rgba(120,160,205,.10)",
            tracoA:1.5, tracoB:2.6, marcador:5, suavidade:0.6,
-           grade:"rgba(255,255,255,.05)", ganhoRotulo:1.15,
-           eixoY:true, marcas:6, margemEsquerda:62}},
+           grade:"rgba(255,255,255,.05)", ganhoRotulo:1.15}},
 ];
 
 /** Valor conforme a unidade da seção: percentual vira 0-100. */
