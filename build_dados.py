@@ -563,6 +563,8 @@ def gravar_detalhe(df: pd.DataFrame) -> tuple[int, float]:
         for _, linha in parte.iterrows():
             cargas.append({
                 "uf": linha["UF"],
+                # base de SP, para a janela do dia respeitar o filtro de base
+                "unidade": linha.get("UNIDADE") or "",
                 "rota": str(linha["ROTA"]),
                 "placa": linha["PLACA"] or "—",
                 "destino": linha.get("DESTINO") or "—",
