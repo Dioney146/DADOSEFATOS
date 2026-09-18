@@ -962,6 +962,7 @@ function layoutBase(altura, quantidade, dados, comRotulos){
     paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
     font:{family:"Archivo, sans-serif", size:11, color:TEMA.texto},
     showlegend:false, hovermode:"x unified", bargap:0, bargroupgap:0,
+    barmode:"overlay",
     hoverlabel:{font:{size:12, family:"Archivo, sans-serif", color:TEMA.hoverTexto},
                 bgcolor:TEMA.hoverFundo, bordercolor:TEMA.hoverBorda},
     xaxis:{showgrid:false, zeroline:false, showline:false, ticks:"", type:"linear",
@@ -1029,6 +1030,19 @@ function linhaDeReferencia(layout, valor, rotulo){
   return layout;
 }
 
+/** Mistura uma cor com preto ou branco; usada nas faces do relevo. */
+function tonalizar(cor, fator){
+  const hex = String(cor).replace("#", "");
+  const n = parseInt(hex.length === 3 ? hex.split("").map(c => c+c).join("") : hex, 16);
+  let [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  const alvo = fator < 0 ? 0 : 255;
+  const peso = Math.abs(fator);
+  r = Math.round(r + (alvo - r) * peso);
+  g = Math.round(g + (alvo - g) * peso);
+  b = Math.round(b + (alvo - b) * peso);
+  return `rgb(${r},${g},${b})`;
+}
+
 function coresComExtremos(valores){
   const validos = valores.filter(v => v !== null && isFinite(v));
   if(validos.length < 3) return valores.map(() => TEMA.barra);
@@ -1090,6 +1104,23 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
     return num(opcoes.percentual ? v*100 : v, opcoes.casas || 0)
       + (opcoes.percentual ? "%" : "");
   });
+  /* Relevo: uma cópia da coluna, deslocada para a direita e num tom mais
+     escuro, desenhada antes da coluna principal. Como ela fica por baixo, o
+     que sobra à direita vira a face lateral — dá volume sem gradiente nem
+     brilho, e some do tooltip para não duplicar a leitura. */
+  if(opcoes.relevo){
+    const largura = larguraRelativa(q);
+    const deslocamento = largura * 0.16;
+    const faces = Array.isArray(marcador)
+      ? marcador.map(c => tonalizar(c, -0.42))
+      : tonalizar(marcador, -0.42);
+    series.push({
+      type:"bar", x:posicoes(q).map(x => x + deslocamento), y:desenhados,
+      marker:{color:faces, line:{width:0}, cornerradius:4},
+      width:largura, hoverinfo:"skip", showlegend:false
+    });
+  }
+
   series.push(Object.assign({
     type:"bar", x:posicoes(q), y:desenhados,
     customdata:dados.map((d,i) => [d.hover, extra[i], reais[i]]),
@@ -1810,7 +1841,7 @@ function desenharSlides(registros, resumo){
     const rotuloMedia = media === null ? "" : formatar
       ? `média ${formatar(media)}`
       : `média ${num(media, casas)}${secao.percentual ? "%" : " " + secao.unidade.trim()}`.trim();
-    const comuns = {rotulos:true, extremos:true, casas, formatar,
+    const comuns = {rotulos:true, extremos:true, casas, formatar, relevo:true,
                     media:secao.percentual && media !== null ? media/100 : media,
                     rotuloMedia, total:secao.total};
 
