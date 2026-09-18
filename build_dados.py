@@ -543,7 +543,9 @@ def main() -> int:
         "registros": registros,
         # bases de SP: lista paralela, usada só quando o filtro de base é aberto
         "unidades": unidades,
-        "nomes_unidades": {**UNIDADES_SP, "OUTROS": "Outros"},
+        "nomes_unidades": {**UNIDADES_SP,
+                           **({"OUTROS": "Outros"}
+                              if any(r["unidade"] == "OUTROS" for r in unidades) else {})},
     }
 
     PASTA_PUBLICA.mkdir(parents=True, exist_ok=True)
@@ -559,6 +561,19 @@ def main() -> int:
     if unidades:
         bases = sorted({r["unidade"] for r in unidades})
         print(f"Bases de SP: {', '.join(bases)} ({len(unidades)} linhas)")
+
+        # IDs que não bateram com nenhum prefixo conhecido: ou é base nova, ou
+        # é rota de outro estado que entrou no arquivo errado
+        fora = df[(df["UNIDADE"] == "OUTROS")]
+        if not fora.empty:
+            prefixos = (fora["ROTA"].astype(str).str.upper()
+                        .str.extract(r"^([A-Z]+)", expand=False)
+                        .fillna("(sem letra)").value_counts())
+            print(f"  ATENÇÃO: {len(fora)} rotas de SP caíram em OUTROS.")
+            for prefixo, quantidade in prefixos.head(12).items():
+                print(f"    {prefixo:<6} {quantidade:>5} rotas")
+            print("  Se algum for base de SP, acrescente em UNIDADES_SP no topo "
+                  "do arquivo; se for de outro estado, a planilha está misturada.")
     print(f"Estados: {', '.join(sorted(df['UF'].unique()))}")
     return 0
 
