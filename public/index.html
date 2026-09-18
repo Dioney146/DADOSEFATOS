@@ -1849,11 +1849,17 @@ function desenharTipologia(){
     xaxis:{showgrid:true, gridcolor:TEMA.grade, zeroline:false, showline:false,
            showticklabels:false, fixedrange:true,
            range:[0, Math.max(...valores) * 1.5]},
-    yaxis:{tickmode:"array", tickvals:ordem.map((_,i) => i), ticktext:ordem,
+    /* O nome da categoria vira anotação em vez de rótulo de eixo: assim ele
+       fica centrado na faixa da esquerda, e não grudado na barra como o eixo
+       do Plotly faz por padrão. */
+    yaxis:{tickmode:"array", tickvals:ordem.map((_,i) => i), ticktext:ordem.map(() => ""),
            autorange:"reversed", showgrid:false, zeroline:false, showline:false,
-           fixedrange:true, ticksuffix:"        ", automargin:false,
-           tickfont:{family:"Archivo, sans-serif", size:12,
-                     color:TEMA.texto, weight:600}}
+           fixedrange:true, automargin:false},
+    annotations:ordem.map((nome, i) => ({
+      xref:"paper", x:-0.055, y:i, yref:"y", text:nome, showarrow:false,
+      xanchor:"center", yanchor:"middle",
+      font:{family:"Archivo, sans-serif", size:12, color:TEMA.texto}
+    }))
   }, CONFIG);
 }
 
