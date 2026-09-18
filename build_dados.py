@@ -80,6 +80,7 @@ COLUNAS_ESPERADAS = [
     "Equipamento",
     "Distância total",
     "Tipos de equipamento",
+    "Trabalhadores",
     "Sessão de roteirização",
     "Estado",
     "SEMANA",
@@ -271,6 +272,21 @@ def detectar_estado(nome_arquivo: str, df: pd.DataFrame) -> str:
     return "N/D"
 
 
+def texto_ou_traco(serie) -> pd.Series:
+    """
+    Texto limpo, com traço onde não há informação.
+
+    O `.replace` do pandas entende a string "nan" como valor nulo e devolve
+    NaN de volta, então a troca é feita item a item, sem ambiguidade.
+    """
+    def limpar(valor):
+        if valor is None or (isinstance(valor, float) and pd.isna(valor)):
+            return "—"
+        texto = str(valor).strip()
+        return "—" if texto.lower() in {"", "nan", "none", "nat"} else texto
+    return serie.map(limpar)
+
+
 def unidade_da_rota(uf: str, rota: str) -> str:
     """
     Base de São Paulo a partir do prefixo do ID da rota.
@@ -318,15 +334,21 @@ def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
     df["PLACA"] = df["Equipamento"].astype(str).str.strip() if "Equipamento" in df.columns else ""
     # O destino da rota vem no nome dela ("AM-ZLESTE 01/07", "MG-ARAXA"); a data
     # no fim é redundante com a coluna DATA e sai para o texto não ficar longo.
+    # O motorista vem como "<>, NOME" na coluna Trabalhadores; o prefixo e a
+    # vírgula são ruído do RoadNet e saem aqui.
+    df["MOTORISTA"] = (
+        texto_ou_traco(df["Trabalhadores"].astype(str)
+                         .str.replace(r"^\s*<>\s*,?\s*", "", regex=True))
+        if "Trabalhadores" in df.columns else "—"
+    )
+
     df["DESTINO"] = (
-        df["Descrição"].astype(str).str.strip()
-          .str.replace(r"\s+\d{2}/\d{2}(/\d{2,4})?$", "", regex=True)
-          .replace({"": "—", "nan": "—"})
+        texto_ou_traco(df["Descrição"].astype(str)
+                         .str.replace(r"\s+\d{2}/\d{2}(/\d{2,4})?$", "", regex=True))
         if "Descrição" in df.columns else "—"
     )
     df["TIPO_VEICULO"] = (
-        df["Tipos de equipamento"].astype(str).str.strip()
-          .replace({"": "—", "nan": "—"})
+        texto_ou_traco(df["Tipos de equipamento"])
         if "Tipos de equipamento" in df.columns else "—"
     )
     df["UF"] = detectar_estado(nome_arquivo, df)
@@ -471,6 +493,7 @@ def gravar_detalhe(df: pd.DataFrame) -> tuple[int, float]:
                 "rota": str(linha["ROTA"]),
                 "placa": linha["PLACA"] or "—",
                 "destino": linha.get("DESTINO") or "—",
+                "motorista": linha.get("MOTORISTA") or "—",
                 "tipo": str(linha.get("TIPO_VEICULO") or "—"),
                 "paradas": numero(linha["PARADAS"], 0),
                 "entregas": numero(linha["ENTREGAS"], 0),
