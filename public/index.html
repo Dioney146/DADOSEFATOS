@@ -1510,9 +1510,6 @@ const ICONES = {
   veiculos:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
       +'stroke-linecap="round" stroke-linejoin="round"><path d="M2 7.5h11v9H2zM13 10h4.4l3.6 3.4v3.1h-8z"/>'
       +'<circle cx="6" cy="18.4" r="1.8"/><circle cx="17" cy="18.4" r="1.8"/></svg>',
-  entregas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
-      +'stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.8 3.4 7v10L12 21.2 20.6 17V7Z"/>'
-      +'<path d="M3.4 7 12 11.4 20.6 7M12 11.4v9.8"/></svg>',
   ocupacao:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" '
       +'stroke-linecap="round" stroke-linejoin="round"><path d="M3.6 17.4a9 9 0 1 1 16.8 0"/>'
       +'<path d="M12 17.4 16 10"/></svg>',
@@ -1530,12 +1527,6 @@ const SECOES = [
    total:{campo:"mediaParadas", nome:"Média de paradas por rota", casas:1}},
   {id:"veiculos", menu:"Quantidade de veículos", titulo:"Quantidade de veículos",
    nota:"veículos distintos por dia", forma:"barra", campo:"veiculos", unidade:""},
-  {id:"entregas", menu:"Quantidade de entrega", titulo:"Quantidade de entrega",
-   nota:"média de paradas por rota e ocupação da frota", forma:"linhas",
-   campoA:"mediaParadas", campoB:"ocupacaoPct",
-   nomeA:"Média de paradas", nomeB:"Ocupação",
-   formatarB:v => num(v) + "%",
-   campo:"entregas", unidade:"", bandas:true, rotulos:true},
   {id:"tempo", menu:"Tempo de operação", titulo:"Tempo de operação",
    nota:"horas em rota, média por rota do dia", forma:"barra", campo:"horasPorRota",
    unidade:"", rotulos:true, mediaPonderada:true, casas:1, formatarHora:true,
@@ -1608,11 +1599,6 @@ const DETALHE_DA_SECAO = {
     colunas:["rota","placa","destino","motorista","tipo","paradas"],
     destaque:"placa",
     cartoes:["veiculos","rotas"],
-  },
-  entregas: {
-    colunas:["rota","placa","destino","motorista","paradas","entregas"],
-    destaque:"entregas",
-    cartoes:["entregas","paradas","mediaParadas","rotas"],
   },
   tempo: {
     colunas:["rota","placa","destino","motorista","paradas","horas"],
