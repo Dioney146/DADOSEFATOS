@@ -236,6 +236,16 @@ button{font-family:inherit}
 .kpi-unidade{font-size:.55em;font-weight:600;color:var(--tenue);margin-left:3px}
 .kpi-card.forte .kpi-unidade{color:var(--azul-claro)}
 
+/* ── Bloco extra do palco (tipologia de veículos) ────────────────────────── */
+.extra-topo{padding:14px 0 2px;margin-top:6px;border-top:1px solid var(--grade)}
+.extra-titulo{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:clamp(17px,1.3vw,22px);text-transform:uppercase;letter-spacing:.02em;
+  margin:0;line-height:1;color:var(--marca)}
+.extra-nota{font-size:11px;letter-spacing:.03em;color:var(--suave);margin-top:5px}
+body.industrial .extra-topo{border-top-color:#1B2942}
+body.industrial .extra-titulo{color:#fff}
+body.industrial .extra-nota{color:#7C90AB}
+
 /* ── Detalhe do dia (clique na barra ou no ponto) ────────────────────────── */
 .modal{
   position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;
@@ -614,6 +624,13 @@ body.industrial .aviso code{background:#0C1729;color:#9CC0E4}
         </div>
         <div class="grafico" id="palcoGrafico"></div>
         <div id="palcoEixo"></div>
+        <div id="palcoExtra" hidden>
+          <div class="extra-topo">
+            <h3 class="extra-titulo">Tipologia de veículos</h3>
+            <div class="extra-nota">quantidade de veículos por categoria</div>
+          </div>
+          <div class="grafico" id="palcoGraficoExtra"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -1770,6 +1787,71 @@ function acompanharLargura(div, duracao){
   requestAnimationFrame(quadro);
 }
 
+/**
+ * Tipologia da frota: barras horizontais com o total de veículos por categoria.
+ *
+ * Os números vêm da lista `tipos` do dados.json, agregada por estado, base e
+ * dia — os mesmos filtros do resto da tela valem aqui. Nada é recalculado a
+ * partir de outra fonte.
+ */
+function desenharTipologia(){
+  const bloco = document.getElementById("palcoExtra");
+  if(!BASE.tipos){ bloco.hidden = true; return; }
+
+  const naBase = filtros.base !== "TODAS";
+  const linhas = BASE.tipos.filter(r =>
+    (filtros.uf === "TODOS" || r.uf === filtros.uf) &&
+    (!naBase || r.unidade === filtros.base) &&
+    (!filtros.inicio || r.data >= filtros.inicio) &&
+    (!filtros.fim || r.data <= filtros.fim) &&
+    (filtros.semana === "TODAS" || semanaDaData(r.data) === filtros.semana));
+
+  const soma = new Map();
+  for(const r of linhas) soma.set(r.tipo, (soma.get(r.tipo) || 0) + r.veiculos);
+
+  // a ordem é a da frota, do maior veículo para o menor; categorias sem
+  // nenhum veículo no recorte simplesmente não aparecem
+  const ordem = (BASE.ordem_tipos || [...soma.keys()]).filter(t => soma.get(t));
+  if(!ordem.length){ bloco.hidden = true; return; }
+  bloco.hidden = false;
+
+  const valores = ordem.map(t => soma.get(t));
+  const altura = Math.max(150, 34 * ordem.length + 40);
+
+  Plotly.newPlot(document.getElementById("palcoGraficoExtra"), [{
+    type:"bar", orientation:"h",
+    y:ordem.map((_,i) => i), x:valores,
+    text:valores.map(v => num(v)), textposition:"outside", cliponaxis:false,
+    textfont:{family:"Barlow Condensed, sans-serif", size:15, color:TEMA.texto},
+    marker:{color:TEMA.barra, line:{width:0}, cornerradius:4},
+    width:0.62,
+    hovertemplate:"%{customdata}: %{x:,.0f} veículos<extra></extra>",
+    customdata:ordem
+  }], {
+    height:altura, autosize:true, margin:{l:96, r:56, t:6, b:24},
+    paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
+    font:{family:"Archivo, sans-serif", size:11, color:TEMA.texto},
+    showlegend:false, bargap:0.25,
+    hoverlabel:{font:{size:12, family:"Archivo, sans-serif", color:TEMA.hoverTexto},
+                bgcolor:TEMA.hoverFundo, bordercolor:TEMA.hoverBorda},
+    xaxis:{showgrid:true, gridcolor:TEMA.grade, zeroline:false, showline:false,
+           showticklabels:false, fixedrange:true,
+           range:[0, Math.max(...valores) * 1.14]},
+    yaxis:{tickmode:"array", tickvals:ordem.map((_,i) => i), ticktext:ordem,
+           autorange:"reversed", showgrid:false, zeroline:false, showline:false,
+           fixedrange:true, ticksuffix:"  ",
+           tickfont:{family:"Archivo, sans-serif", size:11.5, color:TEMA.suave}}
+  }, CONFIG);
+}
+
+/** Semana de uma data, a partir da própria base (sem recalcular calendário). */
+const cacheSemana = new Map();
+function semanaDaData(dataIso){
+  if(!cacheSemana.size)
+    for(const r of BASE.registros) cacheSemana.set(r.data, r.semana);
+  return cacheSemana.get(dataIso);
+}
+
 let ultimaSecao = null;
 
 function desenharSlides(registros, resumo){
@@ -1845,8 +1927,10 @@ function desenharSlides(registros, resumo){
   const corpo = document.querySelector(".palco-corpo");
   const topo = document.querySelector(".palco-topo");
   const sobra = corpo.clientHeight - topo.offsetHeight - 58;
-  const altura = Math.max(300, Math.round(sobra > 0 ? sobra
+  let altura = Math.max(300, Math.round(sobra > 0 ? sobra
     : window.innerHeight * 0.56));
+  // a tipologia divide a área com o gráfico principal nesta seção
+  if(secao.id === "veiculos") altura = Math.max(240, Math.round(altura * 0.56));
 
   if(secao.forma === "linhas"){
     graficoDuasLinhas(palco, resumo, secao.campoA, secao.campoB, secao.nomeA, secao.nomeB,
@@ -1875,6 +1959,8 @@ function desenharSlides(registros, resumo){
   }
 
   document.getElementById("palcoEixo").innerHTML = faixaEixo(resumo, fracao);
+  if(secao.id === "veiculos") desenharTipologia();
+  else document.getElementById("palcoExtra").hidden = true;
   ligarCliqueNoGrafico(palco, registros, resumo);
   acompanharLargura(palco, 340);
 
