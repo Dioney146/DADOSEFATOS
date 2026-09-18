@@ -655,14 +655,14 @@ const TEMA_CLARO = {
   texto:"#0F1723", suave:"#9AA5B1", grade:"#EDF1F6",
   barra:"#2E6BB0", barraFraca:"#9CC0E4", linhaA:"#123C7A", linhaB:"#2E6BB0",
   melhor:"#4CA22F", pior:"#C8873C", media:"#123C7A",
-  feriadoRotulo:"#C8873C",
+  feriadoRotulo:"#C8873C", apoio:"#C79A3A",
   hoverFundo:"#FFFFFF", hoverBorda:"#E7EBF0", hoverTexto:"#0F1723",
 };
 const TEMA_ESCURO = {
   texto:"#E9EFF7", suave:"#8095AF", grade:"rgba(255,255,255,.06)",
   barra:"#4A81C2", barraFraca:"#2B4A72", linhaA:"#9CC0E4", linhaB:"#4A81C2",
   melhor:"#63C13F", pior:"#8FA3BC", media:"#9CC0E4",
-  feriadoRotulo:"#8FD46A",
+  feriadoRotulo:"#8FD46A", apoio:"#E4B84B",
   hoverFundo:"#14223A", hoverBorda:"#2B3D5C", hoverTexto:"#E9EFF7",
 };
 let TEMA = TEMA_CLARO;
@@ -1083,6 +1083,35 @@ function rotulosDeBarra(dados, campo, quantidade, percentual, fracao, teto,
   };
 }
 
+/**
+ * Linha de apoio sob as colunas, numa faixa própria.
+ *
+ * As barras ficam na parte de cima do gráfico e a curva na de baixo, cada uma
+ * com sua escala. Assim a linha nunca cruza uma coluna baixa, o que acontecia
+ * quando as duas dividiam o mesmo eixo.
+ */
+function serieDeApoio(series, layout, dados, opcoes, q, fracao){
+  if(!opcoes.total) return;
+  const totais = dados.map(d => d[opcoes.total.campo]);
+  layout.yaxis = Object.assign({}, layout.yaxis, {domain:[0.34, 1]});
+  layout.yaxis2 = {domain:[0, 0.25], anchor:"x", visible:false, rangemode:"tozero"};
+  const textos = totais.map(v => v === null || !isFinite(v)
+    ? "" : num(v, opcoes.total.casas || 0));
+  series.push(Object.assign({
+    type:"scatter", mode:"lines+markers", x:posicoes(q), y:totais, yaxis:"y2",
+    customdata:dados.map((d,i) => [d.hover, textos[i] || "—"]),
+    line:{color:TEMA.apoio, width:Math.max(1.4, escala(q, 2.6, 1.6)),
+          shape:"spline", smoothing:0.55},
+    marker:{size:Math.max(2.5, escala(q, 6.5, 3)), color:TEMA.apoio},
+    hovertemplate:`${opcoes.total.nome}: %{customdata[1]}<extra></extra>`
+  }, opcoes.rotulos && q <= LIMITE_FAIXA ? {
+    mode:"lines+markers+text", text:textos,
+    textposition:"top center", cliponaxis:false,
+    textfont:{family:"Barlow Condensed, sans-serif",
+              size:corpoDoRotulo(textos, q, fracao), color:TEMA.apoio}
+  } : {}));
+}
+
 function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
                        origem = null, cores = null, opcoes = {}){
   const q = dados.length;
@@ -1134,35 +1163,7 @@ function graficoBarras(div, dados, campo, altura, fracao, formato = "%{y:,.0f}",
                         opcoes.casas, opcoes.formatar)
        : {}));
 
-  /* Série de apoio: as barras mostram a média por rota e esta linha mostra o
-     total gerado no dia. Ela usa um segundo eixo, invisível, porque as duas
-     grandezas têm escalas bem diferentes — o desenho da curva é o que importa,
-     e o número exato aparece no rótulo e no tooltip. */
-  if(opcoes.total){
-    const totais = dados.map(d => d[opcoes.total.campo]);
-    /* O eixo da linha é esticado de propósito: o maior total ocupa só a parte
-       de baixo da área do gráfico, então a curva corre por baixo das colunas
-       em vez de atravessá-las. */
-    const maiorTotal = Math.max(...totais.filter(v => v !== null && isFinite(v)), 0);
-    layout.yaxis2 = {overlaying:"y", side:"right", visible:false,
-                     range:[0, maiorTotal > 0 ? maiorTotal / 0.38 : 1]};
-    series.push(Object.assign({
-      type:"scatter", mode:"lines+markers", x:posicoes(q), y:totais, yaxis:"y2",
-      customdata:dados.map((d,i) => [d.hover, totais[i] === null || !isFinite(totais[i])
-        ? "—" : num(totais[i], opcoes.total.casas || 0)]),
-      line:{color:TEMA.linhaA, width:Math.max(1.4, escala(q, 2.6, 1.6)),
-            shape:"spline", smoothing:0.55},
-      marker:{size:Math.max(2.5, escala(q, 6.5, 3))},
-      hovertemplate:`${opcoes.total.nome}: %{customdata[1]}<extra></extra>`
-    }, opcoes.rotulos && q <= LIMITE_FAIXA ? {
-      mode:"lines+markers+text",
-      text:totais.map(v => v === null || !isFinite(v) ? "" : num(v, opcoes.total.casas || 0)),
-      textposition:"top center", cliponaxis:false,
-      textfont:{family:"Barlow Condensed, sans-serif",
-                size:corpoDoRotulo(totais.map(v => num(v, opcoes.total.casas || 0)), q, fracao),
-                color:TEMA.linhaA}
-    } : {}));
-  }
+  serieDeApoio(series, layout, dados, opcoes, q, fracao);
 
   Plotly.newPlot(div, series, layout, CONFIG);
 }
@@ -1181,7 +1182,18 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
   linhaDeReferencia(layout, media,
     opcoes.rotuloMedia || `média ${num(media)}`);
   const desenhados = dados.map(d => (teto && d[campo] > teto) ? teto : d[campo]);
-  Plotly.newPlot(div, [Object.assign({
+  const series = [];
+
+  if(opcoes.relevo){
+    const largura = larguraRelativa(q);
+    series.push({
+      type:"bar", x:posicoes(q).map(x => x + largura * 0.16), y:desenhados,
+      marker:{color:cores.map(c => tonalizar(c, -0.42)), line:{width:0}, cornerradius:4},
+      width:largura, hoverinfo:"skip", showlegend:false
+    });
+  }
+
+  series.push(Object.assign({
     type:"bar", x:posicoes(q), y:desenhados,
     customdata:dados.map((d,i) => [d.hover, extra[i], num(d[campo])]),
     marker:{color:cores, line:{width:0}, cornerradius:5}, width:larguraRelativa(q),
@@ -1189,7 +1201,10 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
       + "%{customdata[1]}<extra></extra>"
   }, opcoes.rotulos
        ? rotulosDeBarra(dados, campo, q, false, fracao, teto)
-       : {})], layout, CONFIG);
+       : {}));
+
+  serieDeApoio(series, layout, dados, opcoes, q, fracao);
+  Plotly.newPlot(div, series, layout, CONFIG);
 }
 
 /**
@@ -1494,9 +1509,11 @@ const ICONES = {
 
 const SECOES = [
   {id:"drop", menu:"Drop size", titulo:"Drop size", nota:"kg entregues por parada",
-   forma:"drop", campo:"dropParada", unidade:" kg"},
+   forma:"drop", campo:"dropParada", unidade:" kg",
+   total:{campo:"mediaParadas", nome:"Média de paradas por rota", casas:1}},
   {id:"veiculos", menu:"Quantidade de veículos", titulo:"Quantidade de veículos",
-   nota:"veículos distintos por dia", forma:"barra", campo:"veiculos", unidade:""},
+   nota:"veículos distintos por dia", forma:"barra", campo:"veiculos", unidade:"",
+   total:{campo:"rotas", nome:"Rotas no dia", casas:0}},
   {id:"entregas", menu:"Quantidade de entrega", titulo:"Quantidade de entrega",
    nota:"média de paradas por rota e ocupação da frota", forma:"linhas",
    campoA:"mediaParadas", campoB:"ocupacaoPct",
@@ -1509,7 +1526,8 @@ const SECOES = [
    total:{campo:"mediaEntregas", nome:"Média de entregas por rota", casas:1}},
   {id:"ocupacao", menu:"Ocupação da frota", titulo:"Ocupação da frota",
    nota:"peso embarcado ÷ capacidade contratada", forma:"barra", campo:"ocupacao",
-   formato:"%{y:.0%}", percentual:true, unidade:"%"},
+   formato:"%{y:.0%}", percentual:true, unidade:"%",
+   total:{campo:"mediaEntregas", nome:"Média de entregas por rota", casas:1}},
   {id:"peso", menu:"Peso × capacidade", titulo:"Peso × capacidade",
    nota:"toneladas embarcadas e capacidade disponível", forma:"linhas",
    campoA:"capacidade", campoB:"peso", nomeA:"Capacidade (t)", nomeB:"Peso (t)",
@@ -1790,7 +1808,7 @@ function desenharSlides(registros, resumo){
     : secao.total
     ? `${secao.nota}<span class="painel-series" style="display:flex;margin-top:7px">`
       + `<span class="serie"><i style="background:${TEMA.barra}"></i>${secao.titulo}</span>`
-      + `<span class="serie"><i style="background:${TEMA.linhaA}"></i>${secao.total.nome}</span></span>`
+      + `<span class="serie"><i style="background:${TEMA.apoio}"></i>${secao.total.nome}</span></span>`
     : secao.nota;
 
   const validos = resumo.filter(d => valorDaSecao(d, secao) !== null);
