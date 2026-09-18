@@ -1817,29 +1817,43 @@ function desenharTipologia(){
   const valores = ordem.map(t => soma.get(t));
   const altura = Math.max(150, 34 * ordem.length + 40);
 
-  Plotly.newPlot(document.getElementById("palcoGraficoExtra"), [{
+  /* Relevo: a mesma barra, deslocada para baixo e num tom mais escuro, por
+     baixo da principal — a faixa que sobra vira a espessura do bloco. */
+  const faceEscura = tonalizar(TEMA.barra, -0.42);
+  const series = [{
+    type:"bar", orientation:"h",
+    y:ordem.map((_,i) => i + 0.12), x:valores,
+    marker:{color:faceEscura, line:{width:0}, cornerradius:3},
+    width:0.52, hoverinfo:"skip", showlegend:false
+  }, {
     type:"bar", orientation:"h",
     y:ordem.map((_,i) => i), x:valores,
     text:valores.map(v => num(v)), textposition:"outside", cliponaxis:false,
     textfont:{family:"Barlow Condensed, sans-serif", size:15, color:TEMA.texto},
     marker:{color:TEMA.barra, line:{width:0}, cornerradius:4},
-    width:0.62,
+    width:0.52,
     hovertemplate:"%{customdata}: %{x:,.0f} veículos<extra></extra>",
     customdata:ordem
-  }], {
-    height:altura, autosize:true, margin:{l:96, r:56, t:6, b:24},
+  }];
+
+  Plotly.newPlot(document.getElementById("palcoGraficoExtra"), series, {
+    height:altura, autosize:true, margin:{l:140, r:64, t:6, b:24},
+    barmode:"overlay",
     paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
     font:{family:"Archivo, sans-serif", size:11, color:TEMA.texto},
     showlegend:false, bargap:0.25,
     hoverlabel:{font:{size:12, family:"Archivo, sans-serif", color:TEMA.hoverTexto},
                 bgcolor:TEMA.hoverFundo, bordercolor:TEMA.hoverBorda},
+    /* A maior barra ocupa cerca de dois terços da largura: a proporção entre
+       as categorias continua exata, mas nenhuma delas atravessa a tela. */
     xaxis:{showgrid:true, gridcolor:TEMA.grade, zeroline:false, showline:false,
            showticklabels:false, fixedrange:true,
-           range:[0, Math.max(...valores) * 1.14]},
+           range:[0, Math.max(...valores) * 1.5]},
     yaxis:{tickmode:"array", tickvals:ordem.map((_,i) => i), ticktext:ordem,
            autorange:"reversed", showgrid:false, zeroline:false, showline:false,
-           fixedrange:true, ticksuffix:"  ",
-           tickfont:{family:"Archivo, sans-serif", size:11.5, color:TEMA.suave}}
+           fixedrange:true, ticksuffix:"        ", automargin:false,
+           tickfont:{family:"Archivo, sans-serif", size:12,
+                     color:TEMA.texto, weight:600}}
   }, CONFIG);
 }
 
