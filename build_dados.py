@@ -286,6 +286,26 @@ def detectar_estado(nome_arquivo: str, df: pd.DataFrame) -> str:
     return "N/D"
 
 
+def corrigir_tipo(valor) -> str:
+    """
+    Desfaz a conversão automática do Excel no tipo de equipamento.
+
+    "3/4" digitado numa célula de data vira "2026-04-03 00:00:00" na
+    exportação. Aqui o texto volta a ser dia/mês — no caso, 3/4 — que é o que
+    a operação escreveu. Qualquer outro valor passa intacto.
+    """
+    texto = str(valor or "").strip()
+    achado = re.match(r"^(\d{4})-(\d{2})-(\d{2})(?:[ T]00:00:00)?$", texto)
+    if achado:
+        _, mes, dia = achado.groups()
+        return f"{int(dia)}/{int(mes)}"
+    achado = re.match(r"^(\d{2})/(\d{2})/\d{4}(?:[ T]00:00:00)?$", texto)
+    if achado:
+        dia, mes = achado.groups()
+        return f"{int(dia)}/{int(mes)}"
+    return texto
+
+
 def tipologia_do_veiculo(valor) -> str:
     """Categoria da frota a partir do tipo de equipamento do RoadNet."""
     texto = str(valor or "").strip().upper()
@@ -378,7 +398,7 @@ def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
         if "Descrição" in df.columns else "—"
     )
     df["TIPO_VEICULO"] = (
-        texto_ou_traco(df["Tipos de equipamento"])
+        texto_ou_traco(df["Tipos de equipamento"].map(corrigir_tipo))
         if "Tipos de equipamento" in df.columns else "—"
     )
     df["UF"] = detectar_estado(nome_arquivo, df)
