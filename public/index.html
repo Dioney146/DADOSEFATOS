@@ -1170,7 +1170,8 @@ function graficoDrop(div, dados, campo, altura, fracao, origem = null, opcoes = 
  * entre as linhas é a informação.
  */
 /** Valor de cada ponto, na unidade da própria base. */
-function rotulosDeLinha(dados, campo, quantidade, cor, posicao, fracao, formatar){
+function rotulosDeLinha(dados, campo, quantidade, cor, posicao, fracao, formatar,
+                        ganho = 1){
   if(quantidade > LIMITE_FAIXA) return {mode:"lines+markers"};
   const texto = dados.map(d => formatar ? formatar(d[campo]) : num(d[campo]));
   return {
@@ -1179,17 +1180,22 @@ function rotulosDeLinha(dados, campo, quantidade, cor, posicao, fracao, formatar
     textposition:posicao,
     cliponaxis:false,   // o número não é cortado pela borda da faixa
     textfont:{family:"Barlow Condensed, sans-serif",
-              size:corpoDoRotulo(texto, quantidade, fracao), color:cor},
+              size:Math.min(22, Math.round(corpoDoRotulo(texto, quantidade, fracao) * ganho)),
+              color:cor},
   };
 }
 
 function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
                            origemA, origemB, bandas = false, comRotulos = false,
-                           fracao = 0.72, formatarA = null, formatarB = null){
+                           fracao = 0.72, formatarA = null, formatarB = null,
+                           estilo = {}){
   const q = dados.length;
-  const marcador = Math.max(2.5, escala(q,7,3));
-  const traco = Math.max(1.1, escala(q,2.4,1.4));
+  const marcador = estilo.marcador || Math.max(2.5, escala(q,7,3));
+  const traco = estilo.traco || Math.max(1.1, escala(q,2.4,1.4));
   const layout = layoutBase(altura, q, dados, comRotulos && q <= LIMITE_FAIXA);
+  if(estilo.grade){
+    layout.yaxis = Object.assign({}, layout.yaxis, {gridcolor:estilo.grade});
+  }
   if(bandas){
     // duas faixas com um respiro no meio; cada série usa a sua por inteiro
     layout.yaxis  = Object.assign({}, layout.yaxis, {domain:[0.56, 1]});
@@ -1203,22 +1209,27 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
       customdata:dados.map((d,i) => [(origemA || [])[i] || "",
         formatarA ? formatarA(d[campoA]) : num(d[campoA])]),
       // série A: tracejada, no tom mais claro do azul
-      line:{color:TEMA.linhaA, width:traco, shape:"spline", smoothing:0.9, dash:"dot"},
-      marker:{size:marcador}, yaxis:"y", mode:"lines+markers",
+      line:{color:TEMA.linhaA, width:estilo.tracoA || traco,
+            shape:"spline", smoothing:estilo.suavidade || 0.9, dash:"dot"},
+      marker:{size:marcador, line:{width:0}}, yaxis:"y", mode:"lines+markers",
       hovertemplate:`${nomeA}: %{customdata[1]}%{customdata[0]}<extra></extra>`
     }, comRotulos
-         ? rotulosDeLinha(dados, campoA, q, TEMA.linhaA, "top center", fracao, formatarA)
+         ? rotulosDeLinha(dados, campoA, q, TEMA.linhaA, "top center", fracao,
+                          formatarA, estilo.ganhoRotulo)
          : {}),
     Object.assign({
       type:"scatter", x:posicoes(q), y:dados.map(d => d[campoB]),
       customdata:dados.map((d,i) => [(origemB || [])[i] || "",
         formatarB ? formatarB(d[campoB]) : num(d[campoB])]),
       // série B: sólida, no azul cheio
-      line:{color:TEMA.linhaB, width:traco+0.6, shape:"spline", smoothing:0.9},
-      marker:{size:marcador}, yaxis:"y2", mode:"lines+markers",
+      line:{color:TEMA.linhaB, width:estilo.tracoB || traco+0.6,
+            shape:"spline", smoothing:estilo.suavidade || 0.9},
+      marker:{size:marcador, line:{width:0}}, yaxis:"y2", mode:"lines+markers",
+      fill:estilo.area ? "tozeroy" : "none", fillcolor:estilo.area || "rgba(0,0,0,0)",
       hovertemplate:`${nomeB}: %{customdata[1]}%{customdata[0]}<extra></extra>`
     }, comRotulos
-         ? rotulosDeLinha(dados, campoB, q, TEMA.linhaB, "bottom center", fracao, formatarB)
+         ? rotulosDeLinha(dados, campoB, q, TEMA.linhaB, "bottom center", fracao,
+                          formatarB, estilo.ganhoRotulo)
          : {})
   ], layout, CONFIG);
 }
@@ -1458,7 +1469,11 @@ const SECOES = [
   {id:"peso", menu:"Peso × capacidade", titulo:"Peso × capacidade",
    nota:"toneladas embarcadas e capacidade disponível", forma:"linhas",
    campoA:"capacidade", campoB:"peso", nomeA:"Capacidade (kg)", nomeB:"Peso (kg)",
-   campo:"peso", unidade:" kg", bandas:true, rotulos:true},
+   campo:"peso", unidade:" kg", bandas:true, rotulos:true,
+   // acabamento visual desta seção: área sob o peso, traços mais finos,
+   // marcador discreto, grade quase invisível e números um pouco maiores
+   estilo:{area:"rgba(74,129,194,.15)", tracoA:1.6, tracoB:2.4, marcador:4.5,
+           suavidade:0.6, grade:"rgba(255,255,255,.035)", ganhoRotulo:1.22}},
 ];
 
 /** Valor conforme a unidade da seção: percentual vira 0-100. */
@@ -1771,7 +1786,7 @@ function desenharSlides(registros, resumo){
     graficoDuasLinhas(palco, resumo, secao.campoA, secao.campoB, secao.nomeA, secao.nomeB,
       altura, origemPorDia(registros, resumo, secao.campoA),
       origemPorDia(registros, resumo, secao.campoB), !!secao.bandas, !!secao.rotulos,
-      fracao, secao.formatarA || null, secao.formatarB || null);
+      fracao, secao.formatarA || null, secao.formatarB || null, secao.estilo || {});
   }else{
     // a linha de referência mostra a mesma média que aparece no cartão do topo
     const casas = secao.casas || 0;
