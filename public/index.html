@@ -1196,6 +1196,17 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
   if(estilo.grade){
     layout.yaxis = Object.assign({}, layout.yaxis, {gridcolor:estilo.grade});
   }
+  /* Escala numérica à esquerda, como nos painéis de BI: os rótulos sobre os
+     pontos continuam sendo a leitura principal, e o eixo serve de referência
+     para comparar as alturas. Abre-se margem à esquerda para os números. */
+  if(estilo.eixoY){
+    layout.yaxis = Object.assign({}, layout.yaxis, {
+      showticklabels:true, nticks:estilo.marcas || 6,
+      tickfont:{family:"Archivo, sans-serif", size:10.5, color:TEMA.suave},
+      ticksuffix:"  "
+    });
+    layout.margin = Object.assign({}, layout.margin, {l:estilo.margemEsquerda || 58});
+  }
   if(bandas){
     // duas faixas com um respiro no meio; cada série usa a sua por inteiro
     layout.yaxis  = Object.assign({}, layout.yaxis, {domain:[0.56, 1]});
@@ -1212,6 +1223,7 @@ function graficoDuasLinhas(div, dados, campoA, campoB, nomeA, nomeB, altura,
       line:{color:TEMA.linhaA, width:estilo.tracoA || traco,
             shape:"spline", smoothing:estilo.suavidade || 0.9, dash:"dot"},
       marker:{size:marcador, line:{width:0}}, yaxis:"y", mode:"lines+markers",
+      fill:estilo.areaA ? "tozeroy" : "none", fillcolor:estilo.areaA || "rgba(0,0,0,0)",
       hovertemplate:`${nomeA}: %{customdata[1]}%{customdata[0]}<extra></extra>`
     }, comRotulos
          ? rotulosDeLinha(dados, campoA, q, TEMA.linhaA, "top center", fracao,
@@ -1472,8 +1484,10 @@ const SECOES = [
    campo:"peso", unidade:" kg", bandas:true, rotulos:true,
    // acabamento visual desta seção: área sob o peso, traços mais finos,
    // marcador discreto, grade quase invisível e números um pouco maiores
-   estilo:{area:"rgba(74,129,194,.15)", tracoA:1.6, tracoB:2.4, marcador:4.5,
-           suavidade:0.6, grade:"rgba(255,255,255,.035)", ganhoRotulo:1.22}},
+   estilo:{area:"rgba(74,129,194,.20)", areaA:"rgba(120,160,205,.10)",
+           tracoA:1.5, tracoB:2.6, marcador:5, suavidade:0.6,
+           grade:"rgba(255,255,255,.05)", ganhoRotulo:1.15,
+           eixoY:true, marcas:6, margemEsquerda:62}},
 ];
 
 /** Valor conforme a unidade da seção: percentual vira 0-100. */
