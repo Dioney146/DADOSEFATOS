@@ -1720,9 +1720,12 @@ function abrirDetalheDoDia(registros, dataIso){
 
   const alvo = document.getElementById("detalheCargas");
   const ufSelecionado = filtros.uf;
+  const baseSelecionada = filtros.base;
   cargasDoDia(dataIso).then(cargas => {
-    const visiveis = ufSelecionado === "TODOS"
-      ? cargas : cargas.filter(c => c.uf === ufSelecionado);
+    // a lista segue os mesmos filtros da tela: estado e, em SP, a base
+    const visiveis = cargas.filter(c =>
+      (ufSelecionado === "TODOS" || c.uf === ufSelecionado) &&
+      (baseSelecionada === "TODAS" || c.unidade === baseSelecionada));
     alvo.innerHTML = visiveis.length
       ? tabelaDeCargas(visiveis, config.destaque, chaves)
       : `<p class="modal-carregando">Nenhuma carga nesse recorte.</p>`;
