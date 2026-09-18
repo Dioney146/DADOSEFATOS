@@ -91,6 +91,20 @@ EXTENSOES = {".xlsx", ".xlsm", ".xls", ".csv"}
 # São Paulo opera em bases distintas, identificadas pelo começo do ID da rota.
 # A ordem importa: "3P" antes de "SP" evita que um ID como "3P12" caia no lugar
 # errado, e a lista é percorrida do prefixo mais longo para o mais curto.
+# Tipologia da frota. O RoadNet grava variações como "3/4-II", "VAN-II" ou
+# "TOCO-III"; o que importa é a categoria antes do traço. Cavalo mecânico entra
+# em CARRETA e bi-truck em TRUCK, por serem a mesma classe de veículo na
+# operação. O que não bater com nada vira OUTROS — inclusive as linhas em que
+# o campo veio com uma data no lugar do tipo.
+TIPOLOGIAS = ["CARRETA", "TRUCK", "TOCO", "VUC", "3/4", "FIORINO", "VAN"]
+
+EQUIVALENTES = {
+    "CAVALO MECANICO": "CARRETA",
+    "CAVALO MECÂNICO": "CARRETA",
+    "BI-TRUCK": "TRUCK",
+    "BITRUCK": "TRUCK",
+}
+
 UNIDADES_SP = {
     "3P": "3P — Três Passos",
     "BX": "BX — Baixada",
@@ -272,6 +286,22 @@ def detectar_estado(nome_arquivo: str, df: pd.DataFrame) -> str:
     return "N/D"
 
 
+def tipologia_do_veiculo(valor) -> str:
+    """Categoria da frota a partir do tipo de equipamento do RoadNet."""
+    texto = str(valor or "").strip().upper()
+    if not texto or texto in {"NAN", "NONE", "—"}:
+        return "OUTROS"
+    # combinações como "TRUCK, TOCO-III" valem pela primeira categoria
+    texto = texto.split(",")[0].strip()
+    if texto in EQUIVALENTES:
+        return EQUIVALENTES[texto]
+    # tira o algarismo romano do fim: "3/4-II" vira "3/4"
+    base = re.sub(r"[-\s]+[IVX]+$", "", texto).strip()
+    if base in EQUIVALENTES:
+        return EQUIVALENTES[base]
+    return base if base in TIPOLOGIAS else "OUTROS"
+
+
 def texto_ou_traco(serie) -> pd.Series:
     """
     Texto limpo, com traço onde não há informação.
@@ -358,6 +388,7 @@ def tratar(df: pd.DataFrame, nome_arquivo: str) -> pd.DataFrame:
     df["ARQUIVO"] = Path(nome_arquivo).name
     df["UNIDADE"] = [unidade_da_rota(uf, rota)
                      for uf, rota in zip(df["UF"], df["ROTA"])]
+    df["TIPOLOGIA"] = df["TIPO_VEICULO"].map(tipologia_do_veiculo)
 
     if "SEMANA" in df.columns:
         df["SEMANA_ARQUIVO"] = df["SEMANA"].astype(str).str.strip()
@@ -465,6 +496,28 @@ def agregar_unidades(df: pd.DataFrame) -> list[dict]:
     return linhas_agregadas(com_unidade, ["UF", "UNIDADE", "DATA"])
 
 
+def agregar_tipologia(df: pd.DataFrame) -> list[dict]:
+    """
+    Veículos por categoria de frota, por estado, base e dia.
+
+    A contagem segue a mesma regra do indicador de veículos: placas distintas
+    dentro do dia. Somando os dias, uma placa que rodou cinco dias conta cinco
+    vezes — é a leitura de uso da frota que o painel já usa em toda parte.
+    """
+    agrupado = df.groupby(["UF", "UNIDADE", "DATA", "TIPOLOGIA"], as_index=False).agg(
+        VEICULOS=("VEICULO", pd.Series.nunique),
+        ROTAS=("ROTA", "count"),
+    )
+    return [{
+        "uf": linha["UF"],
+        "unidade": linha["UNIDADE"],
+        "data": linha["DATA"].strftime("%Y-%m-%d"),
+        "tipo": linha["TIPOLOGIA"],
+        "veiculos": int(linha["VEICULOS"]),
+        "rotas": int(linha["ROTAS"]),
+    } for _, linha in agrupado.sort_values(["DATA", "UF"]).iterrows()]
+
+
 def gravar_detalhe(df: pd.DataFrame) -> tuple[int, float]:
     """
     Um arquivo por dia com as cargas daquele dia, em public/detalhe/.
@@ -566,6 +619,9 @@ def main() -> int:
         "registros": registros,
         # bases de SP: lista paralela, usada só quando o filtro de base é aberto
         "unidades": unidades,
+        # frota por categoria, para o gráfico de tipologia
+        "tipos": agregar_tipologia(df),
+        "ordem_tipos": TIPOLOGIAS + ["OUTROS"],
         "nomes_unidades": {**UNIDADES_SP,
                            **({"OUTROS": "Outros"}
                               if any(r["unidade"] == "OUTROS" for r in unidades) else {})},
