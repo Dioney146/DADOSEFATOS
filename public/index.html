@@ -531,7 +531,218 @@ body.industrial .aviso code{background:#0C1729;color:#9CC0E4}
   body.industrial .palco{grid-template-columns:1fr}
   body.industrial .palco-corpo{height:auto}
 }
+/* ══════════════════════════════════════════════════════════════════════════
+   ACABAMENTO BI — camada puramente visual da aba APRESENTAÇÃO.
+
+   Tudo aqui é CSS e só vale sob body.industrial, que é a classe que entra no
+   documento enquanto a aba Apresentação está aberta. Nenhum gráfico, valor,
+   cálculo, filtro ou funcionalidade é tocado: este bloco apenas redefine
+   fundos, bordas, espaçamento e tipografia. Para desfazer, basta apagar do
+   comentário até o fim do arquivo de estilo.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+body.industrial{
+  --bi-fundo:#081326;        /* azul-marinho profundo, base da tela      */
+  --bi-painel:#0E1C31;       /* superfície dos blocos                    */
+  --bi-palco:#102138;        /* fundo da área do gráfico, um tom acima   */
+  --bi-borda:#1F3149;        /* bordas finas                             */
+  --bi-borda-clara:#2A4364;
+  --bi-verde:#4CA22F;
+  --bi-amarelo:#E4B84B;
+  --bi-texto:#EAF1F8;
+  --bi-suave:#8CA0B8;
+  --bi-tenue:#6E8298;
+  --bi-sombra:0 1px 1px rgba(0,0,0,.20),0 8px 22px rgba(0,0,0,.24);
+  background:var(--bi-fundo);
+  padding:14px clamp(12px,1.1vw,26px) 14px;
+  gap:0;
+}
+html.industrial{background:var(--bi-fundo)}
+
+/* ── Cabeçalho ───────────────────────────────────────────────────────────
+   A foto do galpão continua ao fundo, agora sob um véu uniforme, para virar
+   textura do painel em vez de imagem em primeiro plano.                    */
+body.industrial .cab{
+  box-shadow:inset 0 0 0 100vmax rgba(8,19,38,.42), var(--bi-sombra);
+  border:1px solid var(--bi-borda);border-top:2px solid var(--bi-verde);
+  border-radius:12px;min-height:96px;
+  padding:13px clamp(14px,1.1vw,22px) 11px;
+  margin-bottom:10px;gap:14px 26px;
+}
+body.industrial .cab-titulo{
+  color:#FFFFFF;font-size:clamp(25px,2vw,35px);letter-spacing:.03em;
+  text-shadow:0 1px 10px rgba(8,19,38,.7);
+}
+body.industrial .cab-sub{
+  color:#8FB6DE;font-size:10px;letter-spacing:.2em;margin-top:5px;font-weight:600;
+}
+body.industrial .cab-logo{
+  height:clamp(34px,2.9vw,46px);background:#fff;border-radius:7px;padding:4px 8px;
+  box-shadow:0 2px 8px rgba(0,0,0,.30);
+}
+body.industrial .cab-divisor{background:rgba(140,175,215,.28)}
+
+/* Filtros como um painel de controles único */
+body.industrial .cab-filtros{
+  background:rgba(8,16,29,.62);border:1px solid var(--bi-borda-clara);
+  border-radius:9px;padding:8px 14px;gap:0;
+  backdrop-filter:blur(3px);
+}
+body.industrial .cab-filtros .campo{padding:0 14px}
+body.industrial .cab-filtros .campo + .campo::before{background:var(--bi-borda-clara)}
+body.industrial .campo>label{color:var(--bi-tenue);font-size:8.5px;letter-spacing:.18em}
+body.industrial .campo select,body.industrial .campo input{
+  background:#122444;border-color:var(--bi-borda-clara);color:var(--bi-texto);
+  border-radius:7px;min-height:30px;font-size:12px;
+}
+body.industrial .campo select:hover,body.industrial .campo input:hover{
+  border-color:#3D6394;background:#16294C;
+}
+
+/* Abas como segmento de BI */
+body.industrial .abas{
+  background:rgba(8,16,29,.72);border:1px solid var(--bi-borda-clara);
+  border-radius:9px;padding:3px;
+}
+body.industrial .aba{color:var(--bi-suave);font-size:10px;letter-spacing:.1em;padding:6px 14px}
+body.industrial .aba[aria-selected="true"]{
+  background:#1E3A5E;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35);
+}
+
+/* Cartões de contagem do cabeçalho */
+body.industrial .kpi-chip{
+  background:rgba(12,26,46,.82);border:1px solid var(--bi-borda-clara);
+  border-radius:10px;padding:7px 15px;backdrop-filter:blur(3px);
+}
+body.industrial .kpi-chip .kpi-rot{color:var(--bi-tenue);font-size:8.5px;letter-spacing:.18em}
+body.industrial .kpi-chip .kpi-val{color:#fff}
+body.industrial .kpi-chip.destaque{
+  background:rgba(22,50,79,.9);border-color:#2F5B8E;
+}
+
+/* ── Barra de navegação (páginas, legenda e semanas) ─────────────────────
+   Destacada do cabeçalho, como a faixa de navegação de um painel de BI.   */
+body.industrial .cab-controles{
+  flex-basis:100%;margin:10px -2px -2px;padding:9px 14px 8px;
+  background:rgba(8,16,29,.55);border:1px solid var(--bi-borda);
+  border-radius:9px;gap:12px;
+}
+body.industrial .paginacao{color:var(--bi-suave);font-size:17px}
+body.industrial .pilula{
+  background:#122444;border:1px solid var(--bi-borda-clara);color:var(--bi-suave);
+  border-radius:7px;padding:5px 13px;font-size:10px;letter-spacing:.08em;
+}
+body.industrial .pilula:hover{
+  background:#172E52;border-color:#3D6394;color:#fff;transform:none;box-shadow:none;
+}
+body.industrial .pilula[aria-pressed="true"]{
+  background:var(--bi-verde);border-color:var(--bi-verde);color:#08131E;font-weight:700;
+}
+body.industrial .legenda-dias{color:var(--bi-tenue);font-size:9px}
+
+/* ── Menu lateral ────────────────────────────────────────────────────────── */
+body.industrial .palco{grid-template-columns:198px 1fr;gap:10px}
+body.industrial .trilho{
+  background:var(--bi-painel);border:1px solid var(--bi-borda);border-radius:12px;
+  box-shadow:var(--bi-sombra);padding:0 0 10px;
+}
+body.industrial .trilho-marca{
+  background:rgba(8,16,29,.55);border-bottom:1px solid var(--bi-borda);padding:14px;
+}
+body.industrial .trilho-rot{color:#7FA9D8;letter-spacing:.2em;padding:15px 20px 8px}
+body.industrial .trilho button{
+  color:var(--bi-suave);font-size:15.5px;letter-spacing:.05em;
+  padding:10px 13px;margin:0 8px;border-radius:7px;gap:10px;
+}
+body.industrial .trilho button svg{width:15px;height:15px}
+body.industrial .trilho button:hover{background:rgba(255,255,255,.045);color:#fff}
+body.industrial .trilho button[aria-current="true"]{
+  background:#17304E;color:#fff;font-weight:700;
+}
+body.industrial .trilho button[aria-current="true"]::before{
+  background:var(--bi-verde);width:3px;top:9px;bottom:9px;border-radius:0 3px 3px 0;
+}
+
+/* ── Painel principal ───────────────────────────────────────────────────── */
+body.industrial .palco-corpo{
+  background:var(--bi-painel);border:1px solid var(--bi-borda);border-radius:12px;
+  box-shadow:var(--bi-sombra);padding:20px clamp(18px,1.5vw,30px) 12px;
+}
+body.industrial .palco-topo{
+  border-bottom:1px solid var(--bi-borda);padding-bottom:16px;align-items:center;
+}
+body.industrial .palco-titulo{
+  color:#FFFFFF;font-size:clamp(26px,2.2vw,38px);letter-spacing:.025em;
+}
+body.industrial .palco-nota{
+  color:var(--bi-suave);font-size:11.5px;letter-spacing:.02em;margin-top:8px;
+}
+body.industrial .palco-nota .serie{color:var(--bi-texto);font-size:11px;letter-spacing:.07em}
+body.industrial .palco-nota .serie i{height:3px;border-radius:2px}
+
+/* KPIs executivos */
+body.industrial .palco-kpis{gap:10px}
+body.industrial .kpi-card{
+  background:#13253F;border:1px solid var(--bi-borda-clara);
+  border-top:2px solid var(--bi-borda-clara);border-radius:10px;
+  padding:10px 18px;min-width:106px;box-shadow:none;
+}
+body.industrial .kpi-card .rotulo{color:var(--bi-tenue);font-size:8.5px;letter-spacing:.2em}
+body.industrial .kpi-card .kpi-numero{
+  color:#FFFFFF;font-size:clamp(23px,1.85vw,32px);letter-spacing:.01em;
+}
+body.industrial .kpi-card.forte{
+  background:#16365C;border-color:#2F5B8E;border-top-color:var(--bi-verde);
+}
+body.industrial .kpi-card.forte .rotulo{color:#8FB6DE}
+body.industrial .kpi-unidade{color:var(--bi-tenue);font-size:.46em}
+
+/* Área do gráfico: uma superfície própria, um tom acima do painel */
+body.industrial .palco-corpo .grafico{
+  background:var(--bi-palco);border:1px solid rgba(31,49,73,.75);
+  border-radius:10px;padding:8px 10px 2px;margin-top:14px;
+}
+body.industrial #palcoEixo{
+  background:var(--bi-palco);border:1px solid rgba(31,49,73,.75);border-top:0;
+  border-radius:0 0 10px 10px;margin-top:-6px;padding:2px 10px 7px;
+}
+body.industrial .faixa-eixo{color:var(--bi-suave);font-weight:600}
+body.industrial .eixo-cel.eixo-feriado{color:#8FD46A}
+
+/* Bloco extra (tipologia de veículos) */
+body.industrial .extra-topo{border-top:1px solid var(--bi-borda);padding-top:16px;margin-top:10px}
+body.industrial .extra-titulo{color:#FFFFFF;letter-spacing:.025em}
+body.industrial .extra-nota{color:var(--bi-suave)}
+body.industrial #palcoGraficoExtra{
+  background:var(--bi-palco);border:1px solid rgba(31,49,73,.75);
+  border-radius:10px;padding:6px 8px;margin-top:10px;
+}
+
+/* ── Janela de detalhe do dia ───────────────────────────────────────────── */
+body.industrial .modal-caixa{
+  background:var(--bi-painel);border:1px solid var(--bi-borda-clara);border-radius:12px;
+}
+body.industrial .modal-topo{border-bottom-color:var(--bi-borda)}
+body.industrial .modal-item{background:#13253F;border-color:var(--bi-borda-clara);border-radius:9px}
+body.industrial .modal-caixa th:first-child,
+body.industrial .modal-caixa td:first-child,
+body.industrial .modal-caixa thead th{background:var(--bi-painel)}
+body.industrial .coluna-forte{color:#8FB6DE}
+
+/* ── Rodapé ─────────────────────────────────────────────────────────────── */
+body.industrial .fonte{
+  background:rgba(8,16,29,.45);border:1px solid var(--bi-borda);border-radius:9px;
+  color:var(--bi-tenue);font-size:9px;letter-spacing:.14em;padding:9px 16px;margin-top:10px;
+}
+body.industrial .fonte b{color:var(--bi-suave);font-weight:500}
+
+@media (max-width:1000px){
+  body.industrial .palco{grid-template-columns:1fr}
+  body.industrial .cab-filtros{padding:8px 10px}
+  body.industrial .cab-filtros .campo{padding:0 8px}
+}
 </style>
+
 </head>
 <body>
 
