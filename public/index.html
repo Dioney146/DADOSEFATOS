@@ -394,7 +394,11 @@ body.industrial{
   --txt-2:#93A9C2;
   --txt-3:#6D839C;   /* textos auxiliares      */
   background:var(--bg);color:var(--txt);
-  min-height:100vh;display:flex;flex-direction:column;gap:9px;
+  /* Altura definida, não mínima: só assim as faixas flexíveis encolhem em vez
+     de empurrar a página. Com `min-height` o contêiner cresce junto com o
+     conteúdo e o encolhimento nunca acontece. */
+  height:100vh;overflow:hidden;
+  display:flex;flex-direction:column;gap:9px;
   padding:11px clamp(10px,1vw,22px) 12px;
 }
 
@@ -409,7 +413,7 @@ body.industrial .abas{align-self:auto;padding-bottom:0}
    Compacta: a marca numa área própria à esquerda, o título ao lado e a troca
    de visão à direita. A foto do galpão fica de textura, sob um véu firme.   */
 body.industrial .topbar{
-  display:flex;align-items:center;gap:0;
+  flex:0 0 auto;display:flex;align-items:center;gap:0;
   background:
     linear-gradient(100deg, rgba(8,15,28,.96) 0%, rgba(10,20,36,.90) 46%,
                     rgba(10,20,36,.62) 76%, rgba(10,20,36,.42) 100%),
@@ -453,7 +457,7 @@ body.industrial .cab-meta{display:none}
 
 /* ── Faixa 2 · filtros, em painel próprio ────────────────────────────────── */
 body.industrial .painel-filtros{
-  display:flex;align-items:flex-end;gap:0;flex-wrap:wrap;margin-left:0;
+  flex:0 0 auto;display:flex;align-items:flex-end;gap:0;flex-wrap:wrap;margin-left:0;
   background:var(--faixa);border:1px solid var(--linha-fina);border-radius:10px;
   padding:9px 8px 10px;
 }
@@ -481,7 +485,7 @@ body.industrial .campo input[type="date"]::-webkit-calendar-picker-indicator{fil
    Três cartões de largura igual, número grande e ícone à esquerda. É a área
    que substitui os indicadores pequenos que ficavam no canto do painel.     */
 body.industrial .faixa-kpi{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
+  flex:0 0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
 }
 body.industrial .kpi-card{
   display:flex;align-items:center;gap:16px;
@@ -519,6 +523,9 @@ body.industrial .kpi-card.forte .kpi-unidade{color:#9FC6EC}
 
 /* ── Faixa 4 · navegação de períodos ─────────────────────────────────────── */
 body.industrial .barra-nav{
+  /* no tema claro a faixa usa flex-basis:100% para ocupar a linha inteira;
+     aqui o corpo é uma coluna, e 100% passaria a significar a altura toda */
+  flex:0 0 auto;
   display:flex;align-items:center;gap:12px;flex-wrap:wrap;
   background:var(--faixa);border:1px solid var(--linha-fina);border-radius:10px;
   padding:7px 14px;margin:0;border-top:1px solid var(--linha-fina);
@@ -614,6 +621,18 @@ body.industrial .palco-nota .painel-series{margin:0 !important;display:flex !imp
 body.industrial .palco-nota .serie{color:var(--txt);font-size:10.5px;letter-spacing:.1em}
 body.industrial .palco-nota .serie i{height:3px;border-radius:2px;width:20px}
 
+/* Quando a seção tem dois gráficos, a coluna é repartida: 55% para o gráfico
+   principal e 45% para a tipologia. Os dois viram painéis de mesmo peso, e é
+   o CSS que decide a divisão — o JS só mede o que coube em cada um. */
+body.industrial .palco-corpo.com-extra .area-analise{flex:0 1 55%;min-height:110px}
+body.industrial .palco-corpo.com-extra #palcoExtra{
+  flex:1 1 45%;min-height:110px;display:flex;flex-direction:column;
+}
+body.industrial .palco-corpo.com-extra #palcoGraficoExtra{flex:1;min-height:0}
+body.industrial .palco-corpo.com-extra .extra-topo{flex-shrink:0;padding:0 0 1px}
+body.industrial .palco-corpo.com-extra .extra-titulo{font-size:clamp(15px,1.15vw,20px)}
+body.industrial .palco-corpo.com-extra .extra-nota{font-size:10.5px;margin-top:3px}
+
 /* área de análise: a superfície mais clara da tela, para o gráfico se destacar */
 body.industrial .area-analise{
   flex:1 1 0;min-height:120px;display:flex;flex-direction:column;justify-content:center;
@@ -689,7 +708,8 @@ body.industrial .aviso code{background:var(--bg);color:#8FBAE8}
   body.industrial .kpi-card{padding:10px 16px}
 }
 @media (max-width:1000px){
-  body.industrial{display:block}
+  /* em tela estreita o painel volta a rolar normalmente */
+  body.industrial{display:block;height:auto;min-height:100vh;overflow:visible}
   body.industrial .topbar{flex-wrap:wrap;min-height:0}
   body.industrial .topbar .abas{margin:10px 12px 12px 12px}
   body.industrial .painel-filtros{margin-top:9px}
@@ -2004,63 +2024,82 @@ function desenharTipologia(){
   // a ordem é a da frota, do maior veículo para o menor; categorias sem
   // nenhum veículo no recorte simplesmente não aparecem
   const ordem = (BASE.ordem_tipos || [...soma.keys()]).filter(t => soma.get(t));
-  if(!ordem.length){ bloco.hidden = true; return; }
+  if(!ordem.length){
+    bloco.hidden = true;
+    const corpo = document.querySelector(".palco-corpo");
+    if(corpo) corpo.classList.remove("com-extra");
+    return;
+  }
   bloco.hidden = false;
 
   const valores = ordem.map(t => soma.get(t));
-  /* A tipologia divide a coluna com o gráfico principal, que continua sendo o
-     elemento dominante: ela recebe no máximo 40% do espaço, descontada a faixa
-     de título. Em tela grande cabe a altura natural das linhas; em notebook
-     ela encolhe em vez de empurrar a página. */
-  const corpoPalco = document.querySelector(".palco-corpo");
-  const topoSecao = document.querySelector(".palco-topo");
-  const coluna = corpoPalco
-    ? corpoPalco.clientHeight - (topoSecao ? topoSecao.offsetHeight : 0) : 0;
-  const teto = coluna > 0 ? Math.max(110, Math.round(coluna * 0.40) - 46) : 250;
-  const altura = Math.max(104, Math.min(teto, 25 * ordem.length + 34));
+
+  /* A altura vem do painel que o CSS reservou — 45% da coluna —, não de uma
+     conta por categoria. Assim a tipologia cresce junto com a tela em vez de
+     ficar presa a um teto. */
+  const caixa = document.getElementById("palcoGraficoExtra");
+  let alturaCaixa = 0;
+  if(caixa && caixa.clientHeight > 0){
+    const estilo = getComputedStyle(caixa);
+    alturaCaixa = caixa.clientHeight
+      - parseFloat(estilo.paddingTop) - parseFloat(estilo.paddingBottom) - 2;
+  }
+  const altura = Math.max(100, alturaCaixa > 0 ? alturaCaixa : 260);
+
+  /* Barras espessas e espaçamento folgado: com poucas categorias cada faixa
+     fica alta, então a barra usa 68% dela e o resto vira respiro. */
+  const linhaAltura = altura / Math.max(ordem.length, 1);
+  const espessura = 0.76;
+  const corpoTexto = Math.max(12, Math.min(19, Math.round(linhaAltura * 0.50)));
+  const corpoNome = Math.max(12, Math.min(17, Math.round(linhaAltura * 0.44)));
+  const margemNomes = Math.max(100, Math.round(corpoNome * 8.2));
 
   /* Relevo: a mesma barra, deslocada para baixo e num tom mais escuro, por
      baixo da principal — a faixa que sobra vira a espessura do bloco. */
   const faceEscura = tonalizar(TEMA.barra, -0.42);
   const series = [{
     type:"bar", orientation:"h",
-    y:ordem.map((_,i) => i + 0.12), x:valores,
+    y:ordem.map((_,i) => i + espessura * 0.16), x:valores,
     marker:{color:faceEscura, line:{width:0}, cornerradius:3},
-    width:0.52, hoverinfo:"skip", showlegend:false
+    width:espessura, hoverinfo:"skip", showlegend:false
   }, {
     type:"bar", orientation:"h",
     y:ordem.map((_,i) => i), x:valores,
     text:valores.map(v => num(v)), textposition:"outside", cliponaxis:false,
-    textfont:{family:"Barlow Condensed, sans-serif", size:15, color:TEMA.texto},
+    textfont:{family:"Barlow Condensed, sans-serif", size:corpoTexto, color:TEMA.texto},
     marker:{color:TEMA.barra, line:{width:0}, cornerradius:4},
-    width:0.52,
+    width:espessura,
     hovertemplate:"%{customdata}: %{x:,.0f} veículos<extra></extra>",
     customdata:ordem
   }];
 
   Plotly.newPlot(document.getElementById("palcoGraficoExtra"), series, {
-    height:altura, autosize:true, margin:{l:140, r:64, t:6, b:24},
+    height:altura, autosize:true,
+    margin:{l:margemNomes, r:Math.round(corpoTexto * 4.2), t:6, b:22},
     barmode:"overlay",
     paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
     font:{family:"Archivo, sans-serif", size:11, color:TEMA.texto},
-    showlegend:false, bargap:0.25,
+    showlegend:false, bargap:1 - espessura,
     hoverlabel:{font:{size:12, family:"Archivo, sans-serif", color:TEMA.hoverTexto},
                 bgcolor:TEMA.hoverFundo, bordercolor:TEMA.hoverBorda},
-    /* A maior barra ocupa cerca de dois terços da largura: a proporção entre
-       as categorias continua exata, mas nenhuma delas atravessa a tela. */
-    xaxis:{showgrid:true, gridcolor:TEMA.grade, zeroline:false, showline:false,
-           showticklabels:false, fixedrange:true,
-           range:[0, Math.max(...valores) * 1.5]},
+    /* Escala justa ao maior valor: a barra mais longa usa cerca de três
+       quartos da largura, o bastante para o número caber depois dela sem
+       deixar um vão grande à direita. */
+    xaxis:{showgrid:true, gridcolor:TEMA.grade, gridwidth:1, zeroline:false,
+           showline:false, showticklabels:false, fixedrange:true,
+           range:[0, Math.max(...valores) * 1.3]},
     /* O nome da categoria vira anotação em vez de rótulo de eixo: assim ele
        fica centrado na faixa da esquerda, e não grudado na barra como o eixo
        do Plotly faz por padrão. */
     yaxis:{tickmode:"array", tickvals:ordem.map((_,i) => i), ticktext:ordem.map(() => ""),
            autorange:"reversed", showgrid:false, zeroline:false, showline:false,
            fixedrange:true, automargin:false},
+    /* Os nomes ficam alinhados à esquerda, na margem reservada para eles, em
+       vez de colados na barra como o rótulo de eixo do Plotly faria. */
     annotations:ordem.map((nome, i) => ({
-      xref:"paper", x:-0.055, y:i, yref:"y", text:nome, showarrow:false,
-      xanchor:"center", yanchor:"middle",
-      font:{family:"Archivo, sans-serif", size:12, color:TEMA.texto}
+      xref:"paper", x:0, y:i, yref:"y", text:nome, showarrow:false,
+      xanchor:"right", yanchor:"middle", xshift:-14,
+      font:{family:"Archivo, sans-serif", size:corpoNome, color:TEMA.texto}
     }))
   }, CONFIG);
 }
@@ -2141,11 +2180,15 @@ function desenharSlides(registros, resumo){
        </span>
      </div>`).join("");
 
-  /* A tipologia entra antes de medir: ela ocupa parte da coluna, e só depois
-     de estar na tela a área de análise tem a altura real que sobra. Medir
-     primeiro e desenhar depois era o que fazia a página crescer nessa seção. */
-  if(secao.id === "veiculos") desenharTipologia();
-  else document.getElementById("palcoExtra").hidden = true;
+  /* O espaço é repartido ANTES de qualquer medição: a classe com-extra faz o
+     CSS dividir a coluna em 55/45. Só depois disso cada gráfico mede o painel
+     em que vai caber. Medir primeiro e repartir depois era o que deixava a
+     tipologia espremida. */
+  const corpoPalco = document.querySelector(".palco-corpo");
+  const blocoExtra = document.getElementById("palcoExtra");
+  const temExtra = secao.id === "veiculos" && !!(BASE.tipos && BASE.tipos.length);
+  blocoExtra.hidden = !temExtra;
+  corpoPalco.classList.toggle("com-extra", temExtra);
 
   const palco = document.getElementById("palcoGrafico");
   // com o menu recolhido o gráfico ganha a largura dele; os rótulos acompanham
@@ -2156,7 +2199,7 @@ function desenharSlides(registros, resumo){
      a faixa de datas —, então a tela fica cheia em qualquer resolução e nada
      transborda. Quando a tipologia está aberta, a própria área já chega mais
      baixa e o cálculo acompanha sozinho. */
-  const corpo = document.querySelector(".palco-corpo");
+  const corpo = corpoPalco;
   const area = document.querySelector(".area-analise");
   const eixoEl = document.getElementById("palcoEixo");
   let altura;
@@ -2167,12 +2210,12 @@ function desenharSlides(registros, resumo){
     const alturaEixo = eixoEl.offsetHeight || 26;
     altura = Math.round(area.clientHeight - respiro - alturaEixo - 4);
   }
-  if(!altura || altura < 180){
+  if(!altura || altura < 130){
     const topo = document.querySelector(".palco-topo");
     const sobra = corpo.clientHeight - (topo ? topo.offsetHeight : 0) - 70;
-    altura = Math.round(sobra > 180 ? sobra : window.innerHeight * 0.45);
+    altura = Math.round(sobra > 130 ? sobra : window.innerHeight * 0.45);
   }
-  altura = Math.max(180, altura);
+  altura = Math.max(130, altura);
 
   if(secao.forma === "linhas"){
     graficoDuasLinhas(palco, resumo, secao.campoA, secao.campoB, secao.nomeA, secao.nomeB,
@@ -2201,6 +2244,7 @@ function desenharSlides(registros, resumo){
   }
 
   document.getElementById("palcoEixo").innerHTML = faixaEixo(resumo, fracao);
+  if(temExtra) desenharTipologia();
   ligarCliqueNoGrafico(palco, registros, resumo);
   acompanharLargura(palco, 340);
 
