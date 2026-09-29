@@ -46,25 +46,41 @@ button{font-family:inherit}
 .condensada{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700}
 .rotulo{font-size:9.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--tenue)}
 
-/* ── Cabeçalho ───────────────────────────────────────────────────────────── */
-.cab{
-  display:flex;align-items:center;gap:16px 26px;flex-wrap:wrap;
+/* ── Cromo da página ─────────────────────────────────────────────────────
+   Nas abas Dia e Semana as quatro faixas se comportam como um cartão único:
+   `display:contents` na topbar joga os filhos dela direto no flex do wrapper.
+   O modo apresentação desfaz isso e separa as faixas.                       */
+.chrome{
+  display:flex;align-items:center;gap:16px 18px;flex-wrap:wrap;
   background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);
   padding:14px clamp(14px,1.1vw,22px);margin-bottom:12px;box-shadow:var(--sombra);
 }
-.cab-id{display:flex;align-items:center;gap:16px;min-width:0}
-.cab-logo{height:clamp(36px,3.4vw,56px);width:auto;display:block;flex-shrink:0}
-.cab-divisor{width:1px;align-self:stretch;background:var(--linha)}
-.cab-titulo{
+.topbar{display:contents}
+/* ordem do cartão único: marca, título, filtros à direita, abas e contagens */
+.marca{order:1}
+.topbar-id{order:2}
+.painel-filtros{order:3}
+.abas{order:4;align-self:flex-end;padding-bottom:1px}
+.cab-meta{order:5}
+.faixa-kpi{order:6}
+.barra-nav{order:7}
+.marca{display:flex;align-items:center;gap:16px;min-width:0}
+.marca::after{content:"";width:1px;align-self:stretch;background:var(--linha)}
+.marca.sem-logo .topbar-logo{display:none}
+.topbar-logo{height:clamp(36px,3.4vw,56px);width:auto;display:block;flex-shrink:0}
+.topbar-id{min-width:0}
+.topbar-titulo{
   font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
   font-size:clamp(26px,2.1vw,40px);line-height:1;text-transform:uppercase;
   letter-spacing:.005em;margin:0;color:var(--marca);
 }
-.cab-sub{font-size:10.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+.topbar-sub{font-size:10.5px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
   color:var(--tenue);margin-top:5px}
+.filtros-rot{display:none}
+.faixa-kpi{display:none}
 
 /* Filtros compactos, encostados à direita */
-.cab-filtros{display:flex;align-items:flex-end;gap:8px 18px;flex-wrap:wrap;margin-left:auto}
+.painel-filtros{display:flex;align-items:flex-end;gap:8px 16px;flex-wrap:wrap;margin-left:auto}
 .campo{display:flex;flex-direction:column;gap:4px}
 .campo>label{font-size:9px;font-weight:600;letter-spacing:.15em;
   text-transform:uppercase;color:var(--tenue)}
@@ -105,7 +121,7 @@ button{font-family:inherit}
 .kpi-chip.destaque .kpi-rot{color:var(--azul-claro)}
 
 /* Segunda linha: paginação, legenda de dias e pílulas de semana */
-.cab-controles{
+.barra-nav{
   flex-basis:100%;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   border-top:1px solid var(--grade);padding-top:11px;margin-top:1px;
 }
@@ -328,8 +344,8 @@ thead th{position:sticky;top:0;background:var(--papel);font-size:9.5px;letter-sp
   .trilho-rot{display:none}
   .trilho button{width:auto;white-space:nowrap;font-size:15px}
   .trilho button[aria-current="true"]::before{display:none}
-  .cab{gap:12px}
-  .cab-filtros{margin-left:0;width:100%}
+  .chrome{gap:12px}
+  .painel-filtros{margin-left:0;width:100%}
   .cab-meta{width:100%}
   .kpi-chip{flex:1}
   .palco-kpis{width:100%}
@@ -341,156 +357,322 @@ thead th{position:sticky;top:0;background:var(--papel);font-size:9.5px;letter-sp
 }
 @media print{
   body{padding:0;background:#fff}
-  .cab-filtros,.cab-controles,details.detalhe,.trilho{display:none !important}
+  .painel-filtros,.barra-nav,details.detalhe,.trilho{display:none !important}
   .palco{grid-template-columns:1fr}
-  .card,.palco-corpo,.cab{box-shadow:none;break-inside:avoid}
+  .card,.palco-corpo,.chrome{box-shadow:none;break-inside:avoid}
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   TEMA INDUSTRIAL — vale apenas enquanto a aba APRESENTAÇÃO está aberta.
-   A classe entra e sai do <body> pelo render; as abas Dia e Semana seguem
-   com o tema claro, sem nenhuma regra daqui.
+   DASHBOARD EXECUTIVO — layout da aba APRESENTAÇÃO
+
+   Só vale sob body.industrial, a classe que entra no documento enquanto a aba
+   Apresentação está aberta; Dia e Semana não recebem nenhuma regra daqui.
+
+   A diferença para as outras abas não é de cor: aqui o cromo da página deixa
+   de ser um cartão único e se desdobra em quatro faixas empilhadas —
+   identificação, filtros, indicadores e navegação — com a área de análise
+   ocupando o resto da altura. É o `display:contents` no wrapper que solta as
+   faixas para dentro da coluna da página.
    ══════════════════════════════════════════════════════════════════════════ */
-html.industrial{background:#0A1322}
+
+html.industrial{background:#060D1A}
 
 body.industrial{
-  min-height:100vh;display:flex;flex-direction:column;position:relative;
-  padding-bottom:14px;
-  --papel:#101C30;
-  --linha:#22314B;
-  --grade:#1B2942;
-  --tinta:#E9EFF7;
-  --suave:#8095AF;
-  --tenue:#6E819C;
-  --sombra:0 1px 2px rgba(0,0,0,.30),0 10px 30px rgba(0,0,0,.32);
-  background:#0A1322;color:var(--tinta);
+  /* profundidade por camadas: a página é quase preta e cada seção sobe um tom */
+  --bg:#060D1A;          /* fundo geral            */
+  --faixa:#0B1729;       /* faixas de controle     */
+  --painel:#0E1D33;      /* painéis                */
+  --realce:#13253F;      /* área de análise        */
+  --cartao:#15294A;      /* cartões de indicador   */
+  --linha-fina:rgba(122,160,205,.14);
+  --linha-media:rgba(122,160,205,.26);
+  --vivo:#3F7FD4;        /* azul vivo, navegação   */
+  --verde:#4CA22F;
+  --verde-claro:#69C846;
+  --amarelo:#E4B84B;
+  --txt:#F0F5FA;
+  --txt-2:#93A9C2;
+  --txt-3:#6D839C;   /* textos auxiliares      */
+  background:var(--bg);color:var(--txt);
+  min-height:100vh;display:flex;flex-direction:column;gap:9px;
+  padding:11px clamp(10px,1vw,22px) 12px;
 }
+
+/* o wrapper some e as quatro faixas viram seções da página */
+body.industrial .chrome{display:contents}
+body.industrial .marca,body.industrial .topbar-id,body.industrial .abas,
+body.industrial .cab-meta,body.industrial .painel-filtros,
+body.industrial .faixa-kpi,body.industrial .barra-nav{order:0}
+body.industrial .abas{align-self:auto;padding-bottom:0}
+
+/* ── Faixa 1 · identificação ─────────────────────────────────────────────
+   Compacta: a marca numa área própria à esquerda, o título ao lado e a troca
+   de visão à direita. A foto do galpão fica de textura, sob um véu firme.   */
+body.industrial .topbar{
+  display:flex;align-items:center;gap:0;
+  background:
+    linear-gradient(100deg, rgba(8,15,28,.96) 0%, rgba(10,20,36,.90) 46%,
+                    rgba(10,20,36,.62) 76%, rgba(10,20,36,.42) 100%),
+    url("assets/hero-galpao.jpg") no-repeat center 78%/cover, #0F1F38;
+  border:1px solid var(--linha-media);border-radius:10px;overflow:hidden;
+  min-height:74px;
+}
+body.industrial .marca{
+  display:flex;align-items:center;justify-content:center;align-self:stretch;
+  padding:0 18px;background:rgba(255,255,255,.96);
+  border-right:1px solid var(--linha-media);gap:0;
+}
+body.industrial .marca::after{display:none}
+body.industrial .marca.sem-logo{display:none}
+body.industrial .topbar-logo{height:clamp(32px,2.6vw,42px)}
+body.industrial .topbar-id{padding:0 clamp(14px,1.2vw,24px);min-width:0}
+body.industrial .topbar-titulo{
+  color:#FFFFFF;font-size:clamp(23px,1.85vw,32px);letter-spacing:.055em;
+  line-height:1;text-shadow:0 2px 14px rgba(6,13,26,.85);
+}
+body.industrial .topbar-sub{
+  color:#8FBAE8;font-size:9.5px;letter-spacing:.24em;margin-top:6px;font-weight:600;
+  text-shadow:0 1px 8px rgba(6,13,26,.8);
+}
+
+/* Troca de visão, à direita da faixa */
+body.industrial .topbar .abas{
+  margin-left:auto;margin-right:16px;
+  background:rgba(6,13,26,.72);border:1px solid var(--linha-media);
+  border-radius:8px;padding:3px;
+}
+body.industrial .aba{
+  color:var(--txt-2);font-size:10px;letter-spacing:.12em;padding:7px 16px;border-radius:6px;
+}
+body.industrial .aba:hover{color:var(--txt)}
+body.industrial .aba[aria-selected="true"]{
+  background:var(--vivo);color:#FFFFFF;box-shadow:none;font-weight:700;
+}
+/* os chips saem: a faixa de indicadores abaixo já traz dias e rotas */
+body.industrial .cab-meta{display:none}
+
+/* ── Faixa 2 · filtros, em painel próprio ────────────────────────────────── */
+body.industrial .painel-filtros{
+  display:flex;align-items:flex-end;gap:0;flex-wrap:wrap;margin-left:0;
+  background:var(--faixa);border:1px solid var(--linha-fina);border-radius:10px;
+  padding:9px 8px 10px;
+}
+body.industrial .filtros-rot{
+  display:block;align-self:center;padding:0 16px 0 10px;margin-right:4px;
+  font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--txt-3);border-right:1px solid var(--linha-fina);
+}
+body.industrial .painel-filtros .campo{padding:0 16px;position:relative}
+body.industrial .painel-filtros .campo + .campo::before{
+  content:"";position:absolute;left:0;top:4px;bottom:4px;width:1px;
+  background:var(--linha-fina);
+}
+body.industrial .campo>label{color:var(--txt-3);font-size:8.5px;letter-spacing:.2em}
+body.industrial .campo select,body.industrial .campo input{
+  background:rgba(18,37,66,.72);border:1px solid var(--linha-media);color:var(--txt);
+  border-radius:7px;min-height:31px;font-size:12.5px;
+}
+body.industrial .campo select:hover,body.industrial .campo input:hover{
+  border-color:var(--vivo);background:#15294A;
+}
+body.industrial .campo input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.72)}
+
+/* ── Faixa 3 · indicadores executivos ────────────────────────────────────
+   Três cartões de largura igual, número grande e ícone à esquerda. É a área
+   que substitui os indicadores pequenos que ficavam no canto do painel.     */
+body.industrial .faixa-kpi{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
+}
+body.industrial .kpi-card{
+  display:flex;align-items:center;gap:16px;
+  background:var(--cartao);border:1px solid var(--linha-fina);
+  border-top:2px solid var(--linha-media);border-radius:10px;
+  padding:13px 22px;min-width:0;box-shadow:none;
+}
+body.industrial .kpi-icone{
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  width:40px;height:40px;border-radius:9px;
+  background:rgba(63,127,212,.14);color:#8FBAE8;
+}
+body.industrial .kpi-icone svg{width:20px;height:20px}
+body.industrial .kpi-corpo{display:flex;flex-direction:column;min-width:0}
+body.industrial .kpi-card .rotulo{
+  font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--txt-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+body.industrial .kpi-card .kpi-numero{
+  font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  color:#FFFFFF;font-size:clamp(30px,2.6vw,42px);line-height:1.04;margin-top:2px;
+  letter-spacing:.01em;white-space:nowrap;
+}
+body.industrial .kpi-unidade{
+  font-size:.4em;font-weight:600;color:var(--txt-2);margin-left:5px;letter-spacing:.06em;
+}
+/* o primeiro cartão é o indicador da seção aberta */
+body.industrial .kpi-card.forte{
+  background:linear-gradient(135deg,#15335B 0%,#112748 100%);
+  border-color:rgba(122,170,225,.34);border-top-color:var(--verde);
+}
+body.industrial .kpi-card.forte .rotulo{color:#9FC6EC}
+body.industrial .kpi-card.forte .kpi-icone{background:rgba(76,162,47,.18);color:var(--verde-claro)}
+body.industrial .kpi-card.forte .kpi-unidade{color:#9FC6EC}
+
+/* ── Faixa 4 · navegação de períodos ─────────────────────────────────────── */
+body.industrial .barra-nav{
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--faixa);border:1px solid var(--linha-fina);border-radius:10px;
+  padding:7px 14px;margin:0;border-top:1px solid var(--linha-fina);
+}
+body.industrial .paginacao{color:var(--txt-2);font-size:17px;min-width:50px}
+body.industrial .legenda-dias{color:var(--txt-3);font-size:9px;letter-spacing:.14em}
+body.industrial .pilula{
+  background:rgba(63,127,212,.10);border:1px solid var(--linha-media);color:var(--txt-2);
+  border-radius:7px;padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:.1em;
+  box-shadow:none;transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+body.industrial .pilula:hover{
+  background:rgba(63,127,212,.26);border-color:var(--vivo);color:#FFFFFF;transform:none;
+}
+body.industrial .pilula[aria-pressed="true"]{
+  background:var(--verde);border-color:var(--verde);color:#07131F;
+}
+
+/* ── Corpo ───────────────────────────────────────────────────────────────── */
 body.industrial #conteudo{display:flex;flex-direction:column;flex:1;min-height:0}
 body.industrial #viewSlides{display:flex;flex-direction:column;flex:1;min-height:0}
-body.industrial .palco{flex:1;min-height:0}
-body.industrial .palco-corpo{height:100%}
-body.industrial .fonte{margin-top:12px;flex-shrink:0}
-
-/* Cabeçalho com a foto da frota ao fundo. O degradê cobre o lado esquerdo,
-   onde ficam logo e título, e vai abrindo para a direita — a imagem aparece
-   atrás dos filtros sem tirar a legibilidade de nada. */
-body.industrial .cab{
-  /* A foto preenche o retângulo inteiro do cabeçalho (`cover`), e o degradê
-     por cima escurece a esquerda, onde ficam logo, título e filtros, abrindo
-     para a direita, onde a imagem aparece. */
-  background-color:#0D1729;
-  background-image:
-    linear-gradient(95deg,
-      rgba(11,21,37,.93) 0%, rgba(11,21,37,.86) 34%,
-      rgba(11,21,37,.66) 58%, rgba(11,21,37,.42) 80%, rgba(11,21,37,.30) 100%),
-    url("assets/hero-galpao.jpg");
-  background-repeat:no-repeat, no-repeat;
-  background-size:100% 100%, cover;
-  /* 78% desloca a foto para cima, trazendo as docas e os caminhões para a
-     faixa visível; valores maiores mostram mais chão, menores mais céu. */
-  background-position:left center, center 78%;
-  background-origin:border-box, border-box;
-  background-clip:border-box, border-box;
-  border-color:rgba(120,160,210,.22);border-top:3px solid var(--verde);
-  min-height:118px;overflow:hidden;
+body.industrial .palco{
+  flex:1;min-height:0;grid-template-columns:186px 1fr;gap:9px;
+  transition:grid-template-columns .32s cubic-bezier(.33,.9,.35,1);
 }
-body.industrial .cab-titulo{color:#fff}
-body.industrial .cab-sub{color:#7FA9D8}
-body.industrial .cab-divisor{background:#2A3B58}
-body.industrial .cab-logo{
-  background:#fff;border-radius:9px;padding:4px 7px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 
-body.industrial .cab-filtros{
-  background:rgba(8,16,29,.55);border:1px solid #1E2D46;border-radius:12px;
-  padding:9px 16px;gap:0;
-}
-body.industrial .cab-filtros .campo{padding:0 16px;position:relative}
-body.industrial .cab-filtros .campo + .campo::before{
-  content:"";position:absolute;left:0;top:3px;bottom:3px;width:1px;background:#1E2D46}
-body.industrial .cab-filtros .abas{margin-left:16px}
-body.industrial .campo>label{color:#6E819C;letter-spacing:.16em}
-body.industrial .campo select,body.industrial .campo input{
-  background:#16243C;border-color:#2A3B58;color:#E9EFF7}
-body.industrial .campo select:hover,body.industrial .campo input:hover{border-color:#3E5A82}
-body.industrial .campo input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(.7)}
-
-body.industrial .abas{background:#0C1729;box-shadow:inset 0 1px 2px rgba(0,0,0,.35)}
-body.industrial .aba{color:#8095AF}
-body.industrial .aba:hover{color:#E9EFF7}
-body.industrial .aba[aria-selected="true"]{
-  background:#22385C;color:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
-
-body.industrial .kpi-chip{background:#16243C;border-color:#2A3B58}
-body.industrial .kpi-chip .kpi-val{color:#E9EFF7}
-body.industrial .kpi-chip.destaque{background:#16365E;border-color:#2A5A94}
-body.industrial .cab-controles{border-top-color:#22314B}
-body.industrial .paginacao{color:#8095AF}
-body.industrial .pilula{background:#16243C;border-color:#2A3B58;color:#93A6BF}
-body.industrial .pilula:hover{background:#1C2E4C;border-color:#3E6698;color:#fff}
-body.industrial .pilula[aria-pressed="true"]{
-  background:var(--verde);border-color:var(--verde);color:#0A1322}
-body.industrial .legenda-dias{color:#6E819C}
-
-/* Trilho: mais compacto e com a barra de seleção em verde */
+/* Menu lateral */
 body.industrial .trilho{
-  background:#0E1A2D;border:1px solid #22314B;padding:0 0 12px;
-  border-radius:14px;overflow:hidden;
+  background:var(--painel);border:1px solid var(--linha-fina);border-radius:10px;
+  padding:0 0 10px;cursor:w-resize;position:relative;overflow:hidden;
 }
-/* A marca também no topo do menu, sobre uma placa branca — a logo original,
-   sem recorte nem redesenho. */
 body.industrial .trilho-marca{
   display:flex;align-items:center;justify-content:center;
-  padding:16px 14px;border-bottom:1px solid #1B2942;background:#0B1524;
+  padding:12px 14px;background:rgba(63,127,212,.08);
+  border-bottom:1px solid var(--linha-fina);
 }
-body.industrial .trilho-marca img{height:38px;width:auto;display:block;
-  background:#fff;border-radius:8px;padding:5px 9px}
-body.industrial .trilho button{color:#93A6BF;font-size:17px;padding:11px 14px;
-  margin:0 8px;border-radius:8px;letter-spacing:.03em}
-body.industrial .trilho button:hover{background:rgba(255,255,255,.05)}
-body.industrial .trilho button[aria-current="true"]{background:#152B45;color:#fff}
-
-/* Palco: painel de sala de controle */
-body.industrial .palco{grid-template-columns:210px 1fr;
-  transition:grid-template-columns .32s cubic-bezier(.33,.9,.35,1)}
-
-/* Clicar na área vazia do menu recolhe o trilho e alarga o gráfico; clicar na
-   faixa fina que sobra devolve o menu. O alvo é a própria coluna, então não há
-   botão desenhado competindo com os itens. */
-body.industrial .trilho{cursor:w-resize}
-body.industrial .palco.recolhido{grid-template-columns:14px 1fr}
-body.industrial .palco.recolhido .trilho{
-  padding:0;cursor:e-resize;background:#0E1A2D;
+body.industrial .trilho-marca img{
+  height:26px;width:auto;display:block;background:#fff;border-radius:6px;padding:4px 9px;
 }
+body.industrial .trilho-rot{
+  font-size:8.5px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--txt-3);padding:15px 18px 8px;opacity:1;
+}
+body.industrial .trilho button{
+  display:flex;align-items:center;gap:10px;width:auto;text-align:left;
+  background:transparent;border:0;cursor:pointer;color:var(--txt-2);
+  font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:600;
+  font-size:15px;line-height:1.15;text-transform:uppercase;letter-spacing:.05em;
+  padding:10px 12px;margin:0 8px;border-radius:7px;position:relative;
+}
+body.industrial .trilho button svg{width:15px;height:15px;opacity:.8}
+body.industrial .trilho button:hover{background:rgba(255,255,255,.05);color:var(--txt)}
+body.industrial .trilho button[aria-current="true"]{
+  background:rgba(63,127,212,.18);color:#FFFFFF;font-weight:700;
+}
+body.industrial .trilho button[aria-current="true"] svg{opacity:1;color:var(--verde-claro)}
+body.industrial .trilho button[aria-current="true"]::before{
+  content:"";position:absolute;left:-8px;top:8px;bottom:8px;width:3px;
+  border-radius:0 3px 3px 0;background:var(--verde);
+}
+body.industrial .palco.recolhido{grid-template-columns:13px 1fr}
+body.industrial .palco.recolhido .trilho{padding:0;cursor:e-resize}
 body.industrial .palco.recolhido .trilho > *{display:none}
 body.industrial .palco.recolhido .trilho::after{
-  content:"";position:absolute;top:50%;left:5px;width:4px;height:36px;
-  border-radius:3px;background:#2A3B58;transform:translateY(-50%);
+  content:"";position:absolute;top:50%;left:4px;width:4px;height:34px;
+  border-radius:3px;background:var(--linha-media);transform:translateY(-50%);
 }
 body.industrial .palco.recolhido .trilho:hover::after{background:var(--verde)}
-body.industrial .trilho{position:relative}
-body.industrial .palco-corpo{
-  background:#0E1A2D;border:1px solid #22314B;
-}
-body.industrial .palco-topo{border-bottom-color:#1B2942;padding-bottom:18px}
 
-/* ── Transição ao trocar de indicador ────────────────────────────────────
-   O conteúdo do palco entra em três tempos — título e KPIs, depois o
-   gráfico, depois a faixa de datas. A animação é curta e só na entrada:
-   nada pisca ao mexer em filtro, porque a classe é reposta a cada troca. */
+/* Painel de análise */
+body.industrial .palco-corpo{
+  background:var(--painel);border:1px solid var(--linha-fina);border-radius:10px;
+  height:100%;display:flex;flex-direction:column;
+  padding:0 0 10px;box-shadow:none;
+}
+/* faixa de título e legenda, acima da área do gráfico */
+body.industrial .palco-topo{
+  display:block;padding:15px clamp(16px,1.4vw,26px) 13px;
+  border-bottom:1px solid var(--linha-fina);
+  background:linear-gradient(180deg,rgba(63,127,212,.07) 0%,rgba(63,127,212,0) 100%);
+  border-radius:10px 10px 0 0;
+}
+body.industrial .palco-titulo{
+  color:#FFFFFF;font-size:clamp(24px,2.1vw,36px);letter-spacing:.035em;
+  margin:0;line-height:1;
+}
+body.industrial .palco-nota{
+  display:flex;align-items:center;gap:8px 18px;flex-wrap:wrap;
+  color:var(--txt-2);font-size:11.5px;letter-spacing:.02em;margin-top:9px;
+}
+body.industrial .palco-nota .painel-series{margin:0 !important;display:flex !important}
+body.industrial .palco-nota .serie{color:var(--txt);font-size:10.5px;letter-spacing:.1em}
+body.industrial .palco-nota .serie i{height:3px;border-radius:2px;width:20px}
+
+/* área de análise: a superfície mais clara da tela, para o gráfico se destacar */
+body.industrial .area-analise{
+  flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;
+  background:var(--realce);border:1px solid var(--linha-fina);border-radius:9px;
+  margin:12px clamp(12px,1.1vw,20px) 0;padding:10px 12px 8px;
+}
+body.industrial .palco-corpo .grafico{background:none;border:0;padding:0;margin:0}
+body.industrial #palcoEixo{background:none;border:0;padding:4px 2px 0;margin:0}
+body.industrial .faixa-eixo{color:var(--txt-2);font-weight:600}
+body.industrial .eixo-cel.eixo-feriado{color:var(--verde-claro);font-weight:700}
+
+/* Bloco extra (tipologia de veículos) */
+body.industrial #palcoExtra{margin:10px clamp(12px,1.1vw,20px) 0}
+body.industrial .extra-topo{
+  border-top:0;padding:0 0 2px;margin:0;
+}
+body.industrial .extra-titulo{color:#FFFFFF;letter-spacing:.035em}
+body.industrial .extra-nota{color:var(--txt-2)}
+body.industrial #palcoGraficoExtra{
+  background:var(--realce);border:1px solid var(--linha-fina);border-radius:9px;
+  padding:8px 10px;margin-top:9px;
+}
+
+/* ── Janela de detalhe ───────────────────────────────────────────────────── */
+body.industrial .modal-caixa{
+  background:var(--painel);border:1px solid var(--linha-media);border-radius:12px;
+}
+body.industrial .modal-topo{border-bottom-color:var(--linha-fina)}
+body.industrial .modal-titulo{color:#fff}
+body.industrial .modal-item{background:var(--cartao);border-color:var(--linha-fina);border-radius:9px}
+body.industrial .modal-valor{color:#fff}
+body.industrial .modal-fechar{border-color:var(--linha-media);color:var(--txt-2)}
+body.industrial .modal-caixa th,body.industrial .modal-caixa td{border-bottom-color:var(--linha-fina)}
+body.industrial .modal-caixa th:first-child,
+body.industrial .modal-caixa td:first-child,
+body.industrial .modal-caixa thead th{background:var(--painel)}
+body.industrial .coluna-forte{color:#8FBAE8}
+body.industrial .modal-carregando{color:var(--txt-3)}
+
+/* ── Rodapé ─────────────────────────────────────────────────────────────── */
+body.industrial .fonte{
+  flex-shrink:0;margin-top:9px;padding:8px 16px;
+  background:var(--faixa);border:1px solid var(--linha-fina);border-radius:9px;
+  color:var(--txt-3);font-size:9px;letter-spacing:.16em;
+}
+body.industrial .fonte b{color:var(--txt-2);font-weight:500}
+body.industrial .aviso{
+  background:var(--painel);border-color:var(--linha-fina);color:var(--txt-2);border-radius:10px;
+}
+body.industrial .aviso code{background:var(--bg);color:#8FBAE8}
+
+/* ── Transição ao trocar de indicador ───────────────────────────────────── */
 @keyframes palcoEntra{
   from{opacity:0;transform:translateY(12px)}
   to{opacity:1;transform:none}
 }
-@keyframes palcoEntraLeve{
-  from{opacity:0}
-  to{opacity:1}
-}
+@keyframes palcoEntraLeve{ from{opacity:0} to{opacity:1} }
 .palco-corpo.entrando .palco-topo{animation:palcoEntra .34s cubic-bezier(.22,.7,.3,1) both}
 .palco-corpo.entrando .grafico{animation:palcoEntra .40s cubic-bezier(.22,.7,.3,1) .07s both}
-.palco-corpo .grafico,.palco-corpo #palcoEixo{transition:opacity .2s ease}
 .palco-corpo.entrando #palcoEixo{animation:palcoEntraLeve .40s ease .16s both}
-
-/* o item do menu desliza o realce em vez de piscar */
 .trilho button{transition:background .22s ease,color .22s ease,padding-left .22s ease}
 .trilho button[aria-current="true"]{padding-left:18px}
 
@@ -498,266 +680,68 @@ body.industrial .palco-topo{border-bottom-color:#1B2942;padding-bottom:18px}
   .palco-corpo.entrando .palco-topo,
   .palco-corpo.entrando .grafico,
   .palco-corpo.entrando #palcoEixo{animation:none}
-  .trilho button{transition:none}
+  .trilho button,body.industrial .palco{transition:none}
 }
-body.industrial .palco-titulo{color:#fff;font-size:clamp(28px,2.4vw,40px);letter-spacing:.015em}
-body.industrial .palco-nota{color:#7C90AB;font-size:12px;letter-spacing:.03em;margin-top:7px}
-body.industrial .palco-nota .serie{color:#C3D2E4;font-size:12px}
 
-/* KPIs industriais: filete verde no topo e número grande em branco */
-body.industrial .kpi-card{
-  background:#16243C;border-color:#2A3B58;border-top:2px solid #2A3B58;
-  padding:9px 16px;min-width:104px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+@media (max-width:1100px){
+  body.industrial .faixa-kpi{grid-template-columns:1fr}
+  body.industrial .kpi-card{padding:10px 16px}
 }
-body.industrial .kpi-card .kpi-numero{color:#fff;font-size:clamp(24px,1.9vw,34px)}
-body.industrial .kpi-card .rotulo{color:#6E819C}
-body.industrial .kpi-card.forte{
-  background:#14304F;border-color:#28486F;border-top-color:var(--verde);
-}
-body.industrial .kpi-card.forte .rotulo{color:#9CC0E4}
-body.industrial .kpi-unidade{color:#7FA9D8}
-
-body.industrial .faixa-eixo{color:#6E819C}
-body.industrial .eixo-cel.eixo-feriado{color:#8FD46A;font-weight:700}
-
-body.industrial .fonte{background:rgba(255,255,255,.025);border-color:#22314B;color:#6E819C}
-body.industrial .fonte b{color:#93A6BF}
-body.industrial .aviso{background:#132340;border-color:#22314B;color:#C3D2E4}
-body.industrial .aviso code{background:#0C1729;color:#9CC0E4}
-
 @media (max-width:1000px){
   body.industrial{display:block}
-  body.industrial .palco{grid-template-columns:1fr}
+  body.industrial .topbar{flex-wrap:wrap;min-height:0}
+  body.industrial .topbar .abas{margin:10px 12px 12px 12px}
+  body.industrial .painel-filtros{margin-top:9px}
+  body.industrial .painel-filtros .campo{padding:0 10px}
+  body.industrial .filtros-rot{display:none}
+  body.industrial .faixa-kpi,body.industrial .barra-nav{margin-top:9px}
+  body.industrial .palco{grid-template-columns:1fr;margin-top:9px}
   body.industrial .palco-corpo{height:auto}
-}
-/* ══════════════════════════════════════════════════════════════════════════
-   ACABAMENTO BI — camada puramente visual da aba APRESENTAÇÃO.
-
-   Tudo aqui é CSS e só vale sob body.industrial, que é a classe que entra no
-   documento enquanto a aba Apresentação está aberta. Nenhum gráfico, valor,
-   cálculo, filtro ou funcionalidade é tocado: este bloco apenas redefine
-   fundos, bordas, espaçamento e tipografia. Para desfazer, basta apagar do
-   comentário até o fim do arquivo de estilo.
-   ══════════════════════════════════════════════════════════════════════════ */
-
-body.industrial{
-  --bi-fundo:#081326;        /* azul-marinho profundo, base da tela      */
-  --bi-painel:#0E1C31;       /* superfície dos blocos                    */
-  --bi-palco:#102138;        /* fundo da área do gráfico, um tom acima   */
-  --bi-borda:#1F3149;        /* bordas finas                             */
-  --bi-borda-clara:#2A4364;
-  --bi-verde:#4CA22F;
-  --bi-amarelo:#E4B84B;
-  --bi-texto:#EAF1F8;
-  --bi-suave:#8CA0B8;
-  --bi-tenue:#6E8298;
-  --bi-sombra:0 1px 1px rgba(0,0,0,.20),0 8px 22px rgba(0,0,0,.24);
-  background:var(--bi-fundo);
-  padding:14px clamp(12px,1.1vw,26px) 14px;
-  gap:0;
-}
-html.industrial{background:var(--bi-fundo)}
-
-/* ── Cabeçalho ───────────────────────────────────────────────────────────
-   A foto do galpão continua ao fundo, agora sob um véu uniforme, para virar
-   textura do painel em vez de imagem em primeiro plano.                    */
-body.industrial .cab{
-  box-shadow:inset 0 0 0 100vmax rgba(8,19,38,.42), var(--bi-sombra);
-  border:1px solid var(--bi-borda);border-top:2px solid var(--bi-verde);
-  border-radius:12px;min-height:96px;
-  padding:13px clamp(14px,1.1vw,22px) 11px;
-  margin-bottom:10px;gap:14px 26px;
-}
-body.industrial .cab-titulo{
-  color:#FFFFFF;font-size:clamp(25px,2vw,35px);letter-spacing:.03em;
-  text-shadow:0 1px 10px rgba(8,19,38,.7);
-}
-body.industrial .cab-sub{
-  color:#8FB6DE;font-size:10px;letter-spacing:.2em;margin-top:5px;font-weight:600;
-}
-body.industrial .cab-logo{
-  height:clamp(34px,2.9vw,46px);background:#fff;border-radius:7px;padding:4px 8px;
-  box-shadow:0 2px 8px rgba(0,0,0,.30);
-}
-body.industrial .cab-divisor{background:rgba(140,175,215,.28)}
-
-/* Filtros como um painel de controles único */
-body.industrial .cab-filtros{
-  background:rgba(8,16,29,.62);border:1px solid var(--bi-borda-clara);
-  border-radius:9px;padding:8px 14px;gap:0;
-  backdrop-filter:blur(3px);
-}
-body.industrial .cab-filtros .campo{padding:0 14px}
-body.industrial .cab-filtros .campo + .campo::before{background:var(--bi-borda-clara)}
-body.industrial .campo>label{color:var(--bi-tenue);font-size:8.5px;letter-spacing:.18em}
-body.industrial .campo select,body.industrial .campo input{
-  background:#122444;border-color:var(--bi-borda-clara);color:var(--bi-texto);
-  border-radius:7px;min-height:30px;font-size:12px;
-}
-body.industrial .campo select:hover,body.industrial .campo input:hover{
-  border-color:#3D6394;background:#16294C;
-}
-
-/* Abas como segmento de BI */
-body.industrial .abas{
-  background:rgba(8,16,29,.72);border:1px solid var(--bi-borda-clara);
-  border-radius:9px;padding:3px;
-}
-body.industrial .aba{color:var(--bi-suave);font-size:10px;letter-spacing:.1em;padding:6px 14px}
-body.industrial .aba[aria-selected="true"]{
-  background:#1E3A5E;color:#fff;box-shadow:0 1px 4px rgba(0,0,0,.35);
-}
-
-/* Cartões de contagem do cabeçalho */
-body.industrial .kpi-chip{
-  background:rgba(12,26,46,.82);border:1px solid var(--bi-borda-clara);
-  border-radius:10px;padding:7px 15px;backdrop-filter:blur(3px);
-}
-body.industrial .kpi-chip .kpi-rot{color:var(--bi-tenue);font-size:8.5px;letter-spacing:.18em}
-body.industrial .kpi-chip .kpi-val{color:#fff}
-body.industrial .kpi-chip.destaque{
-  background:rgba(22,50,79,.9);border-color:#2F5B8E;
-}
-
-/* ── Barra de navegação (páginas, legenda e semanas) ─────────────────────
-   Destacada do cabeçalho, como a faixa de navegação de um painel de BI.   */
-body.industrial .cab-controles{
-  flex-basis:100%;margin:10px -2px -2px;padding:9px 14px 8px;
-  background:rgba(8,16,29,.55);border:1px solid var(--bi-borda);
-  border-radius:9px;gap:12px;
-}
-body.industrial .paginacao{color:var(--bi-suave);font-size:17px}
-body.industrial .pilula{
-  background:#122444;border:1px solid var(--bi-borda-clara);color:var(--bi-suave);
-  border-radius:7px;padding:5px 13px;font-size:10px;letter-spacing:.08em;
-}
-body.industrial .pilula:hover{
-  background:#172E52;border-color:#3D6394;color:#fff;transform:none;box-shadow:none;
-}
-body.industrial .pilula[aria-pressed="true"]{
-  background:var(--bi-verde);border-color:var(--bi-verde);color:#08131E;font-weight:700;
-}
-body.industrial .legenda-dias{color:var(--bi-tenue);font-size:9px}
-
-/* ── Menu lateral ────────────────────────────────────────────────────────── */
-body.industrial .palco{grid-template-columns:198px 1fr;gap:10px}
-body.industrial .trilho{
-  background:var(--bi-painel);border:1px solid var(--bi-borda);border-radius:12px;
-  box-shadow:var(--bi-sombra);padding:0 0 10px;
-}
-body.industrial .trilho-marca{
-  background:rgba(8,16,29,.55);border-bottom:1px solid var(--bi-borda);padding:14px;
-}
-body.industrial .trilho-rot{color:#7FA9D8;letter-spacing:.2em;padding:15px 20px 8px}
-body.industrial .trilho button{
-  color:var(--bi-suave);font-size:15.5px;letter-spacing:.05em;
-  padding:10px 13px;margin:0 8px;border-radius:7px;gap:10px;
-}
-body.industrial .trilho button svg{width:15px;height:15px}
-body.industrial .trilho button:hover{background:rgba(255,255,255,.045);color:#fff}
-body.industrial .trilho button[aria-current="true"]{
-  background:#17304E;color:#fff;font-weight:700;
-}
-body.industrial .trilho button[aria-current="true"]::before{
-  background:var(--bi-verde);width:3px;top:9px;bottom:9px;border-radius:0 3px 3px 0;
-}
-
-/* ── Painel principal ───────────────────────────────────────────────────── */
-body.industrial .palco-corpo{
-  background:var(--bi-painel);border:1px solid var(--bi-borda);border-radius:12px;
-  box-shadow:var(--bi-sombra);padding:20px clamp(18px,1.5vw,30px) 12px;
-}
-body.industrial .palco-topo{
-  border-bottom:1px solid var(--bi-borda);padding-bottom:16px;align-items:center;
-}
-body.industrial .palco-titulo{
-  color:#FFFFFF;font-size:clamp(26px,2.2vw,38px);letter-spacing:.025em;
-}
-body.industrial .palco-nota{
-  color:var(--bi-suave);font-size:11.5px;letter-spacing:.02em;margin-top:8px;
-}
-body.industrial .palco-nota .serie{color:var(--bi-texto);font-size:11px;letter-spacing:.07em}
-body.industrial .palco-nota .serie i{height:3px;border-radius:2px}
-
-/* KPIs executivos */
-body.industrial .palco-kpis{gap:10px}
-body.industrial .kpi-card{
-  background:#13253F;border:1px solid var(--bi-borda-clara);
-  border-top:2px solid var(--bi-borda-clara);border-radius:10px;
-  padding:10px 18px;min-width:106px;box-shadow:none;
-}
-body.industrial .kpi-card .rotulo{color:var(--bi-tenue);font-size:8.5px;letter-spacing:.2em}
-body.industrial .kpi-card .kpi-numero{
-  color:#FFFFFF;font-size:clamp(23px,1.85vw,32px);letter-spacing:.01em;
-}
-body.industrial .kpi-card.forte{
-  background:#16365C;border-color:#2F5B8E;border-top-color:var(--bi-verde);
-}
-body.industrial .kpi-card.forte .rotulo{color:#8FB6DE}
-body.industrial .kpi-unidade{color:var(--bi-tenue);font-size:.46em}
-
-/* Área do gráfico: uma superfície própria, um tom acima do painel */
-body.industrial .palco-corpo .grafico{
-  background:var(--bi-palco);border:1px solid rgba(31,49,73,.75);
-  border-radius:10px;padding:8px 10px 2px;margin-top:14px;
-}
-body.industrial #palcoEixo{
-  background:var(--bi-palco);border:1px solid rgba(31,49,73,.75);border-top:0;
-  border-radius:0 0 10px 10px;margin-top:-6px;padding:2px 10px 7px;
-}
-body.industrial .faixa-eixo{color:var(--bi-suave);font-weight:600}
-body.industrial .eixo-cel.eixo-feriado{color:#8FD46A}
-
-/* Bloco extra (tipologia de veículos) */
-body.industrial .extra-topo{border-top:1px solid var(--bi-borda);padding-top:16px;margin-top:10px}
-body.industrial .extra-titulo{color:#FFFFFF;letter-spacing:.025em}
-body.industrial .extra-nota{color:var(--bi-suave)}
-body.industrial #palcoGraficoExtra{
-  background:var(--bi-palco);border:1px solid rgba(31,49,73,.75);
-  border-radius:10px;padding:6px 8px;margin-top:10px;
-}
-
-/* ── Janela de detalhe do dia ───────────────────────────────────────────── */
-body.industrial .modal-caixa{
-  background:var(--bi-painel);border:1px solid var(--bi-borda-clara);border-radius:12px;
-}
-body.industrial .modal-topo{border-bottom-color:var(--bi-borda)}
-body.industrial .modal-item{background:#13253F;border-color:var(--bi-borda-clara);border-radius:9px}
-body.industrial .modal-caixa th:first-child,
-body.industrial .modal-caixa td:first-child,
-body.industrial .modal-caixa thead th{background:var(--bi-painel)}
-body.industrial .coluna-forte{color:#8FB6DE}
-
-/* ── Rodapé ─────────────────────────────────────────────────────────────── */
-body.industrial .fonte{
-  background:rgba(8,16,29,.45);border:1px solid var(--bi-borda);border-radius:9px;
-  color:var(--bi-tenue);font-size:9px;letter-spacing:.14em;padding:9px 16px;margin-top:10px;
-}
-body.industrial .fonte b{color:var(--bi-suave);font-weight:500}
-
-@media (max-width:1000px){
-  body.industrial .palco{grid-template-columns:1fr}
-  body.industrial .cab-filtros{padding:8px 10px}
-  body.industrial .cab-filtros .campo{padding:0 8px}
+  body.industrial .area-analise{min-height:320px}
 }
 </style>
+
 
 </head>
 <body>
 
-<header class="cab">
-  <div class="cab-id">
-    <img class="cab-logo" src="assets/logo.png" alt="Delly's Food Service"
-         onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'cab-divisor'}))">
-    <span class="cab-divisor"></span>
-    <div>
-      <p class="cab-titulo" id="cabTitulo">Apresentação</p>
-      <div class="cab-sub">Indicadores de Performance Operacional</div>
-    </div>
-  </div>
+<!-- ══════════════════════════════════════════════════════════════════════
+     O cromo da página é um wrapper único com quatro faixas dentro.
 
-  <div class="cab-filtros" id="barra" hidden>
+     Nas abas Dia e Semana ele se comporta como um cartão só, do jeito que
+     sempre foi. No modo apresentação cada faixa vira uma seção própria do
+     dashboard — identificação, filtros, indicadores e navegação —, que é o
+     que dá a estrutura de BI. O HTML é o mesmo nos dois casos; quem decide
+     é o CSS.
+     ══════════════════════════════════════════════════════════════════════ -->
+<div class="chrome">
+
+  <!-- Faixa 1 · identificação e troca de visão -->
+  <header class="topbar">
+    <div class="marca">
+      <img class="topbar-logo" src="assets/logo.png" alt="Delly's Food Service"
+           onerror="this.closest('.marca').classList.add('sem-logo')">
+    </div>
+    <div class="topbar-id">
+      <p class="topbar-titulo" id="cabTitulo">Apresentação</p>
+      <div class="topbar-sub">Indicadores de Performance Operacional</div>
+    </div>
+    <div class="abas" role="tablist">
+      <button class="aba" id="abaDia" role="tab" aria-selected="true">Dia</button>
+      <button class="aba" id="abaSemana" role="tab" aria-selected="false">Semana</button>
+      <button class="aba" id="abaSlides" role="tab" aria-selected="false">Apresentação</button>
+    </div>
+    <div class="cab-meta">
+      <div class="kpi-chip"><div class="kpi-rot" id="kpiUnidadeRot">Dias</div>
+        <div class="kpi-val" id="kpiUnidade">0</div></div>
+      <div class="kpi-chip destaque"><div class="kpi-rot">Rotas</div>
+        <div class="kpi-val" id="kpiRotas">0</div></div>
+    </div>
+  </header>
+
+  <!-- Faixa 2 · painel de filtros, separado da identificação -->
+  <section class="painel-filtros" id="barra" hidden aria-label="Filtros">
+    <span class="filtros-rot">Filtros</span>
     <div class="campo">
       <label for="fEstado">Estado</label>
       <select id="fEstado"></select>
@@ -779,22 +763,14 @@ body.industrial .fonte b{color:var(--bi-suave);font-weight:500}
         <option selected>31</option><option value="Todos">Todos</option>
       </select>
     </div>
-    <div class="abas" role="tablist">
-      <button class="aba" id="abaDia" role="tab" aria-selected="true">Dia</button>
-      <button class="aba" id="abaSemana" role="tab" aria-selected="false">Semana</button>
-      <button class="aba" id="abaSlides" role="tab" aria-selected="false">Apresentação</button>
-    </div>
-  </div>
+  </section>
 
-  <div class="cab-meta">
-    <div class="kpi-chip"><div class="kpi-rot" id="kpiUnidadeRot">Dias</div>
-      <div class="kpi-val" id="kpiUnidade">0</div></div>
-    <div class="kpi-chip destaque"><div class="kpi-rot">Rotas</div>
-      <div class="kpi-val" id="kpiRotas">0</div></div>
-  </div>
+  <!-- Faixa 3 · indicadores executivos (preenchida pelo modo apresentação) -->
+  <section class="faixa-kpi" id="palcoKpis" aria-label="Indicadores do período"></section>
 
-  <div class="cab-controles" id="controles" hidden></div>
-</header>
+  <!-- Faixa 4 · navegação de períodos e semanas -->
+  <nav class="barra-nav" id="controles" hidden aria-label="Períodos"></nav>
+</div>
 
 <div class="aviso" id="aviso" hidden></div>
 
@@ -827,14 +803,14 @@ body.industrial .fonte b{color:var(--bi-suave);font-weight:500}
       <nav class="trilho" id="trilho" aria-label="Indicadores"></nav>
       <div class="palco-corpo">
         <div class="palco-topo">
-          <div>
-            <h2 class="palco-titulo" id="palcoTitulo"></h2>
-            <div class="palco-nota" id="palcoNota"></div>
-          </div>
-          <div class="palco-kpis" id="palcoKpis"></div>
+          <h2 class="palco-titulo" id="palcoTitulo"></h2>
+          <div class="palco-nota" id="palcoNota"></div>
         </div>
-        <div class="grafico" id="palcoGrafico"></div>
-        <div id="palcoEixo"></div>
+        <!-- área de análise: superfície própria, com o gráfico e o eixo juntos -->
+        <div class="area-analise">
+          <div class="grafico" id="palcoGrafico"></div>
+          <div id="palcoEixo"></div>
+        </div>
         <div id="palcoExtra" hidden>
           <div class="extra-topo">
             <h3 class="extra-titulo">Tipologia de veículos</h3>
@@ -1732,24 +1708,40 @@ const ICONES = {
       +'<path d="M9.4 8.4a2.6 2.6 0 1 1 5.2 0"/></svg>',
 };
 
+/* Ícones dos cartões de indicador: traço simples, herdam a cor do texto. */
+const ICONES_KPI = {
+  media:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" '
+       +'stroke-linecap="round" stroke-linejoin="round"><path d="M3 15.5 8.5 9l4 4.2L21 5"/>'
+       +'<path d="M3 20h18"/></svg>',
+  dias:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" '
+      +'stroke-linecap="round" stroke-linejoin="round"><rect x="3.2" y="4.8" width="17.6" '
+      +'height="15.4" rx="2.2"/><path d="M3.2 9.6h17.6M8 2.8v3.6M16 2.8v3.6"/></svg>',
+  rotas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" '
+       +'stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 7.6h10.8v8.8H2.5z"/>'
+       +'<path d="M13.3 10.2h4.2l3.5 3.3v2.9h-7.7z"/><circle cx="6.2" cy="18" r="1.8"/>'
+       +'<circle cx="16.6" cy="18" r="1.8"/></svg>',
+};
+
 const SECOES = [
   {id:"drop", menu:"Drop size", titulo:"Drop size", nota:"kg entregues por parada",
-   forma:"drop", campo:"dropParada", unidade:" kg",
+   forma:"drop", campo:"dropParada", unidade:" kg", kpiMedia:"Drop size médio",
    total:{campo:"mediaParadas", nome:"Média de paradas por rota", casas:0}},
   {id:"veiculos", menu:"Quantidade de veículos", titulo:"Quantidade de veículos",
-   nota:"veículos distintos por dia", forma:"barra", campo:"veiculos", unidade:""},
+   nota:"veículos distintos por dia", forma:"barra", campo:"veiculos", unidade:"",
+   kpiMedia:"Média de veículos/dia"},
   {id:"tempo", menu:"Tempo de operação", titulo:"Tempo de operação",
    nota:"horas em rota, média por rota do dia", forma:"barra", campo:"horasPorRota",
    unidade:"", rotulos:true, mediaPonderada:true, casas:1, formatarHora:true,
+   kpiMedia:"Tempo médio por rota",
    total:{campo:"mediaEntregas", nome:"Média de entregas por rota", casas:0}},
   {id:"ocupacao", menu:"Ocupação da frota", titulo:"Ocupação da frota",
    nota:"peso embarcado ÷ capacidade contratada", forma:"barra", campo:"ocupacao",
-   formato:"%{y:.0%}", percentual:true, unidade:"%",
+   formato:"%{y:.0%}", percentual:true, unidade:"%", kpiMedia:"Ocupação média",
    total:{campo:"mediaEntregas", nome:"Média de entregas por rota", casas:0}},
   {id:"peso", menu:"Peso × capacidade", titulo:"Peso × capacidade",
    nota:"toneladas embarcadas e capacidade disponível", forma:"linhas",
    campoA:"capacidade", campoB:"peso", nomeA:"Capacidade (t)", nomeB:"Peso (t)",
-   campo:"peso", unidade:" kg", bandas:true, rotulos:true,
+   campo:"peso", unidade:" kg", bandas:true, rotulos:true, kpiMedia:"Peso médio por dia",
    // os valores aparecem em toneladas, que é como a operação fala do volume
    formatarA:toneladas, formatarB:toneladas,
    // acabamento visual desta seção: área sob as duas séries, traços finos,
@@ -2124,16 +2116,19 @@ function desenharSlides(registros, resumo){
   }
   const formatar = secao.formatarHora ? horaHHMM : null;
   const cartoes = [
-    ["Média", media === null ? "—"
+    ["media", secao.kpiMedia || "Média", media === null ? "—"
       : (formatar ? formatar(media) : num(media, secao.casas || 0)),
      secao.unidade.trim()],
-    ["Dias", num(resumo.length), ""],
-    ["Rotas", num(resumo.reduce((a,d) => a + d.rotas, 0)), ""],
+    ["dias", "Dias no período", num(resumo.length), ""],
+    ["rotas", "Rotas", num(resumo.reduce((a,d) => a + d.rotas, 0)), ""],
   ];
-  document.getElementById("palcoKpis").innerHTML = cartoes.map(([rot,val,uni],i) =>
+  document.getElementById("palcoKpis").innerHTML = cartoes.map(([icone,rot,val,uni],i) =>
     `<div class="kpi-card${i === 0 ? " forte" : ""}">
-       <div class="rotulo">${rot}</div>
-       <div class="kpi-numero">${val}${uni ? `<span class="kpi-unidade">${uni}</span>` : ""}</div>
+       <span class="kpi-icone">${ICONES_KPI[icone] || ""}</span>
+       <span class="kpi-corpo">
+         <span class="rotulo">${rot}</span>
+         <span class="kpi-numero">${val}${uni ? `<span class="kpi-unidade">${uni}</span>` : ""}</span>
+       </span>
      </div>`).join("");
 
   const palco = document.getElementById("palcoGrafico");
