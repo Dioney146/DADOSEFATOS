@@ -629,6 +629,49 @@ body.industrial .palco-corpo.com-extra #palcoExtra{
   flex:1 1 45%;min-height:110px;display:flex;flex-direction:column;
 }
 body.industrial .palco-corpo.com-extra #palcoGraficoExtra{flex:1;min-height:0}
+
+/* Tipologia em rosca: o disco à esquerda e a leitura à direita. A legenda é
+   HTML (e não a do Plotly) porque precisa de três colunas alinhadas — nome,
+   quantidade e percentual — que o rótulo do Plotly não comporta. */
+body.industrial #palcoGraficoExtra{
+  display:flex;align-items:center;justify-content:center;gap:clamp(14px,2.2vw,44px);
+}
+/* O disco é quadrado: a largura vem da altura que sobrou, medida no JS, para
+   ele não ficar perdido num bloco largo demais. */
+body.industrial .rosca-tela{flex:0 0 auto;min-width:0;height:100%}
+/* A legenda é uma grade que preenche coluna a coluna. Em telas altas cabe uma
+   coluna só; quando a faixa encurta, o JS reduz o número de linhas e a leitura
+   passa a ocupar duas colunas em vez de ser cortada. */
+body.industrial .rosca-legenda{
+  flex:1 1 auto;min-width:0;max-width:640px;align-content:center;
+  display:grid;grid-auto-flow:column;
+  grid-template-rows:repeat(var(--rosca-linhas,8),auto);
+  gap:var(--rosca-vao,6px) clamp(18px,2.4vw,46px);
+}
+body.industrial .rosca-item{
+  display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;
+  gap:0 10px;font-size:var(--rosca-corpo,13px);line-height:1.15;
+  padding-bottom:var(--rosca-vao,6px);border-bottom:1px solid var(--linha-fina);
+}
+body.industrial .rosca-item:last-child{border-bottom:0;padding-bottom:0}
+body.industrial .rosca-cor{width:10px;height:10px;border-radius:2px;display:block}
+body.industrial .rosca-nome{
+  color:var(--txt);letter-spacing:.06em;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+body.industrial .rosca-qtd{
+  font-family:"Barlow Condensed",sans-serif;font-weight:700;color:var(--txt);
+  font-size:calc(var(--rosca-corpo,13px) * 1.22);font-variant-numeric:tabular-nums;
+  text-align:right;min-width:3.4em;
+}
+body.industrial .rosca-pct{
+  color:var(--txt-2);font-variant-numeric:tabular-nums;
+  font-size:calc(var(--rosca-corpo,13px) * .92);text-align:right;min-width:3.6em;
+}
+@media (max-width:1000px){
+  body.industrial #palcoGraficoExtra{flex-direction:column;align-items:stretch;gap:10px}
+  body.industrial .rosca-tela{flex:0 0 auto;height:260px}
+}
 body.industrial .palco-corpo.com-extra .extra-topo{flex-shrink:0;padding:0 0 1px}
 body.industrial .palco-corpo.com-extra .extra-titulo{font-size:clamp(15px,1.15vw,20px)}
 body.industrial .palco-corpo.com-extra .extra-nota{font-size:10.5px;margin-top:3px}
@@ -2000,7 +2043,8 @@ function acompanharLargura(div, duracao){
 }
 
 /**
- * Tipologia da frota: barras horizontais com o total de veículos por categoria.
+ * Tipologia da frota: rosca com o total de veículos por categoria, com a
+ * leitura (nome, quantidade e percentual) numa legenda ao lado.
  *
  * Os números vêm da lista `tipos` do dados.json, agregada por estado, base e
  * dia — os mesmos filtros do resto da tela valem aqui. Nada é recalculado a
@@ -2044,63 +2088,84 @@ function desenharTipologia(){
     alturaCaixa = caixa.clientHeight
       - parseFloat(estilo.paddingTop) - parseFloat(estilo.paddingBottom) - 2;
   }
-  const altura = Math.max(100, alturaCaixa > 0 ? alturaCaixa : 260);
+  const altura = Math.max(70, alturaCaixa > 0 ? alturaCaixa : 260);
 
-  /* Barras espessas e espaçamento folgado: com poucas categorias cada faixa
-     fica alta, então a barra usa 68% dela e o resto vira respiro. */
+  const total = valores.reduce((a, b) => a + b, 0);
+
+  /* Uma família de azuis só, do mais claro ao mais escuro, seguindo a ordem
+     da frota. Nenhuma cor nova entra na tela: todas saem da cor de barra do
+     tema, apenas clareada ou escurecida. */
+  const cores = ordem.map((_, i) => {
+    const p = ordem.length > 1 ? i / (ordem.length - 1) : 0;
+    return tonalizar(TEMA.barra, 0.38 - p * 0.78);
+  });
+
+  /* A legenda é montada em HTML ao lado do disco: três colunas alinhadas
+     (nome, quantidade, percentual) que o rótulo do Plotly não comportaria. */
+  if(!caixa.querySelector(".rosca-tela")){
+    caixa.innerHTML = '<div class="rosca-tela"></div><div class="rosca-legenda"></div>';
+  }
+  const tela = caixa.querySelector(".rosca-tela");
+  const legenda = caixa.querySelector(".rosca-legenda");
+
+  tela.style.width = Math.round(altura) + "px";
+
   const linhaAltura = altura / Math.max(ordem.length, 1);
-  const espessura = 0.76;
-  const corpoTexto = Math.max(12, Math.min(19, Math.round(linhaAltura * 0.50)));
-  const corpoNome = Math.max(12, Math.min(17, Math.round(linhaAltura * 0.44)));
-  const margemNomes = Math.max(100, Math.round(corpoNome * 8.2));
+  const corpoLeg = Math.max(11, Math.min(16, Math.round(linhaAltura * 0.42)));
+  const vao = Math.max(3, Math.min(9, Math.round(linhaAltura * 0.16)));
+  legenda.style.setProperty("--rosca-corpo", corpoLeg + "px");
+  legenda.style.setProperty("--rosca-vao", vao + "px");
 
-  /* Relevo: a mesma barra, deslocada para baixo e num tom mais escuro, por
-     baixo da principal — a faixa que sobra vira a espessura do bloco. */
-  const faceEscura = tonalizar(TEMA.barra, -0.42);
-  const series = [{
-    type:"bar", orientation:"h",
-    y:ordem.map((_,i) => i + espessura * 0.16), x:valores,
-    marker:{color:faceEscura, line:{width:0}, cornerradius:3},
-    width:espessura, hoverinfo:"skip", showlegend:false
-  }, {
-    type:"bar", orientation:"h",
-    y:ordem.map((_,i) => i), x:valores,
-    text:valores.map(v => num(v)), textposition:"outside", cliponaxis:false,
-    textfont:{family:"Barlow Condensed, sans-serif", size:corpoTexto, color:TEMA.texto},
-    marker:{color:TEMA.barra, line:{width:0}, cornerradius:4},
-    width:espessura,
-    hovertemplate:"%{customdata}: %{x:,.0f} veículos<extra></extra>",
-    customdata:ordem
-  }];
+  /* Quantas linhas cabem de pé na faixa. Se não couberem todas, a legenda
+     passa a duas colunas — a largura sobra — em vez de cortar categorias. */
+  const alturaItem = corpoLeg * 1.5 + vao * 2;
+  let linhasLeg = Math.min(ordem.length,
+    Math.max(2, Math.floor(altura / alturaItem)));
+  const colunas = Math.ceil(ordem.length / linhasLeg);
+  linhasLeg = Math.ceil(ordem.length / colunas);
+  legenda.style.setProperty("--rosca-linhas", String(linhasLeg));
+  legenda.style.maxWidth = colunas > 1 ? "none" : "640px";
 
-  Plotly.newPlot(document.getElementById("palcoGraficoExtra"), series, {
+  const pct = v => (total ? (v / total) * 100 : 0)
+    .toFixed(1).replace(".", ",") + "%";
+
+  legenda.innerHTML = ordem.map((nome, i) =>
+    '<div class="rosca-item">' +
+      '<span class="rosca-cor" style="background:' + cores[i] + '"></span>' +
+      '<span class="rosca-nome">' + nome + '</span>' +
+      '<span class="rosca-qtd">' + num(valores[i]) + '</span>' +
+      '<span class="rosca-pct">' + pct(valores[i]) + '</span>' +
+    '</div>').join("");
+
+  const centro = Math.max(13, Math.min(30, Math.round(altura * 0.13)));
+
+  Plotly.newPlot(tela, [{
+    type:"pie", labels:ordem, values:valores,
+    sort:false, direction:"clockwise", hole:0.6,
+    textinfo:"none",
+    marker:{colors:cores, line:{color:TEMA.hoverFundo, width:1.5}},
+    hovertemplate:"%{label}: %{value:,.0f} veículos (%{percent})<extra></extra>"
+  }], {
     height:altura, autosize:true,
-    margin:{l:margemNomes, r:Math.round(corpoTexto * 4.2), t:6, b:22},
-    barmode:"overlay",
+    margin:{l:4, r:4, t:4, b:4},
     paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
     font:{family:"Archivo, sans-serif", size:11, color:TEMA.texto},
-    showlegend:false, bargap:1 - espessura,
+    showlegend:false,
     hoverlabel:{font:{size:12, family:"Archivo, sans-serif", color:TEMA.hoverTexto},
                 bgcolor:TEMA.hoverFundo, bordercolor:TEMA.hoverBorda},
-    /* Escala justa ao maior valor: a barra mais longa usa cerca de três
-       quartos da largura, o bastante para o número caber depois dela sem
-       deixar um vão grande à direita. */
-    xaxis:{showgrid:true, gridcolor:TEMA.grade, gridwidth:1, zeroline:false,
-           showline:false, showticklabels:false, fixedrange:true,
-           range:[0, Math.max(...valores) * 1.3]},
-    /* O nome da categoria vira anotação em vez de rótulo de eixo: assim ele
-       fica centrado na faixa da esquerda, e não grudado na barra como o eixo
-       do Plotly faz por padrão. */
-    yaxis:{tickmode:"array", tickvals:ordem.map((_,i) => i), ticktext:ordem.map(() => ""),
-           autorange:"reversed", showgrid:false, zeroline:false, showline:false,
-           fixedrange:true, automargin:false},
-    /* Os nomes ficam alinhados à esquerda, na margem reservada para eles, em
-       vez de colados na barra como o rótulo de eixo do Plotly faria. */
-    annotations:ordem.map((nome, i) => ({
-      xref:"paper", x:0, y:i, yref:"y", text:nome, showarrow:false,
-      xanchor:"right", yanchor:"middle", xshift:-14,
-      font:{family:"Archivo, sans-serif", size:corpoNome, color:TEMA.texto}
-    }))
+    /* O vazio do meio recebe o total do recorte — a soma das mesmas fatias,
+       nada calculado por fora. Em telas baixas o disco fica pequeno demais
+       para comportar o texto, e aí o centro fica vazio. */
+    annotations:altura < 115 ? [] : [{
+      xref:"paper", yref:"paper", x:0.5, y:0.575, showarrow:false,
+      text:num(total), xanchor:"center", yanchor:"middle",
+      font:{family:"Barlow Condensed, sans-serif", size:centro, color:TEMA.texto}
+    }, {
+      xref:"paper", yref:"paper", x:0.5, y:0.40, showarrow:false,
+      text:"VEÍCULOS", xanchor:"center", yanchor:"middle",
+      font:{family:"Archivo, sans-serif",
+            size:Math.max(9, Math.round(centro * 0.38)), color:TEMA.suave}
+    }]
   }, CONFIG);
 }
 
