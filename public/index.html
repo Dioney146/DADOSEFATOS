@@ -935,6 +935,20 @@ const TEMA_ESCURO = {
 };
 let TEMA = TEMA_CLARO;
 
+/* Cores da rosca de tipologia — a única série da tela em que cada categoria
+   precisa de identidade própria. A sequência segue a ordem da frota, do
+   maior veículo para o menor. */
+const PALETA_TIPOS = [
+  "#3E7AC4", // azul
+  "#2FAFA4", // verde-água
+  "#8FBFEA", // azul-claro
+  "#E0A93C", // âmbar
+  "#5FBE43", // verde
+  "#9A86DE", // violeta
+  "#E0785C", // terracota
+  "#C2CBD6", // cinza-claro
+];
+
 const MESES = ["JAN","FEV","MAR","ABR","MAI","JUN","JUL","AGO","SET","OUT","NOV","DEZ"];
 
 const METRICAS_ESTADO = {
@@ -2092,13 +2106,12 @@ function desenharTipologia(){
 
   const total = valores.reduce((a, b) => a + b, 0);
 
-  /* Uma família de azuis só, do mais claro ao mais escuro, seguindo a ordem
-     da frota. Nenhuma cor nova entra na tela: todas saem da cor de barra do
-     tema, apenas clareada ou escurecida. */
-  const cores = ordem.map((_, i) => {
-    const p = ordem.length > 1 ? i / (ordem.length - 1) : 0;
-    return tonalizar(TEMA.barra, 0.38 - p * 0.78);
-  });
+  /* Uma cor por tipologia, na ordem da frota. Matizes separados o bastante
+     para as fatias finas se distinguirem, todos com brilho parecido para
+     nenhuma categoria parecer mais importante que a outra. OUTROS fica
+     sempre em cinza, por ser resíduo e não uma categoria da frota. */
+  const cores = ordem.map((nome, i) =>
+    nome === "OUTROS" ? "#8FA3BC" : PALETA_TIPOS[i % PALETA_TIPOS.length]);
 
   /* A legenda é montada em HTML ao lado do disco: três colunas alinhadas
      (nome, quantidade, percentual) que o rótulo do Plotly não comportaria. */
