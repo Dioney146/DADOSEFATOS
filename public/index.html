@@ -1815,6 +1815,9 @@ const SECOES = [
   {id:"ocupacao", menu:"Ocupação da frota", titulo:"Ocupação da frota",
    nota:"peso embarcado ÷ capacidade contratada", forma:"barra", campo:"ocupacao",
    formato:"%{y:.0%}", percentual:true, unidade:"%", kpiMedia:"Ocupação média",
+   // a média do período é o peso total sobre a capacidade total — dias com
+   // mais carga pesam mais do que dias fracos
+   mediaRazao:{numerador:"peso", denominador:"capacidade", percentual:true},
    total:{campo:"mediaEntregas", nome:"Média de entregas por rota", casas:0}},
   {id:"peso", menu:"Peso × capacidade", titulo:"Peso × capacidade",
    nota:"toneladas embarcadas e capacidade disponível", forma:"linhas",
@@ -2240,6 +2243,13 @@ function desenharSlides(registros, resumo){
     const totalHoras = resumo.reduce((a,d) => a + (d.horas || 0), 0);
     const totalRotas = resumo.reduce((a,d) => a + (d.rotasComHora || 0), 0);
     media = totalRotas ? totalHoras/totalRotas : null;
+  }
+  if(secao.mediaRazao){
+    // razão dos totais do período, e não a média das razões diárias: cada dia
+    // entra com o seu tamanho real
+    const cima  = resumo.reduce((a,d) => a + (d[secao.mediaRazao.numerador]   || 0), 0);
+    const baixo = resumo.reduce((a,d) => a + (d[secao.mediaRazao.denominador] || 0), 0);
+    media = baixo ? (cima/baixo) * (secao.mediaRazao.percentual ? 100 : 1) : null;
   }
   const formatar = secao.formatarHora ? horaHHMM : null;
   const cartoes = [
