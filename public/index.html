@@ -756,6 +756,53 @@ body.industrial #palcoGraficoExtra{
   padding:8px 10px;margin-top:9px;
 }
 
+/* ── Seção Comparativo, dentro da apresentação ───────────────────────────
+   Dois painéis de mesmo peso ocupando o que sobrou da coluna. Os cartões são
+   os mesmos da aba Comparativo; aqui eles recebem as cores do tema escuro.  */
+body.industrial .area-analise[hidden],body.industrial .palco-comp[hidden]{display:none}
+body.industrial .palco-comp{
+  flex:1;min-height:0;display:flex;flex-direction:column;gap:9px;
+  margin:10px clamp(12px,1.1vw,20px) 0;
+}
+body.industrial .palco-comp .comp-escolha{display:flex;gap:6px;flex:0 0 auto}
+body.industrial .comp-grade{
+  flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;
+}
+body.industrial .comp-grade .card{
+  background:var(--realce);border:1px solid var(--linha-fina);border-radius:9px;
+  box-shadow:none;padding:9px 12px 6px;min-height:0;overflow:hidden;
+}
+body.industrial .comp-grade .card:hover{transform:none;box-shadow:none}
+body.industrial .comp-grade .painel-topo{padding-bottom:5px;flex:0 0 auto}
+body.industrial .comp-grade .painel-titulo{
+  color:#FFFFFF;font-size:clamp(14px,1.05vw,19px);letter-spacing:.03em;
+}
+body.industrial .comp-grade .painel-nota{
+  color:#9FC6EC;background:rgba(63,127,212,.16);font-size:8.5px;padding:3px 9px;
+}
+body.industrial .comp-grade .comp-resumo{
+  background:rgba(8,16,30,.45);border-color:var(--linha-fina);
+  padding:6px 8px;margin-bottom:7px;flex:0 0 auto;
+}
+body.industrial .comp-grade .comp-item+.comp-item{border-left-color:var(--linha-fina)}
+body.industrial .comp-grade .comp-rot{color:var(--txt-3)}
+body.industrial .comp-grade .comp-val{color:#FFFFFF;font-size:clamp(16px,1.2vw,23px)}
+body.industrial .comp-grade .comp-item:first-child .comp-val{color:#8FBAE8}
+body.industrial .comp-grade .comp-val.sobe{color:var(--verde-claro)}
+body.industrial .comp-grade .comp-val.desce{color:var(--amarelo)}
+body.industrial .comp-grade .comp-dica{color:var(--txt-3)}
+body.industrial .comp-grade .grafico{flex:1;min-height:0}
+body.industrial .palco-comp .pilula{
+  background:var(--painel);border-color:var(--linha-media);color:var(--txt-2);
+}
+body.industrial .palco-comp .pilula:hover{color:var(--txt);border-color:var(--vivo)}
+body.industrial .palco-comp .pilula[aria-pressed="true"]{
+  background:var(--vivo);border-color:var(--vivo);color:#FFFFFF;
+}
+@media (max-width:1000px){
+  body.industrial .comp-grade{grid-template-columns:1fr}
+}
+
 /* ── Janela de detalhe ───────────────────────────────────────────────────── */
 body.industrial .modal-caixa{
   background:var(--painel);border:1px solid var(--linha-media);border-radius:12px;
@@ -949,6 +996,14 @@ body.industrial .aviso code{background:var(--bg);color:#8FBAE8}
         <div class="area-analise">
           <div class="grafico" id="palcoGrafico"></div>
           <div id="palcoEixo"></div>
+        </div>
+        <!-- seção Comparativo: formato próprio, sem eixo de dias -->
+        <div class="palco-comp" id="palcoComp" hidden>
+          <div class="comp-escolha" id="compEscolhaPalco">
+            <button class="pilula" data-modo="mes" aria-pressed="true">Mês a mês</button>
+            <button class="pilula" data-modo="semana" aria-pressed="false">Semana a semana</button>
+          </div>
+          <div class="comp-grade" id="palcoCompLinhas"></div>
         </div>
         <div id="palcoExtra" hidden>
           <div class="extra-topo">
@@ -1896,6 +1951,10 @@ const SECOES = [
    // mais carga pesam mais do que dias fracos
    mediaRazao:{numerador:"peso", denominador:"capacidade", percentual:true},
    total:{campo:"mediaEntregas", nome:"Média de entregas por rota", casas:0}},
+  {id:"comparativo", menu:"Comparativo", titulo:"Comparativo",
+   nota:"ocupação e média de entregas, período a período",
+   // seção de formato próprio: dois cartões lado a lado, sem eixo de dias
+   especial:true, unidade:""},
   {id:"peso", menu:"Peso × capacidade", titulo:"Peso × capacidade",
    nota:"toneladas embarcadas e capacidade disponível", forma:"linhas",
    campoA:"capacidade", campoB:"peso", nomeA:"Capacidade (t)", nomeB:"Peso (t)",
@@ -2300,6 +2359,13 @@ function desenharSlides(registros, resumo){
   document.querySelector(".palco").classList
     .toggle("recolhido", filtros.trilhoRecolhido);
 
+  const ehComparativo = !!secao.especial;
+  document.getElementById("palcoComp").hidden = !ehComparativo;
+  document.querySelector(".area-analise").hidden = ehComparativo;
+  document.getElementById("palcoEixo").hidden = ehComparativo;
+  // as pílulas de semana não se aplicam a uma tela que varre o histórico todo
+  if(ehComparativo) document.getElementById("controles").hidden = true;
+
   document.getElementById("palcoTitulo").textContent = secao.titulo;
   document.getElementById("palcoNota").innerHTML = secao.forma === "linhas"
     ? `${secao.nota}<span class="painel-series" style="display:flex;margin-top:7px">`
@@ -2310,6 +2376,11 @@ function desenharSlides(registros, resumo){
       + `<span class="serie"><i style="background:${TEMA.barra}"></i>${secao.titulo}</span>`
       + `<span class="serie"><i style="background:${TEMA.apoio}"></i>${secao.total.nome}</span></span>`
     : secao.nota;
+
+  /* A seção Comparativo tem formato próprio: compara todo o histórico, mês a
+     mês ou semana a semana, em dois painéis lado a lado. Ela não usa o eixo de
+     dias nem a linha de média, então sai antes do caminho comum. */
+  if(secao.especial){ desenharSecaoComparativo(); return; }
 
   const validos = resumo.filter(d => valorDaSecao(d, secao) !== null);
   const valores = validos.map(d => valorDaSecao(d, secao));
@@ -2593,12 +2664,13 @@ function variacao(atual, anterior, conf, curto = false){
  * Desenha a aba inteira. Os dados são os mesmos registros das outras telas,
  * apenas somados por mês ou por semana — nada é recalculado de outra fonte.
  */
-function desenharComparativo(registros){
-  const alvo = document.getElementById("compLinhas");
+function desenharComparativo(registros, destino = {}){
+  const prefixo = destino.prefixo || "comp";
+  const alvo = document.getElementById(destino.alvo || "compLinhas");
   const modo = filtros.comp;
   const grupos = agruparComparativo(registros, modo);
 
-  const nota = document.getElementById("compNota");
+  const nota = document.getElementById(destino.nota || "compNota");
   if(grupos.length){
     nota.innerHTML = "Histórico completo: <b>" + dataCurta(grupos[0].primeira)
       + "</b> a <b>" + dataCurta(grupos[grupos.length-1].ultima) + "</b> · "
@@ -2621,14 +2693,15 @@ function desenharComparativo(registros){
          <h2 class="painel-titulo">${c.titulo}</h2>
          <span class="painel-nota">${c.nota}</span>
        </div>
-       <div class="comp-resumo" id="resumo-${c.id}"></div>
-       <div class="grafico" id="comp-${c.id}"></div>
+       <div class="comp-resumo" id="${prefixo}-resumo-${c.id}"></div>
+       <div class="grafico" id="${prefixo}-${c.id}"></div>
      </div>`).join("");
 
-  for(const conf of COMPARATIVOS) desenharCartaoComparativo(grupos, conf, modo);
+  for(const conf of COMPARATIVOS)
+    desenharCartaoComparativo(grupos, conf, modo, prefixo, destino.altura || null);
 }
 
-function desenharCartaoComparativo(grupos, conf, modo){
+function desenharCartaoComparativo(grupos, conf, modo, prefixo = "comp", alturaPedida = null){
   const valores = grupos.map(g => g[conf.baixo]
     ? (g[conf.cima] / g[conf.baixo]) * conf.escala : null);
   const rotulos = grupos.map(g => g.rotulo);
@@ -2646,7 +2719,7 @@ function desenharCartaoComparativo(grupos, conf, modo){
   const melhor = comValor.reduce((a,b) => b.v > a.v ? b : a, comValor[0]);
   const ponta = comValor.length > 1
     ? variacao(comValor[comValor.length-1].v, comValor[0].v, conf) : null;
-  document.getElementById("resumo-" + conf.id).innerHTML =
+  document.getElementById(prefixo + "-resumo-" + conf.id).innerHTML =
     `<div class="comp-item">
        <div class="comp-rot">${modo === "mes" ? "Meses" : "Semanas"}</div>
        <div class="comp-val">${num(grupos.length)}</div>
@@ -2664,8 +2737,12 @@ function desenharCartaoComparativo(grupos, conf, modo){
      </div>`;
 
   const teto = Math.max(...valores.filter(v => v !== null), 0) * 1.3 || 1;
-  const caixa = document.getElementById("comp-" + conf.id);
-  const altura = Math.max(230, Math.min(330, Math.round(window.innerHeight * 0.30)));
+  const caixa = document.getElementById(prefixo + "-" + conf.id);
+  /* na aba o cartão tem altura própria; na apresentação ele recebe a altura que
+     sobrou no palco, medida antes de desenhar */
+  const altura = alturaPedida
+    ? Math.max(120, alturaPedida)
+    : Math.max(230, Math.min(330, Math.round(window.innerHeight * 0.30)));
 
   Plotly.newPlot(caixa, [{
     type:"bar", x:rotulos, y:valores,
@@ -2701,6 +2778,83 @@ function desenharCartaoComparativo(grupos, conf, modo){
       font:{family:"Archivo, sans-serif", size:apertado ? 9.5 : 11, color:d.cor}
     } : null).filter(Boolean)
   }, CONFIG);
+}
+
+/**
+ * Seção Comparativo dentro da apresentação. Usa os mesmos cálculos da aba
+ * Comparativo — razão dos totais de cada período — e o mesmo agrupamento;
+ * o que muda é o lugar onde os cartões são desenhados e a altura, que aqui
+ * vem do espaço que sobrou no palco.
+ */
+function desenharSecaoComparativo(){
+  const daBase = filtros.base !== "TODAS" && BASE.unidades;
+  const todos = (daBase ? BASE.unidades.filter(r => r.unidade === filtros.base)
+                        : BASE.registros)
+    .filter(r => filtros.uf === "TODOS" || r.uf === filtros.uf);
+
+  // as pílulas de agrupamento são as mesmas da aba: um só estado para as duas
+  const escolha = document.getElementById("compEscolhaPalco");
+  escolha.querySelectorAll("button").forEach(botao => {
+    botao.setAttribute("aria-pressed", botao.dataset.modo === filtros.comp);
+    botao.onclick = () => {
+      filtros.comp = botao.dataset.modo;
+      sincronizarPilulasComparativo();
+      render();
+    };
+  });
+
+  const grupos = agruparComparativo(todos, filtros.comp);
+  const kpis = COMPARATIVOS.map(c => {
+    const cima  = todos.reduce((a,r) => a + (r[c.cima]  || 0), 0);
+    const baixo = todos.reduce((a,r) => a + (r[c.baixo] || 0), 0);
+    return baixo ? num((cima/baixo) * c.escala, c.casas) + c.sufixo : "—";
+  });
+  document.getElementById("palcoKpis").innerHTML = [
+    ["media", "Ocupação no histórico", kpis[0], ""],
+    ["media", "Média de entregas", kpis[1], ""],
+    ["dias", filtros.comp === "mes" ? "Meses comparados" : "Semanas comparadas",
+     num(grupos.length), ""],
+  ].map(([icone,rot,val,uni],i) =>
+    `<div class="kpi-card${i === 0 ? " forte" : ""}">
+       <span class="kpi-icone">${ICONES_KPI[icone] || ""}</span>
+       <span class="kpi-corpo">
+         <span class="rotulo">${rot}</span>
+         <span class="kpi-numero">${val}${uni ? `<span class="kpi-unidade">${uni}</span>` : ""}</span>
+       </span>
+     </div>`).join("");
+
+  /* A altura sai do que sobrou no cartão: o painel inteiro menos o cabeçalho
+     do cartão e a faixa de leitura. Medir depois de montar o HTML seria tarde,
+     então o desenho acontece em duas passagens — a primeira cria os cartões, a
+     segunda, já com eles na tela, ajusta a altura do gráfico. */
+  const grade = document.getElementById("palcoCompLinhas");
+  desenharComparativo(todos, {prefixo:"palcoComp", alvo:"palcoCompLinhas",
+                              nota:"palcoNota"});
+  const cartao = grade.querySelector(".card");
+  if(cartao){
+    const topo = cartao.querySelector(".painel-topo");
+    const faixa = cartao.querySelector(".comp-resumo");
+    const estilo = getComputedStyle(cartao);
+    const sobra = cartao.clientHeight
+      - parseFloat(estilo.paddingTop) - parseFloat(estilo.paddingBottom)
+      - (topo ? topo.offsetHeight : 0)
+      - (faixa ? faixa.offsetHeight + 7 : 0) - 2;
+    if(sobra > 110){
+      desenharComparativo(todos, {prefixo:"palcoComp", alvo:"palcoCompLinhas",
+                                  nota:"palcoNota", altura:Math.round(sobra)});
+    }
+  }
+}
+
+/** Mantém as pílulas das duas telas dizendo a mesma coisa. */
+function sincronizarPilulasComparativo(){
+  const mapa = {mes:"compMes", semana:"compSemana"};
+  for(const [nome, id] of Object.entries(mapa)){
+    const botao = document.getElementById(id);
+    if(botao) botao.setAttribute("aria-pressed", nome === filtros.comp);
+  }
+  document.querySelectorAll("#compEscolhaPalco button").forEach(botao =>
+    botao.setAttribute("aria-pressed", botao.dataset.modo === filtros.comp));
 }
 
 /* Na apresentação os filtros sobem para dentro da faixa do topo, ao lado do
@@ -2869,8 +3023,7 @@ function ligarFiltros(datas){
   for(const [nome, id] of Object.entries(modos)){
     document.getElementById(id).onclick = () => {
       filtros.comp = nome;
-      for(const [m, botao] of Object.entries(modos))
-        document.getElementById(botao).setAttribute("aria-pressed", m === nome);
+      sincronizarPilulasComparativo();
       render();
     };
   }
