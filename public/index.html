@@ -419,7 +419,7 @@ body.industrial .topbar{
                     rgba(10,20,36,.62) 76%, rgba(10,20,36,.42) 100%),
     url("assets/hero-galpao.jpg") no-repeat center 78%/cover, #0F1F38;
   border:1px solid var(--linha-media);border-radius:10px;overflow:hidden;
-  min-height:74px;
+  min-height:68px;padding-right:14px;
 }
 body.industrial .marca{
   display:flex;align-items:center;justify-content:center;align-self:stretch;
@@ -434,6 +434,9 @@ body.industrial .topbar-titulo{
   color:#FFFFFF;font-size:clamp(23px,1.85vw,32px);letter-spacing:.055em;
   line-height:1;text-shadow:0 2px 14px rgba(6,13,26,.85);
 }
+body.industrial .topbar-titulo,body.industrial .topbar-sub{
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
 body.industrial .topbar-sub{
   color:#8FBAE8;font-size:9.5px;letter-spacing:.24em;margin-top:6px;font-weight:600;
   text-shadow:0 1px 8px rgba(6,13,26,.8);
@@ -441,7 +444,7 @@ body.industrial .topbar-sub{
 
 /* Troca de visão, à direita da faixa */
 body.industrial .topbar .abas{
-  margin-left:auto;margin-right:16px;
+  margin-left:auto;margin-right:0;
   background:rgba(6,13,26,.72);border:1px solid var(--linha-media);
   border-radius:8px;padding:3px;
 }
@@ -455,18 +458,35 @@ body.industrial .aba[aria-selected="true"]{
 /* os chips saem: a faixa de indicadores abaixo já traz dias e rotas */
 body.industrial .cab-meta{display:none}
 
-/* ── Faixa 2 · filtros, em painel próprio ────────────────────────────────── */
-body.industrial .painel-filtros{
-  flex:0 0 auto;display:flex;align-items:flex-end;gap:0;flex-wrap:wrap;margin-left:0;
-  background:var(--faixa);border:1px solid var(--linha-fina);border-radius:10px;
-  padding:9px 8px 10px;
+/* ── Filtros, dentro da própria faixa do topo ────────────────────────────
+   Na apresentação o painel de filtros é movido para dentro da barra do título
+   (o JS faz a mudança de lugar), entre a identificação e as abas. Assim ele
+   deixa de gastar uma faixa inteira e essa altura vai para os gráficos.     */
+body.industrial .topbar .painel-filtros{
+  order:3;flex:0 1 auto;display:flex;align-items:flex-end;gap:0;flex-wrap:nowrap;
+  margin:0 0 0 auto;min-width:0;
+  background:rgba(6,13,26,.60);border:1px solid var(--linha-media);border-radius:8px;
+  padding:5px 2px 6px;
 }
-body.industrial .filtros-rot{
-  display:block;align-self:center;padding:0 16px 0 10px;margin-right:4px;
-  font-size:9px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;
-  color:var(--txt-3);border-right:1px solid var(--linha-fina);
+body.industrial .topbar .abas{order:4;margin-left:14px}
+body.industrial .marca{order:1}
+body.industrial .topbar-id{order:2;flex:0 1 auto;overflow:hidden}
+/* o seletor de colunas vale para as telas de Dia e Semana; na apresentação
+   cada seção já mostra o período inteiro */
+body.industrial #campoColunas{display:none}
+body.industrial .filtros-rot{display:none}
+body.industrial .painel-filtros .campo{padding:0 12px;position:relative}
+/* dentro da faixa do topo o espaço é disputado com o título e as abas: os
+   campos encolhem até o limite do legível em vez de invadirem as abas */
+body.industrial .topbar .painel-filtros .campo{min-width:0;flex:0 1 auto}
+body.industrial .topbar .painel-filtros select{
+  width:100%;min-width:92px;max-width:clamp(104px,11vw,190px);
 }
-body.industrial .painel-filtros .campo{padding:0 16px;position:relative}
+body.industrial .topbar .painel-filtros .periodo{min-width:0;flex-wrap:nowrap}
+body.industrial .topbar .painel-filtros input[type="date"]{
+  width:clamp(98px,8.4vw,128px);min-width:0;padding-left:6px;padding-right:4px;
+}
+body.industrial .topbar .painel-filtros .periodo span{font-size:11px}
 body.industrial .painel-filtros .campo + .campo::before{
   content:"";position:absolute;left:0;top:4px;bottom:4px;width:1px;
   background:var(--linha-fina);
@@ -474,8 +494,9 @@ body.industrial .painel-filtros .campo + .campo::before{
 body.industrial .campo>label{color:var(--txt-3);font-size:8.5px;letter-spacing:.2em}
 body.industrial .campo select,body.industrial .campo input{
   background:rgba(18,37,66,.72);border:1px solid var(--linha-media);color:var(--txt);
-  border-radius:7px;min-height:31px;font-size:12.5px;
+  border-radius:7px;min-height:28px;font-size:12px;
 }
+body.industrial .campo>label{margin-bottom:2px}
 body.industrial .campo select:hover,body.industrial .campo input:hover{
   border-color:var(--vivo);background:#15294A;
 }
@@ -487,18 +508,20 @@ body.industrial .campo input[type="date"]::-webkit-calendar-picker-indicator{fil
 body.industrial .faixa-kpi{
   flex:0 0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:9px;
 }
+/* cartões em formato de faixa: o número continua sendo o que se lê primeiro,
+   mas a altura cede espaço para a área de análise */
 body.industrial .kpi-card{
-  display:flex;align-items:center;gap:16px;
+  display:flex;align-items:center;gap:12px;
   background:var(--cartao);border:1px solid var(--linha-fina);
-  border-top:2px solid var(--linha-media);border-radius:10px;
-  padding:13px 22px;min-width:0;box-shadow:none;
+  border-top:2px solid var(--linha-media);border-radius:9px;
+  padding:7px 16px;min-width:0;box-shadow:none;
 }
 body.industrial .kpi-icone{
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
-  width:40px;height:40px;border-radius:9px;
+  width:30px;height:30px;border-radius:8px;
   background:rgba(63,127,212,.14);color:#8FBAE8;
 }
-body.industrial .kpi-icone svg{width:20px;height:20px}
+body.industrial .kpi-icone svg{width:16px;height:16px}
 body.industrial .kpi-corpo{display:flex;flex-direction:column;min-width:0}
 body.industrial .kpi-card .rotulo{
   font-size:9px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
@@ -506,7 +529,7 @@ body.industrial .kpi-card .rotulo{
 }
 body.industrial .kpi-card .kpi-numero{
   font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
-  color:#FFFFFF;font-size:clamp(30px,2.6vw,42px);line-height:1.04;margin-top:2px;
+  color:#FFFFFF;font-size:clamp(21px,1.7vw,29px);line-height:1.02;margin-top:1px;
   letter-spacing:.01em;white-space:nowrap;
 }
 body.industrial .kpi-unidade{
@@ -755,7 +778,13 @@ body.industrial .aviso code{background:var(--bg);color:#8FBAE8}
   body.industrial{display:block;height:auto;min-height:100vh;overflow:visible}
   body.industrial .topbar{flex-wrap:wrap;min-height:0}
   body.industrial .topbar .abas{margin:10px 12px 12px 12px}
-  body.industrial .painel-filtros{margin-top:9px}
+  /* em telas estreitas a faixa do topo quebra em linhas e os filtros voltam a
+     ficar abaixo do título, dentro da mesma faixa */
+  body.industrial .topbar{flex-wrap:wrap;min-height:0;padding-bottom:10px}
+  body.industrial .topbar .painel-filtros{
+    order:5;flex:1 1 100%;flex-wrap:wrap;margin:10px 12px 0;
+  }
+  body.industrial .topbar .abas{order:4;margin-right:12px}
   body.industrial .painel-filtros .campo{padding:0 10px}
   body.industrial .filtros-rot{display:none}
   body.industrial .faixa-kpi,body.industrial .barra-nav{margin-top:9px}
@@ -820,7 +849,7 @@ body.industrial .aviso code{background:var(--bg);color:#8FBAE8}
         <input type="date" id="fInicio"><span>até</span><input type="date" id="fFim">
       </div>
     </div>
-    <div class="campo">
+    <div class="campo" id="campoColunas">
       <label for="fColunas">Colunas</label>
       <select id="fColunas">
         <option>10</option><option>15</option><option>20</option>
@@ -2447,6 +2476,23 @@ function atualizarCabecalho(resumo, porSemanaAtivo){
     num(resumo.reduce((a,d) => a + d.rotas, 0));
 }
 
+/* Na apresentação os filtros sobem para dentro da faixa do topo, ao lado do
+   título, para não gastarem uma linha só deles. Nas abas Dia e Semana o painel
+   volta exatamente ao lugar de origem — os campos são os mesmos elementos, com
+   os mesmos eventos; só mudam de endereço no documento. */
+let ancoraFiltros = null;
+function posicionarFiltros(naFaixa){
+  const barra = document.getElementById("barra");
+  const topo = document.querySelector(".topbar");
+  if(!barra || !topo) return;
+  if(!ancoraFiltros) ancoraFiltros = {pai:barra.parentNode, apos:barra.nextSibling};
+  if(naFaixa){
+    if(barra.parentNode !== topo) topo.appendChild(barra);
+  }else if(barra.parentNode !== ancoraFiltros.pai){
+    ancoraFiltros.pai.insertBefore(barra, ancoraFiltros.apos);
+  }
+}
+
 function render(){
   const registros = registrosFiltrados();
   const controles = document.getElementById("controles");
@@ -2458,6 +2504,7 @@ function render(){
   // o tema industrial vale só na apresentação; Dia e Semana seguem claros
   document.body.classList.toggle("industrial", slidesAtivo);
   document.documentElement.classList.toggle("industrial", slidesAtivo);
+  posicionarFiltros(slidesAtivo);
   TEMA = slidesAtivo ? TEMA_ESCURO : TEMA_CLARO;
   // na visão semanal cada barra já é uma semana: a faixa de pílulas não cabe ali
   controles.hidden = porSemanaAtivo;
