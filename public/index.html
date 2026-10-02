@@ -185,6 +185,39 @@ button{font-family:inherit}
 .eixo-cel.eixo-feriado{color:#C8873C;font-weight:700}
 .grafico{width:100%}
 
+/* ── Aba Comparativo ─────────────────────────────────────────────────────
+   Mesma linguagem dos cartões das abas Dia e Semana: o que muda é o eixo, que
+   aqui é mês ou semana em vez de dia, e a variação de um período para o
+   seguinte, escrita acima de cada coluna.                                   */
+.comp-topo{
+  display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap;margin:0 0 12px;
+}
+.comp-escolha{display:flex;gap:6px}
+.comp-nota{margin:0;font-size:11.5px;color:var(--suave);letter-spacing:.01em}
+.comp-nota b{color:var(--tinta);font-weight:600}
+.comp-vazio{
+  background:var(--papel);border:1px solid var(--linha);border-radius:var(--raio);
+  padding:22px;color:var(--suave);font-size:13px;box-shadow:var(--sombra);
+}
+.comp-resumo{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#F8FAFD;
+  border:1px solid var(--grade);border-radius:12px;padding:9px 10px;margin:0 0 10px;
+}
+.comp-item{text-align:center;min-width:0}
+.comp-item+.comp-item{border-left:1px solid var(--grade)}
+.comp-rot{font-size:8px;font-weight:600;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--tenue)}
+.comp-val{font-family:'Barlow Condensed','Arial Narrow',Arial,sans-serif;font-weight:700;
+  font-size:clamp(20px,1.45vw,28px);line-height:1.05;color:var(--tinta);white-space:nowrap}
+.comp-item:first-child .comp-val{color:var(--marca)}
+.comp-val.sobe{color:#2F7D1F}
+.comp-val.desce{color:#C8873C}
+.comp-dica{font-size:9px;color:var(--tenue);letter-spacing:.04em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:900px){
+  .comp-topo{align-items:flex-start;flex-direction:column;gap:10px}
+}
+
 /* ── Visão por semana ────────────────────────────────────────────────────── */
 .legenda{display:flex;gap:8px 20px;justify-content:flex-end;flex-wrap:wrap;margin:0 0 10px}
 .leg-item{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
@@ -474,6 +507,7 @@ body.industrial .topbar-id{order:2;flex:0 1 auto;overflow:hidden}
 /* o seletor de colunas vale para as telas de Dia e Semana; na apresentação
    cada seção já mostra o período inteiro */
 body.industrial #campoColunas{display:none}
+body.comparativo #campoColunas,body.comparativo #campoPeriodo{display:none}
 body.industrial .filtros-rot{display:none}
 body.industrial .painel-filtros .campo{padding:0 12px;position:relative}
 /* dentro da faixa do topo o espaço é disputado com o título e as abas: os
@@ -822,6 +856,7 @@ body.industrial .aviso code{background:var(--bg);color:#8FBAE8}
     <div class="abas" role="tablist">
       <button class="aba" id="abaDia" role="tab" aria-selected="true">Dia</button>
       <button class="aba" id="abaSemana" role="tab" aria-selected="false">Semana</button>
+      <button class="aba" id="abaComparativo" role="tab" aria-selected="false">Comparativo</button>
       <button class="aba" id="abaSlides" role="tab" aria-selected="false">Apresentação</button>
     </div>
     <div class="cab-meta">
@@ -843,7 +878,7 @@ body.industrial .aviso code{background:var(--bg);color:#8FBAE8}
       <label for="fBase">Base</label>
       <select id="fBase"></select>
     </div>
-    <div class="campo">
+    <div class="campo" id="campoPeriodo">
       <label for="fInicio">Período</label>
       <div class="periodo">
         <input type="date" id="fInicio"><span>até</span><input type="date" id="fFim">
@@ -889,6 +924,17 @@ body.industrial .aviso code{background:var(--bg);color:#8FBAE8}
     <div class="legenda" id="legendaSemanas"></div>
     <div class="linha linha-3" id="semLinha1"></div>
     <div class="linha linha-3" id="semLinha2"></div>
+  </section>
+
+  <section id="viewComparativo" hidden>
+    <div class="comp-topo">
+      <div class="comp-escolha" role="group" aria-label="Agrupamento">
+        <button class="pilula" id="compMes" aria-pressed="true">Mês a mês</button>
+        <button class="pilula" id="compSemana" aria-pressed="false">Semana a semana</button>
+      </div>
+      <p class="comp-nota" id="compNota"></p>
+    </div>
+    <div class="linha linha-2" id="compLinhas"></div>
   </section>
 
   <section id="viewSlides" hidden>
@@ -990,7 +1036,9 @@ let BASE = null;
 const filtros = {
   uf:"TODOS", inicio:null, fim:null, drop:"Parada",
   colunas:"31", semana:"TODAS", pagina:1, aba:"dia", indicador:"Drop (kg/parada)",
-  secao:"drop", trilhoRecolhido:false, base:"TODAS"
+  secao:"drop", trilhoRecolhido:false, base:"TODAS",
+  // agrupamento da aba Comparativo: "mes" ou "semana"
+  comp:"mes"
 };
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -1843,7 +1891,7 @@ const SECOES = [
    total:{campo:"mediaEntregas", nome:"Média de entregas por rota", casas:0}},
   {id:"ocupacao", menu:"Ocupação da frota", titulo:"Ocupação da frota",
    nota:"peso embarcado ÷ capacidade contratada", forma:"barra", campo:"ocupacao",
-   formato:"%{y:.0%}", percentual:true, unidade:"%", kpiMedia:"Ocupação média",
+   formato:"%{y:.0%}", percentual:true, unidade:"%", kpiMedia:"Ocupação",
    // a média do período é o peso total sobre a capacidade total — dias com
    // mais carga pesam mais do que dias fracos
    mediaRazao:{numerador:"peso", denominador:"capacidade", percentual:true},
@@ -2469,11 +2517,190 @@ function desenharDetalheEstados(registros){
 function atualizarCabecalho(resumo, porSemanaAtivo){
   document.getElementById("cabTitulo").textContent =
     filtros.aba === "semana" ? "Indicadores por semana"
-    : filtros.aba === "slides" ? "Apresentação" : "Indicadores por dia";
+    : filtros.aba === "slides" ? "Apresentação"
+    : filtros.aba === "comparativo" ? "Comparativo" : "Indicadores por dia";
   document.getElementById("kpiUnidadeRot").textContent = porSemanaAtivo ? "Semanas" : "Dias";
   document.getElementById("kpiUnidade").textContent = num(resumo.length);
   document.getElementById("kpiRotas").textContent =
     num(resumo.reduce((a,d) => a + d.rotas, 0));
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   ABA COMPARATIVO — ocupação e média de entregas, período a período
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Os dois indicadores da aba. Ambos são razões entre totais do período, nunca
+   médias de médias: cada dia entra com o seu tamanho real. */
+const COMPARATIVOS = [
+  {id:"ocupacao", titulo:"Ocupação da frota", nota:"% · peso ÷ capacidade",
+   cima:"peso", baixo:"capacidade", escala:100, casas:1, sufixo:"%",
+   // a diferença entre dois percentuais se lê em pontos, não em porcentagem
+   deltaPontos:true},
+  {id:"entregas", titulo:"Média de entregas", nota:"entregas ÷ rotas",
+   cima:"entregas", baixo:"rotas", escala:1, casas:1, sufixo:""},
+];
+
+/** Soma os registros por mês (AAAA-MM) ou pela semana que a própria base traz. */
+function agruparComparativo(registros, modo){
+  const mapa = new Map();
+  for(const r of registros){
+    const chave = modo === "mes" ? r.data.slice(0,7) : r.semana;
+    if(!chave) continue;
+    if(!mapa.has(chave)){
+      mapa.set(chave, {chave, primeira:r.data, ultima:r.data, dias:new Set(),
+                       rotas:0, entregas:0, peso:0, capacidade:0});
+    }
+    const g = mapa.get(chave);
+    if(r.data < g.primeira) g.primeira = r.data;
+    if(r.data > g.ultima)   g.ultima   = r.data;
+    g.dias.add(r.data);
+    g.rotas      += r.rotas      || 0;
+    g.entregas   += r.entregas   || 0;
+    g.peso       += r.peso       || 0;
+    g.capacidade += r.capacidade || 0;
+  }
+  return [...mapa.values()]
+    .sort((a,b) => a.primeira.localeCompare(b.primeira))
+    .map(g => ({
+      ...g, dias:g.dias.size,
+      rotulo: modo === "mes" ? rotuloMes(g.chave) : g.chave,
+    }));
+}
+
+/** "2026-09" → "SET/26" */
+function rotuloMes(chave){
+  const [ano, mes] = chave.split("-");
+  return MESES[Number(mes) - 1] + "/" + ano.slice(2);
+}
+
+/** Variação de um período para o anterior, já formatada e classificada. */
+function variacao(atual, anterior, conf, curto = false){
+  if(atual === null || anterior === null || !isFinite(atual) || !isFinite(anterior)
+     || anterior === 0) return null;
+  const bruto = conf.deltaPontos ? atual - anterior
+                                 : (atual - anterior) / anterior * 100;
+  const sinal = bruto > 0.049 ? "+" : bruto < -0.049 ? "−" : "";
+  return {
+    bruto,
+    texto: sinal + num(Math.abs(bruto), 1)
+      + (conf.deltaPontos ? (curto ? "pp" : " p.p.") : "%"),
+    classe: bruto > 0.049 ? "sobe" : bruto < -0.049 ? "desce" : "",
+    cor: bruto > 0.049 ? "#2F7D1F" : bruto < -0.049 ? "#C8873C" : TEMA.suave,
+  };
+}
+
+/**
+ * Desenha a aba inteira. Os dados são os mesmos registros das outras telas,
+ * apenas somados por mês ou por semana — nada é recalculado de outra fonte.
+ */
+function desenharComparativo(registros){
+  const alvo = document.getElementById("compLinhas");
+  const modo = filtros.comp;
+  const grupos = agruparComparativo(registros, modo);
+
+  const nota = document.getElementById("compNota");
+  if(grupos.length){
+    nota.innerHTML = "Histórico completo: <b>" + dataCurta(grupos[0].primeira)
+      + "</b> a <b>" + dataCurta(grupos[grupos.length-1].ultima) + "</b> · "
+      + grupos.length + (modo === "mes" ? " meses" : " semanas")
+      + " · o filtro de datas não se aplica aqui";
+  }else{
+    nota.textContent = "";
+  }
+
+  if(grupos.length < 2){
+    alvo.innerHTML = '<div class="comp-vazio">É preciso pelo menos dois '
+      + (modo === "mes" ? "meses" : "semanas")
+      + " na base para comparar. Troque o estado ou aguarde a próxima carga de dados.</div>";
+    return;
+  }
+
+  alvo.innerHTML = COMPARATIVOS.map(c =>
+    `<div class="card">
+       <div class="painel-topo">
+         <h2 class="painel-titulo">${c.titulo}</h2>
+         <span class="painel-nota">${c.nota}</span>
+       </div>
+       <div class="comp-resumo" id="resumo-${c.id}"></div>
+       <div class="grafico" id="comp-${c.id}"></div>
+     </div>`).join("");
+
+  for(const conf of COMPARATIVOS) desenharCartaoComparativo(grupos, conf, modo);
+}
+
+function desenharCartaoComparativo(grupos, conf, modo){
+  const valores = grupos.map(g => g[conf.baixo]
+    ? (g[conf.cima] / g[conf.baixo]) * conf.escala : null);
+  const rotulos = grupos.map(g => g.rotulo);
+  const escrito = valores.map(v => v === null ? "—" : num(v, conf.casas) + conf.sufixo);
+  /* com muitos períodos na tela os rótulos encolhem para continuarem legíveis
+     sem se encostarem uns nos outros */
+  const apertado = grupos.length > 8;
+  const corpoValor = apertado ? 12.5 : 16;
+  const deltas = valores.map((v,i) =>
+    i === 0 ? null : variacao(v, valores[i-1], conf, apertado));
+
+  /* Faixa de leitura: quantos períodos entraram, qual foi o melhor e quanto
+     variou do primeiro ao último. */
+  const comValor = valores.map((v,i) => ({v, i})).filter(x => x.v !== null);
+  const melhor = comValor.reduce((a,b) => b.v > a.v ? b : a, comValor[0]);
+  const ponta = comValor.length > 1
+    ? variacao(comValor[comValor.length-1].v, comValor[0].v, conf) : null;
+  document.getElementById("resumo-" + conf.id).innerHTML =
+    `<div class="comp-item">
+       <div class="comp-rot">${modo === "mes" ? "Meses" : "Semanas"}</div>
+       <div class="comp-val">${num(grupos.length)}</div>
+       <div class="comp-dica">&nbsp;</div>
+     </div>
+     <div class="comp-item">
+       <div class="comp-rot">Maior</div>
+       <div class="comp-val">${escrito[melhor.i]}</div>
+       <div class="comp-dica">${rotulos[melhor.i]}</div>
+     </div>
+     <div class="comp-item">
+       <div class="comp-rot">Do 1º ao último</div>
+       <div class="comp-val ${ponta ? ponta.classe : ""}">${ponta ? ponta.texto : "—"}</div>
+       <div class="comp-dica">${rotulos[comValor[0].i]} → ${rotulos[comValor[comValor.length-1].i]}</div>
+     </div>`;
+
+  const teto = Math.max(...valores.filter(v => v !== null), 0) * 1.3 || 1;
+  const caixa = document.getElementById("comp-" + conf.id);
+  const altura = Math.max(230, Math.min(330, Math.round(window.innerHeight * 0.30)));
+
+  Plotly.newPlot(caixa, [{
+    type:"bar", x:rotulos, y:valores,
+    text:escrito, textposition:"outside", cliponaxis:false,
+    textfont:{family:"Barlow Condensed, sans-serif", size:corpoValor, color:TEMA.texto},
+    marker:{color:TEMA.barra, line:{width:0}, cornerradius:5},
+    width:grupos.length <= 4 ? 0.42 : 0.62,
+    customdata:grupos.map((g,i) =>
+      [dataCurta(g.primeira) + " a " + dataCurta(g.ultima),
+       num(g.rotas) + " rotas · " + g.dias + (g.dias === 1 ? " dia" : " dias")]),
+    hovertemplate:"<b>%{x}</b> · %{customdata[0]}<br>%{y:,.1f}"
+      + (conf.sufixo || "") + "<br>%{customdata[1]}<extra></extra>"
+  }], {
+    height:altura, autosize:true,
+    margin:{l:8, r:8, t:34, b:apertado ? 52 : 30},
+    paper_bgcolor:"rgba(0,0,0,0)", plot_bgcolor:"rgba(0,0,0,0)",
+    font:{family:"Archivo, sans-serif", size:11, color:TEMA.texto},
+    showlegend:false, bargap:0.3,
+    hoverlabel:{font:{size:12, family:"Archivo, sans-serif", color:TEMA.hoverTexto},
+                bgcolor:TEMA.hoverFundo, bordercolor:TEMA.hoverBorda},
+    xaxis:{type:"category", showgrid:false, zeroline:false, fixedrange:true,
+           showline:true, linecolor:TEMA.grade,
+           tickangle:apertado ? -40 : 0,
+           tickfont:{family:"Archivo, sans-serif", size:apertado ? 10 : 11.5,
+                     color:TEMA.suave}},
+    yaxis:{range:[0, teto], showgrid:true, gridcolor:TEMA.grade, zeroline:false,
+           showline:false, showticklabels:false, fixedrange:true},
+    /* a variação em relação ao período anterior fica acima do valor, para a
+       leitura ser "quanto deu" e logo em seguida "quanto mudou" */
+    annotations:deltas.map((d,i) => d && valores[i] !== null ? {
+      x:rotulos[i], y:valores[i], yref:"y", xref:"x", text:d.texto, showarrow:false,
+      yanchor:"bottom", yshift:corpoValor + 15,
+      font:{family:"Archivo, sans-serif", size:apertado ? 9.5 : 11, color:d.cor}
+    } : null).filter(Boolean)
+  }, CONFIG);
 }
 
 /* Na apresentação os filtros sobem para dentro da faixa do topo, ao lado do
@@ -2498,17 +2725,23 @@ function render(){
   const controles = document.getElementById("controles");
   const porSemanaAtivo = filtros.aba === "semana";
   const slidesAtivo = filtros.aba === "slides";
+  const compAtivo = filtros.aba === "comparativo";
   document.getElementById("viewDia").hidden = filtros.aba !== "dia";
   document.getElementById("viewSemana").hidden = !porSemanaAtivo;
   document.getElementById("viewSlides").hidden = !slidesAtivo;
+  document.getElementById("viewComparativo").hidden = !compAtivo;
+  /* o comparativo varre todo o histórico: o filtro de datas sairia na frente
+     do que a tela se propõe a mostrar, então ele some enquanto a aba está
+     aberta e volta ao sair */
+  document.body.classList.toggle("comparativo", compAtivo);
   // o tema industrial vale só na apresentação; Dia e Semana seguem claros
   document.body.classList.toggle("industrial", slidesAtivo);
   document.documentElement.classList.toggle("industrial", slidesAtivo);
   posicionarFiltros(slidesAtivo);
   TEMA = slidesAtivo ? TEMA_ESCURO : TEMA_CLARO;
   // na visão semanal cada barra já é uma semana: a faixa de pílulas não cabe ali
-  controles.hidden = porSemanaAtivo;
-  if(porSemanaAtivo) controles.innerHTML = "";
+  controles.hidden = porSemanaAtivo || compAtivo;
+  if(porSemanaAtivo || compAtivo) controles.innerHTML = "";
 
   if(!registros.length){
     controles.hidden = true;
@@ -2520,7 +2753,16 @@ function render(){
 
   const semanasDisponiveis = porSemana(registros);
 
-  if(porSemanaAtivo){
+  if(compAtivo){
+    /* o comparativo ignora o intervalo de datas: compara todos os meses ou
+       semanas que a base tem, mantendo estado e base selecionados */
+    const daBase = filtros.base !== "TODAS" && BASE.unidades;
+    const todos = (daBase ? BASE.unidades.filter(r => r.unidade === filtros.base)
+                          : BASE.registros)
+      .filter(r => filtros.uf === "TODOS" || r.uf === filtros.uf);
+    atualizarCabecalho(porDia(todos), false);
+    desenharComparativo(todos);
+  }else if(porSemanaAtivo){
     atualizarCabecalho(semanasDisponiveis, true);
     desenharSemana(semanasDisponiveis);
   }else if(slidesAtivo){
@@ -2611,7 +2853,8 @@ function ligarFiltros(datas){
   const colunas = document.getElementById("fColunas");
   colunas.onchange = () => { filtros.colunas = colunas.value; filtros.pagina = 1; render(); };
 
-  const abas = {dia:"abaDia", semana:"abaSemana", slides:"abaSlides"};
+  const abas = {dia:"abaDia", semana:"abaSemana",
+                comparativo:"abaComparativo", slides:"abaSlides"};
   const trocarAba = escolha => {
     filtros.aba = escolha;
     for(const [nome, id] of Object.entries(abas))
@@ -2620,6 +2863,17 @@ function ligarFiltros(datas){
   };
   for(const [nome, id] of Object.entries(abas))
     document.getElementById(id).onclick = () => trocarAba(nome);
+
+  // as duas pílulas do comparativo: mês a mês ou semana a semana
+  const modos = {mes:"compMes", semana:"compSemana"};
+  for(const [nome, id] of Object.entries(modos)){
+    document.getElementById(id).onclick = () => {
+      filtros.comp = nome;
+      for(const [m, botao] of Object.entries(modos))
+        document.getElementById(botao).setAttribute("aria-pressed", m === nome);
+      render();
+    };
+  }
 }
 
 function ligarDetalhe(){
